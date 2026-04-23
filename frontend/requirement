@@ -1,0 +1,56 @@
+Listed directory backend
+Listed directory frontend
+Viewed server.js:1-127
+Viewed package.json:1-42
+Viewed vite.config.js:1-23
+Viewed package.json:1-35
+Viewed index.html:1-39
+Listed directory pages
+Viewed App.jsx:1-129
+Viewed orderController.js:1-461
+Viewed Checkout.jsx:1-256
+Viewed api.js:1-38
+Viewed authMiddleware.js:1-38
+
+I have completed a comprehensive production-readiness audit of the **SOVRA** jewellery website. Overall, the codebase is professionally structured with a premium aesthetic and solid lazy-loading implementation. However, there are several **critical** and **important** issues that must be addressed before the website can safely go live.
+
+Below is the production check grouped by category.
+
+### 1. Critical Functional Gaps
+*   **Mock Payment Flow**: The `Checkout.jsx` (line 69) currently hardcodes the payment method to "Credit Card" and processes the order immediately without any third-party payment gateway integration (e.g., Stripe, Razorpay). 
+    *   *Issue:* There is no real-world transaction taking place. You need to implement a secure checkout session or server-side webhook to verify payments before marking orders as paid.
+*   **Inventory Race Conditions**: In `orderController.js`, the stock check and decrement happen in separate steps (lines 28-69). 
+    *   *Issue:* In a high-traffic scenario, two users could purchase the last item simultaneously. The backend needs **atomic operations** (e.g., using `findOneAndUpdate` with a stock condition) to prevent overselling.
+*   **Email Notifications**: While the models and controllers reference notifications, ensure that a production SMTP server (Mailgun, SendGrid, etc.) is configured in `.env` for order confirmations and OTP emails.
+
+### 2. Security & Robustness
+*   **JWT Secret Security**: Ensure your `JWT_SECRET` is at least 32-64 characters long and generated randomly for production. Never use a simple string like "secret123".
+*   **Environment Variable Validation**: The backend (`server.js`) starts even if critical environment variables (like `MONGO_URI` or `CLOUDINARY_URL`) are missing. 
+    *   *Suggestion:* Add a validation script to crash the process early if required secrets are not present in the environment.
+*   **Rate Limiting Granularity**: Currently, a global limit of 200 requests/15 mins is applied to all `/api` routes.
+    *   *Issue:* This might be too restrictive for browsing many product images, but too lenient for login/signup routes. It is better to have separate, stricter limiters for authentication endpoints.
+*   **Graceful Shutdown**: The backend does not handle `SIGINT` or `SIGTERM` signals.
+    *   *Issue:* When you restart or deploy your server (especially on Heroku/Vercel/Docker), active database connections might be abruptly severed. Implement `process.on('SIGTERM', ...)` to close connections cleanly.
+
+### 3. Performance & SEO
+*   **Missing Compression**: The backend is not using `compression` middleware.
+    *   *Result:* Large JSON responses (like the product catalog) will take longer to load and consume more bandwidth.
+*   **Static Metadata**: While `index.html` has SEO tags, they are static.
+    *   *Issue:* For an e-commerce site, individual product pages should have dynamic Open Graph (OG) tags so that sharing a specific ring or necklace on social media displays its unique image and title. (Consider using `react-helmet-async`).
+*   **Missing SEO Assets**: The project lacks a `robots.txt` and a `sitemap.xml`, which are essential for Google indexation.
+*   **Image Optimization**: Ensure that images uploaded to Cloudinary are being served with the `f_auto,q_auto` transformation parameters to minimize mobile data usage.
+
+### 4. User Experience (Edge Cases)
+*   **React Error Boundaries**: The `App.jsx` structure lacks an `ErrorBoundary`.
+    *   *Issue:* If a single component (like a broken product card) crashes, the entire website will turn white. Wrapping the `<Suspense>` or main routes in an Error Boundary is standard for production.
+*   **Client-Side Validation**: Forms in `Checkout.jsx` rely on the HTML5 `required` attribute. 
+    *   *Suggestion:* Add regex validation for phone numbers and postal codes to ensure data integrity before it reaches the backend.
+*   **Loading States**: While you have a `PageLoader`, consider adding "Skeleton Screen" loaders for individual product cards in the `Shop` page to make the load feel faster and more premium.
+
+### 5. Deployment Monitoring
+*   **Health Check Endpoint**: Add a `/api/health` route that returns the status of the DB connection. This is required by many hosting providers to monitor if your app is truly "healthy."
+*   **Logging Protection**: Ensure that the `logs/` directory in the backend is included in `.gitignore` (it is) and that the Winston logger is configured to log only `error` level in production to avoid filling up disk space.
+
+---
+
+**Summary**: Your website is **not yet ready** for a production launch because of the **mock payment system** and **inventory logic**. Once those technical hurdles are cleared, the remaining items are optimizations that will help with scale and SEO.
