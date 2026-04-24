@@ -9,32 +9,47 @@ import { ShopProvider } from './context/ShopContext'
 import PrivateRoute from './components/PrivateRoute'
 import AdminRoute from './components/AdminRoute'
 
-// Lazy load pages
-const Home = lazy(() => import('./pages/Home'))
-const Shop = lazy(() => import('./pages/Shop'))
-const ProductDetail = lazy(() => import('./pages/ProductDetail'))
-const Bag = lazy(() => import('./pages/Bag'))
-const Account = lazy(() => import('./pages/Account'))
-const Story = lazy(() => import('./pages/Story'))
-const Ethics = lazy(() => import('./pages/Ethics'))
-const Admin = lazy(() => import('./pages/Admin'))
-const Collections = lazy(() => import('./pages/Collections'))
-const Magazine = lazy(() => import('./pages/Magazine'))
-const Login = lazy(() => import('./pages/Login'))
-const Signup = lazy(() => import('./pages/Signup'))
-const OTPVerification = lazy(() => import('./pages/OTPVerification'))
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
-const Checkout = lazy(() => import('./pages/Checkout'))
-const OrderDetail = lazy(() => import('./pages/OrderDetail'))
-const Invoice = lazy(() => import('./pages/Invoice'))
-const Wishlist = lazy(() => import('./pages/Wishlist'))
-const Contact = lazy(() => import('./pages/Contact'))
-const FAQ = lazy(() => import('./pages/FAQ'))
-const Policies = lazy(() => import('./pages/Policies'))
-const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
-const TermsOfService = lazy(() => import('./pages/TermsOfService'))
-const SizeGuide = lazy(() => import('./pages/SizeGuide'))
-const NotFound = lazy(() => import('./pages/NotFound'))
+// Helper to handle ChunkLoadErrors after a new deployment
+const lazyRetry = (componentImport) => {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      // If the module fails to load, it's likely because a new version was deployed
+      // and the old chunk is gone. We force a hard reload to get the new assets.
+      console.error('Module load failed, refreshing...', error);
+      window.location.reload();
+      return { default: () => null }; // Return a dummy while reloading
+    }
+  });
+};
+
+// Lazy load pages with retry logic
+const Home = lazyRetry(() => import('./pages/Home'))
+const Shop = lazyRetry(() => import('./pages/Shop'))
+const ProductDetail = lazyRetry(() => import('./pages/ProductDetail'))
+const Bag = lazyRetry(() => import('./pages/Bag'))
+const Account = lazyRetry(() => import('./pages/Account'))
+const Story = lazyRetry(() => import('./pages/Story'))
+const Ethics = lazyRetry(() => import('./pages/Ethics'))
+const Admin = lazyRetry(() => import('./pages/Admin'))
+const Collections = lazyRetry(() => import('./pages/Collections'))
+const Magazine = lazyRetry(() => import('./pages/Magazine'))
+const Login = lazyRetry(() => import('./pages/Login'))
+const Signup = lazyRetry(() => import('./pages/Signup'))
+const OTPVerification = lazyRetry(() => import('./pages/OTPVerification'))
+const ForgotPassword = lazyRetry(() => import('./pages/ForgotPassword'))
+const Checkout = lazyRetry(() => import('./pages/Checkout'))
+const OrderDetail = lazyRetry(() => import('./pages/OrderDetail'))
+const Invoice = lazyRetry(() => import('./pages/Invoice'))
+const Wishlist = lazyRetry(() => import('./pages/Wishlist'))
+const Contact = lazyRetry(() => import('./pages/Contact'))
+const FAQ = lazyRetry(() => import('./pages/FAQ'))
+const Policies = lazyRetry(() => import('./pages/Policies'))
+const PrivacyPolicy = lazyRetry(() => import('./pages/PrivacyPolicy'))
+const TermsOfService = lazyRetry(() => import('./pages/TermsOfService'))
+const SizeGuide = lazyRetry(() => import('./pages/SizeGuide'))
+const NotFound = lazyRetry(() => import('./pages/NotFound'))
 
 const PageLoader = () => (
   <div className="fixed inset-0 bg-surface z-[9999] flex flex-col items-center justify-center">
