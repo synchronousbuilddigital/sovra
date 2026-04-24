@@ -52,6 +52,12 @@ const ScrollToTop = () => {
   const { pathname } = useLocation()
   useEffect(() => {
     window.scrollTo(0, 0)
+    // Fire GA4 page_view on every React Router navigation
+    if (typeof window.gtag === 'function') {
+      window.gtag('config', 'G-SJPL5MB07G', {
+        page_path: pathname,
+      })
+    }
   }, [pathname])
   return null
 }

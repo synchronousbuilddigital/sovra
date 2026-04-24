@@ -5,6 +5,7 @@ import { useShop } from '../context/ShopContext';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
 import { formatPrice } from '../utils/currency';
+import { trackPurchase } from '../utils/analytics';
 
 const Checkout = () => {
 
@@ -78,6 +79,8 @@ const Checkout = () => {
             const { data } = await api.post('/orders', orderData);
             setOrderInfo(data);
             setStep(2);
+            // GA4: purchase event
+            trackPurchase(data._id, cart, total, taxes)
             refreshProfile(); // Clear cart in context
             toast.success('Your curation has been secured.');
         } catch (error) {

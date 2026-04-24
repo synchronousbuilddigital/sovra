@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useShop } from '../context/ShopContext'
 import { formatPrice } from '../utils/currency'
+import { trackBeginCheckout } from '../utils/analytics'
 
 
 const Bag = () => {
@@ -122,7 +123,11 @@ const Bag = () => {
 
 
                                 <button
-                                    onClick={() => navigate('/checkout')}
+                                    onClick={() => {
+                                        // GA4: begin_checkout
+                                        trackBeginCheckout(cart, total)
+                                        navigate('/checkout')
+                                    }}
                                     className="w-full bg-primary text-on-primary py-7 px-10 flex justify-between items-center group transition-all duration-700 hover:bg-primary-dim hover:pr-14 shadow-lux"
                                 >
                                     <span className="text-[10px] uppercase tracking-[0.4rem] font-black">Proceed to Checkout</span>

@@ -9,6 +9,7 @@ import { formatPrice } from '../utils/currency'
 import { getOptimizedImage } from '../utils/imageUtils'
 import { toast } from 'react-toastify'
 import Skeleton from '../components/Skeleton'
+import { trackAddToCart, trackWishlist, trackViewItem } from '../utils/analytics'
 
 const ProductDetail = () => {
     const { id } = useParams()
@@ -58,6 +59,8 @@ const ProductDetail = () => {
             setLoading(true)
             const { data } = await api.get(`/products/${id}`)
             setProduct(data)
+            // GA4: product detail view
+            trackViewItem(data)
         } catch (error) {
             console.error('Fetch failed:', error)
             setProduct({
@@ -113,8 +116,12 @@ const ProductDetail = () => {
     const handleWishlist = () => {
         if (isWishlisted) {
             removeFromWishlist(id)
+            // GA4: remove from wishlist
+            if (product) trackWishlist(product, 'remove')
         } else {
             addToWishlist(id)
+            // GA4: add to wishlist
+            if (product) trackWishlist(product, 'add')
         }
     }
 
@@ -319,7 +326,11 @@ const ProductDetail = () => {
                             <div className="flex flex-col md:flex-row gap-4">
                                 <button
                                     disabled={availableToAdd === 0}
-                                    onClick={() => addToCart(product._id, quantity)}
+                                    onClick={() => {
+                                        addToCart(product._id, quantity)
+                                        // GA4: add_to_cart
+                                        trackAddToCart(product, quantity)
+                                    }}
                                     className={`flex-1 ${availableToAdd === 0 ? 'bg-[#111110]/20' : 'bg-[#111110]'} text-[#f5f0e8] py-6 px-10 text-[10px] tracking-[0.4em] uppercase font-sans font-black flex items-center justify-center gap-4 hover:opacity-95 transition-all rounded-full shadow-lux-sm active:scale-95 disabled:cursor-not-allowed`}
                                 >
                                     <ShoppingBag size={14} />
