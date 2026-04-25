@@ -11,6 +11,15 @@ const gtag = (...args) => {
   if (typeof window.gtag === 'function') {
     window.gtag(...args);
   }
+  
+  // Also push to dataLayer for GTM Custom Event Triggers
+  if (args[0] === 'event') {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: args[1], // e.g., 'add_to_cart'
+      ...args[2]      // metadata/items
+    });
+  }
 };
 
 // ─── Add to Cart ────────────────────────────────────────────────────────────
