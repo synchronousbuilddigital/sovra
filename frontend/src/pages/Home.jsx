@@ -58,7 +58,7 @@ const NewsletterForm = () => {
             <div className="flex justify-center">
                 <button
                     disabled={status === 'submitting'}
-                    className="font-label text-[11px] kerning-widest uppercase text-primary border border-primary/30 px-16 md:px-24 py-5 md:py-6 hover:bg-primary hover:text-on-primary transition-all duration-[1200ms] ease-[cubic-bezier(0.19,1,0.22,1)] shadow-sm hover:shadow-xl disabled:opacity-50"
+                    className="font-label text-[11px] kerning-widest uppercase text-primary border border-primary/30 px-8 sm:px-16 md:px-24 py-4 md:py-6 hover:bg-primary hover:text-on-primary transition-all duration-[1200ms] ease-[cubic-bezier(0.19,1,0.22,1)] shadow-sm hover:shadow-xl disabled:opacity-50"
                 >
                     {status === 'submitting' ? 'Processing...' : 'Request Access'}
                 </button>
@@ -135,15 +135,15 @@ const Home = () => {
             <EditorialHero />
 
             {/* Manifesto Section */}
-            <section className="py-20 px-8">
-                <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-center gap-16 scroll-reveal text-on-surface">
+            <section className="py-16 md:py-20 px-6 md:px-8">
+                <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row items-center gap-12 md:gap-16 scroll-reveal text-on-surface text-center md:text-left">
                     <div className="w-full md:w-1/3 flex justify-center">
-                        <div className="w-32 h-[1px] bg-primary/30 rotate-90 md:rotate-0"></div>
+                        <div className="w-24 md:w-32 h-[1px] bg-primary/30 rotate-90 md:rotate-0 my-8 md:my-0"></div>
                     </div>
                     <div className="w-full md:w-2/3">
-                        <span className="font-headline italic text-2xl text-primary mb-6 block opacity-70">The SOVRA</span>
-                        <h2 className="font-headline text-[clamp(2.5rem,5vw,4.5rem)] leading-[1.1] mb-8 font-light">Poetry in Metal & Stone</h2>
-                        <p className="font-body text-2xl leading-relaxed text-secondary-dim font-light italic max-w-2xl">
+                        <span className="font-headline italic text-xl md:text-2xl text-primary mb-4 md:mb-6 block opacity-70">The SOVRA</span>
+                        <h2 className="font-headline text-[clamp(2rem,6vw,4.5rem)] leading-[1.1] mb-6 md:mb-8 font-light">Poetry in Metal & Stone</h2>
+                        <p className="font-body text-lg md:text-2xl leading-relaxed text-secondary-dim font-light italic max-w-2xl mx-auto md:mx-0">
                             "Born from the golden silence of the Aravalli hills, SOVRA represents the intersection of ancestral craftsmanship and ethereal vision. Every piece is a whispered secret between the artisan and the earth."
                         </p>
                     </div>
@@ -151,19 +151,19 @@ const Home = () => {
             </section>
 
             {/* Curated Gallery Grid */}
-            <section className="pb-20 px-8 md:px-16">
+            <section className="pb-16 md:pb-20 px-6 md:px-16">
                 <div className="max-w-[1720px] mx-auto">
-                    <div className="flex justify-between items-baseline mb-12 scroll-reveal">
-                        <h3 className="font-headline text-5xl font-light">The Archive</h3>
-                        <Link to="/shop" className="font-label text-[11px] kerning-widest uppercase border-b border-primary/20 pb-2 hover:border-primary transition-all duration-500">Explore All Masterpieces</Link>
+                    <div className="flex flex-col md:flex-row justify-center md:justify-between items-center md:items-baseline gap-6 md:gap-0 mb-10 md:mb-12 scroll-reveal text-center md:text-left">
+                        <h3 className="font-headline text-4xl md:text-5xl font-light">The Archive</h3>
+                        <Link to="/shop" className="font-label text-[10px] md:text-[11px] kerning-widest uppercase border-b border-primary/20 pb-2 hover:border-primary transition-all duration-500">Explore All Masterpieces</Link>
                     </div>
-                    <div className="grid grid-cols-12 gap-8 lg:gap-16 items-stretch">
+                    <div className="grid grid-cols-2 md:grid-cols-12 gap-4 md:gap-8 lg:gap-16 items-stretch">
                         {/* Rings Category */}
                         <m.div
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            className="col-span-12 md:col-span-4 flex flex-col h-full relative"
+                            className="col-span-1 md:col-span-4 flex flex-col h-full relative"
                         >
                             <Link to="/shop/rings" className="relative group overflow-hidden bg-surface-container aspect-[3/4.5] shadow-lux-sm hover:shadow-lux transition-all duration-700">
                                 <m.div
@@ -197,36 +197,36 @@ const Home = () => {
                             </Link>
                             <div className="mt-auto pt-4 space-y-4">
                                 <div className="flex justify-between items-baseline px-1">
-                                    <h4 className="font-headline text-2xl italic text-primary leading-none">The Circle</h4>
-                                    <span className="font-label text-[10px] kerning-widest uppercase opacity-40">12 Pieces</span>
+                                    <h4 className="font-headline text-lg md:text-2xl italic text-primary leading-none">The Circle</h4>
+                                    <span className="font-label text-[8px] md:text-[10px] kerning-widest uppercase opacity-40">12 Pieces</span>
                                 </div>
                                 <div className="flex justify-between items-center border-t border-black/5 pt-4 px-1">
-                                    <span className="font-label text-[9px] kerning-widest uppercase text-secondary font-bold">Collection Alpha</span>
-                                    <span className="font-label text-[9px] kerning-widest uppercase text-secondary">Masterpiece</span>
+                                    <span className="font-label text-[7px] md:text-[9px] kerning-widest uppercase text-secondary font-bold">Collection Alpha</span>
+                                    <span className="font-label text-[7px] md:text-[9px] kerning-widest uppercase text-secondary hidden sm:inline">Masterpiece</span>
                                 </div>
                             </div>
                         </m.div>
 
                         {/* Earrings Category */}
-                        <div className="col-span-12 md:col-span-4 flex flex-col h-full scroll-reveal" style={{ transitionDelay: '0.1s' }}>
+                        <div className="col-span-1 md:col-span-4 flex flex-col h-full scroll-reveal" style={{ transitionDelay: '0.1s' }}>
                             <Link to="/shop/earrings" className="relative group overflow-hidden bg-surface-container aspect-[3/4.5]">
                                 <img alt="Earrings" loading="lazy" className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" src={getOptimizedImage("https://lh3.googleusercontent.com/aida-public/AB6AXuBe1TJaSxbCjPeBOwrYEK4VNhCj-0xVe78ZJaC6QgYI1qtnh7AF-fmFo-fXuETFNZ8pUM9n_qWsO3AfMtvCn5uHlMypBEi0GIlopHr49Lbm7R7-2ucWwE0tXurU45Z1x2xiTWYIOA4JaFRxrx5DXIgdEnPkvmGsduNUPoS-gzKudmNiD0SGQGWYcmUzYT949bg4vDSrdZUPTkL2eyYWliaU7pQR5wVb0DOIjGHdSEy1KClZcrKhBHZ__FJc0xszjO4TqTLJxp0L86VE")} />
                                 <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
                             </Link>
                             <div className="mt-auto pt-4 space-y-4">
                                 <div className="flex justify-between items-baseline px-1">
-                                    <h4 className="font-headline text-2xl italic text-primary leading-none">Earrings</h4>
-                                    <span className="font-label text-[10px] kerning-widest uppercase opacity-40">08 Pieces</span>
+                                    <h4 className="font-headline text-lg md:text-2xl italic text-primary leading-none">Earrings</h4>
+                                    <span className="font-label text-[8px] md:text-[10px] kerning-widest uppercase opacity-40">08 Pieces</span>
                                 </div>
                                 <div className="flex justify-between items-center border-t border-black/5 pt-4 px-1">
-                                    <span className="font-label text-[9px] kerning-widest uppercase text-secondary font-bold">Ornaments</span>
-                                    <span className="font-label text-[9px] kerning-widest uppercase text-secondary">Signature</span>
+                                    <span className="font-label text-[7px] md:text-[9px] kerning-widest uppercase text-secondary font-bold">Ornaments</span>
+                                    <span className="font-label text-[7px] md:text-[9px] kerning-widest uppercase text-secondary hidden sm:inline">Signature</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Combined Column - Necklaces & Bracelets */}
-                        <div className="col-span-12 md:col-span-4 flex flex-col justify-between gap-6 scroll-reveal" style={{ transitionDelay: '0.2s' }}>
+                        <div className="col-span-2 md:col-span-4 grid grid-cols-2 md:flex md:flex-col gap-4 md:gap-6 scroll-reveal" style={{ transitionDelay: '0.2s' }}>
                             {/* Necklaces */}
                             <m.div
                                 initial={{ opacity: 0, x: 20 }}
@@ -264,31 +264,31 @@ const Home = () => {
                                         />
                                     </svg>
                                 </Link>
-                                <div className="mt-4 mb-2 space-y-3">
+                                <div className="mt-2 md:mt-4 mb-2 space-y-2 md:space-y-3">
                                     <div className="flex justify-between items-baseline px-1">
-                                        <h4 className="font-headline text-2xl italic text-primary leading-none">Necklaces</h4>
-                                        <span className="font-label text-[10px] kerning-widest uppercase opacity-40">15 Pieces</span>
+                                        <h4 className="font-headline text-lg md:text-2xl italic text-primary leading-none">Necklaces</h4>
+                                        <span className="font-label text-[8px] md:text-[10px] kerning-widest uppercase opacity-40">15 Pieces</span>
                                     </div>
-                                    <div className="flex justify-between items-center border-t border-black/5 pt-3 px-1">
-                                        <span className="font-label text-[9px] kerning-widest uppercase text-secondary font-bold">Necklines</span>
+                                    <div className="flex justify-between items-center border-t border-black/5 pt-2 md:pt-3 px-1">
+                                        <span className="font-label text-[7px] md:text-[9px] kerning-widest uppercase text-secondary font-bold">Necklines</span>
                                         <Link to="/shop/necklaces" className="material-symbols-outlined text-xs opacity-40 group-hover:opacity-100 transition-opacity">arrow_forward</Link>
                                     </div>
                                 </div>
                             </m.div>
 
                             {/* Bracelets */}
-                            <div className="flex flex-col group mt-auto">
+                            <div className="flex flex-col group mt-auto md:mt-auto">
                                 <Link to="/shop/bracelets" className="relative group overflow-hidden bg-surface-container aspect-[16/9] shadow-lux-sm">
                                     <img alt="Bracelets" loading="lazy" className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" src="/bracelet_hero.png" />
                                     <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
                                 </Link>
-                                <div className="mt-4 space-y-3">
+                                <div className="mt-2 md:mt-4 space-y-2 md:space-y-3">
                                     <div className="flex justify-between items-baseline px-1">
-                                        <h4 className="font-headline text-2xl italic text-primary leading-none">Bracelets</h4>
-                                        <span className="font-label text-[10px] kerning-widest uppercase opacity-40">10 Pieces</span>
+                                        <h4 className="font-headline text-lg md:text-2xl italic text-primary leading-none">Bracelets</h4>
+                                        <span className="font-label text-[8px] md:text-[10px] kerning-widest uppercase opacity-40">10 Pieces</span>
                                     </div>
-                                    <div className="flex justify-between items-center border-t border-black/5 pt-3 px-1">
-                                        <span className="font-label text-[9px] kerning-widest uppercase text-secondary font-bold">Cuffs</span>
+                                    <div className="flex justify-between items-center border-t border-black/5 pt-2 md:pt-3 px-1">
+                                        <span className="font-label text-[7px] md:text-[9px] kerning-widest uppercase text-secondary font-bold">Cuffs</span>
                                         <Link to="/shop/bracelets" className="material-symbols-outlined text-xs opacity-40 group-hover:opacity-100 transition-opacity">arrow_forward</Link>
                                     </div>
                                 </div>
@@ -299,14 +299,14 @@ const Home = () => {
             </section>
 
             {/* Systematic Selected Works Showcase */}
-            <section className="py-24 bg-surface-container-low/30 overflow-hidden">
-                <div className="max-w-[1720px] mx-auto px-8 md:px-16">
-                    <div className="text-center mb-16 scroll-reveal">
-                        <span className="font-label text-[11px] kerning-widest uppercase text-secondary mb-6 block">Masterwork Showcase</span>
-                        <h2 className="font-headline text-6xl md:text-7xl font-light tracking-tight italic text-primary">Ethereal Essentials</h2>
+            <section className="py-16 md:py-24 bg-surface-container-low/30 overflow-hidden">
+                <div className="max-w-[1720px] mx-auto px-6 md:px-16">
+                    <div className="text-center mb-12 md:mb-16 scroll-reveal">
+                        <span className="font-label text-[10px] md:text-[11px] kerning-widest uppercase text-secondary mb-4 md:mb-6 block">Masterwork Showcase</span>
+                        <h2 className="font-headline text-4xl sm:text-5xl md:text-7xl font-light tracking-tight italic text-primary">Ethereal Essentials</h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-12 lg:gap-16">
                         {featuredWorks.map((work, index) => (
                             <div key={work.id} className="group flex flex-col scroll-reveal" style={{ transitionDelay: `${index * 0.15}s` }}>
                                 <Link to="/shop" className="relative aspect-[3/4] overflow-hidden mb-8 bg-white shadow-lux-sm group-hover:shadow-lux transition-all duration-[1s]">
@@ -327,21 +327,21 @@ const Home = () => {
 
                                     {/* Hover Overlay Button */}
                                     <div className="absolute inset-0 flex items-center justify-center translate-y-12 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-700">
-                                        <div className="bg-primary text-on-primary px-16 py-6 text-[10px] kerning-widest uppercase font-label tracking-[0.3em] font-black shadow-lux">Details</div>
+                                        <div className="bg-primary text-on-primary px-8 md:px-16 py-4 md:py-6 text-[8px] md:text-[10px] kerning-widest uppercase font-label tracking-[0.3em] font-black shadow-lux">Details</div>
                                     </div>
                                 </Link>
 
-                                <div className="space-y-4 px-2">
-                                    <div className="flex justify-between items-start border-b border-black/5 pb-4 min-h-[5.5rem]">
-                                        <h4 className="font-headline text-2xl italic font-light text-primary pr-4">{work.title}</h4>
-                                        <span className="font-label text-[10px] text-primary kerning-widest font-black uppercase whitespace-nowrap pt-2">{formatPrice(work.price)}</span>
+                                <div className="space-y-2 md:space-y-4 px-1 md:px-2">
+                                    <div className="flex flex-col xl:flex-row justify-between items-start border-b border-black/5 pb-2 md:pb-4 min-h-[4rem] md:min-h-[5.5rem]">
+                                        <h4 className="font-headline text-base md:text-2xl italic font-light text-primary pr-2 md:pr-4">{work.title}</h4>
+                                        <span className="font-label text-[8px] md:text-[10px] text-primary kerning-widest font-black uppercase whitespace-nowrap pt-1 md:pt-2">{formatPrice(work.price)}</span>
 
                                     </div>
                                     <div className="flex flex-col gap-1">
-                                        <span className="font-label text-[11px] text-primary tracking-[0.2em] uppercase font-bold">{work.tag}</span>
-                                        <span className="font-body text-[11px] opacity-60 italic">{work.specs}</span>
+                                        <span className="font-label text-[8px] md:text-[11px] text-primary tracking-[0.2em] uppercase font-bold">{work.tag}</span>
+                                        <span className="font-body text-[8px] md:text-[11px] opacity-60 italic">{work.specs}</span>
                                     </div>
-                                    <Link to="/shop" className="inline-block font-label text-[9px] kerning-widest uppercase border-b border-primary/20 pb-1 hover:border-primary transition-all font-bold opacity-60 hover:opacity-100 pt-4">View Collection</Link>
+                                    <Link to="/shop" className="inline-block font-label text-[7px] md:text-[9px] kerning-widest uppercase border-b border-primary/20 pb-1 hover:border-primary transition-all font-bold opacity-60 hover:opacity-100 pt-2 md:pt-4">View Collection</Link>
                                 </div>
                             </div>
                         ))}
@@ -350,11 +350,11 @@ const Home = () => {
             </section>
 
             {/* Newsletter Subscription */}
-            <section className="py-24 relative group overflow-hidden">
+            <section className="py-16 md:py-24 relative group overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#f8dec1_0%,transparent_70%)] opacity-20 group-hover:opacity-40 transition-opacity duration-1000"></div>
-                <div className="max-w-[800px] mx-auto text-center px-8 relative z-10 scroll-reveal">
-                    <h2 className="font-headline text-4xl md:text-5xl mb-8 font-light italic text-primary">The Inner Circle</h2>
-                    <p className="font-body text-secondary-dim text-[10px] md:text-[11px] kerning-widest uppercase mb-12 opacity-80 leading-loose">
+                <div className="max-w-[800px] mx-auto text-center px-6 md:px-8 relative z-10 scroll-reveal">
+                    <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl mb-6 md:mb-8 font-light italic text-primary">The Inner Circle</h2>
+                    <p className="font-body text-secondary-dim text-[9px] md:text-[11px] kerning-widest uppercase mb-10 md:mb-12 opacity-80 leading-loose">
                         A sanctuary for connoisseurs. Be the first to witness new collections<br className="hidden md:block" />and read our seasonal SOVRA journal.
                     </p>
 

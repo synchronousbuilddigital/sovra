@@ -29,8 +29,8 @@ const Bag = () => {
 
     return (
         <div className="pt-40 pb-24 px-6 md:px-12 max-w-[1440px] mx-auto min-h-screen font-body selection:bg-primary-container selection:text-on-primary-container">
-            <header className="mb-20">
-                <h1 className="font-headline text-5xl md:text-6xl font-light tracking-tight mb-6 italic italic">Your Shopping Bag</h1>
+            <header className="mb-12 md:mb-20">
+                <h1 className="font-headline text-4xl md:text-6xl font-light tracking-tight mb-4 md:mb-6 italic">Your Shopping Bag</h1>
                 <p className="text-secondary font-body tracking-[0.25em] uppercase text-[10px] font-bold opacity-60">
                     {cart.length} pieces curated for your collection
                 </p>
@@ -42,9 +42,9 @@ const Bag = () => {
                     <Link to="/shop" className="bg-primary text-on-primary px-12 py-5 font-label uppercase tracking-[0.3em] text-[10px] font-black">Begin Curating</Link>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 md:gap-16 items-start">
                     {/* Cart Items List */}
-                    <section className="lg:col-span-7 space-y-16">
+                    <section className="lg:col-span-7 space-y-12 md:space-y-16">
                         {cart.map((item, idx) => (
                             <motion.div
                                 key={item._id || idx}
@@ -60,18 +60,18 @@ const Bag = () => {
                                 </div>
 
                                 <div className="flex-1 flex flex-col justify-between py-2">
-                                    <div className="space-y-6">
-                                        <div className="flex justify-between items-start">
-                                            <h3 className="text-3xl font-light tracking-tight italic italic">{item.product?.name || 'Untitled Piece'}</h3>
+                                    <div className="space-y-4 md:space-y-6">
+                                        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                                            <h3 className="text-2xl md:text-3xl font-light tracking-tight italic">{item.product?.name || 'Untitled Piece'}</h3>
                                             <span className="text-xl font-light text-primary">{formatPrice(item.product?.price || 0)}</span>
                                         </div>
 
                                         <p className="text-secondary text-base leading-relaxed max-w-sm italic opacity-85">{item.product?.description?.substring(0, 80)}...</p>
                                     </div>
 
-                                    <div className="flex justify-between items-center mt-12">
-                                        <div className="flex items-center space-x-10 border-b border-outline-variant/20 pb-3">
-                                            <span className="text-[10px] uppercase tracking-widest text-secondary font-bold opacity-60">Quantity</span>
+                                    <div className="flex justify-between items-center mt-8 md:mt-12">
+                                        <div className="flex items-center space-x-4 md:space-x-10 border-b border-outline-variant/20 pb-3">
+                                            <span className="text-[10px] uppercase tracking-widest text-secondary font-bold opacity-60 hidden md:inline">Quantity</span>
                                             <div className="flex items-center gap-6">
                                                 <button onClick={() => handleUpdateQty(item.product?._id, item.qty, -1, item.product?.stock)} className="hover:text-primary transition-colors hover:scale-120 duration-300">
                                                     <span className="material-symbols-outlined text-sm">remove</span>
@@ -97,10 +97,10 @@ const Bag = () => {
                     </section>
 
                     {/* Order Summary Sidebar */}
-                    <aside className="lg:col-span-5 sticky top-36">
-                        <div className="bg-surface-container-low p-12 space-y-12 shadow-lux border border-outline-variant/5">
-                            <h2 className="font-headline text-4xl font-light tracking-tight italic">Order Summary</h2>
-                            <div className="space-y-8">
+                    <aside className="lg:col-span-5 lg:sticky lg:top-36">
+                        <div className="bg-surface-container-low p-6 md:p-12 space-y-8 md:space-y-12 shadow-lux border border-outline-variant/5">
+                            <h2 className="font-headline text-2xl md:text-4xl font-light tracking-tight italic">Order Summary</h2>
+                            <div className="space-y-6 md:space-y-8">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-secondary uppercase tracking-[0.2em] font-bold opacity-60">Subtotal</span>
                                     <span className="font-bold tracking-widest text-primary">{formatPrice(subtotal)}</span>
@@ -115,10 +115,10 @@ const Bag = () => {
                                 </div>
                             </div>
 
-                            <div className="pt-10 border-t border-outline-variant/20">
-                                <div className="flex justify-between items-end mb-16">
-                                    <span className="text-2xl font-light tracking-tight italic">Total</span>
-                                    <span className="text-4xl text-primary font-light">{formatPrice(total)}</span>
+                            <div className="pt-8 md:pt-10 border-t border-outline-variant/20">
+                                <div className="flex justify-between items-end mb-10 md:mb-16">
+                                    <span className="text-xl md:text-2xl font-light tracking-tight italic">Total</span>
+                                    <span className="text-2xl md:text-4xl text-primary font-light">{formatPrice(total)}</span>
                                 </div>
 
 

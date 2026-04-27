@@ -111,9 +111,9 @@ const Checkout = () => {
                         className="grid grid-cols-1 lg:grid-cols-12 gap-20"
                     >
                         {/* Final Review & Address */}
-                        <div className="lg:col-span-7 space-y-16">
+                        <div className="lg:col-span-7 space-y-12 md:space-y-16">
                             <header>
-                                <h1 className="font-headline text-5xl md:text-6xl italic font-light tracking-tight mb-4">Complete Curation</h1>
+                                <h1 className="font-headline text-4xl md:text-6xl italic font-light tracking-tight mb-4">Complete Curation</h1>
                                 <p className="font-label text-[10px] uppercase tracking-[0.3em] text-secondary font-black opacity-40">Finalize your selection for dispatch</p>
                             </header>
 
@@ -154,9 +154,9 @@ const Checkout = () => {
 
                         {/* Order Summary Sidebar */}
                         <div className="lg:col-span-5">
-                            <div className="bg-surface-container-low p-12 space-y-12 shadow-lux border border-outline-variant/5 sticky top-32">
-                                <h2 className="font-headline text-3xl italic tracking-tight">Curation Summary</h2>
-                                <div className="space-y-8 divide-y divide-black/5">
+                            <div className="bg-surface-container-low p-6 md:p-12 space-y-8 md:space-y-12 shadow-lux border border-outline-variant/5 lg:sticky lg:top-32">
+                                <h2 className="font-headline text-2xl md:text-3xl italic tracking-tight">Curation Summary</h2>
+                                <div className="space-y-6 md:space-y-8 divide-y divide-black/5">
                                     {cart.map(item => (
                                         <div key={item.product._id} className="flex gap-6 pt-6 first:pt-0">
                                             <img src={item.product.img || item.product.image} className="w-16 h-20 object-cover grayscale" alt={item.name} />
@@ -214,17 +214,17 @@ const Checkout = () => {
                         key="success"
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="max-w-3xl mx-auto text-center py-20 bg-white shadow-lux border border-primary/5 p-16"
+                        className="max-w-3xl mx-auto text-center py-12 md:py-20 bg-white shadow-lux border border-primary/5 p-6 md:p-16"
                     >
-                        <span className="material-symbols-outlined text-6xl text-primary mb-8 animate-pulse">check_circle</span>
-                        <h1 className="font-headline text-6xl italic font-light mb-6">Curation Secured</h1>
+                        <span className="material-symbols-outlined text-6xl text-primary mb-6 md:mb-8 animate-pulse">check_circle</span>
+                        <h1 className="font-headline text-4xl md:text-6xl italic font-light mb-6">Curation Secured</h1>
                         <p className="font-body text-lg italic opacity-70 mb-12 leading-relaxed">
                             Your selection has been successfully reserved at our SOVRA. A personal shopper will oversee the artisanal packaging and dispatch of your pieces.
                         </p>
                         
-                        <div className="bg-surface-container-low p-10 mb-12 space-y-4 text-left border-l-4 border-primary">
+                        <div className="bg-surface-container-low p-6 md:p-10 mb-8 md:mb-12 space-y-4 text-left border-l-4 border-primary">
                             <p className="font-label text-[10px] uppercase tracking-widest font-black opacity-40">Order Identification</p>
-                            <h3 className="font-headline text-3xl tracking-wider select-all">{orderInfo?._id}</h3>
+                            <h3 className="font-headline text-2xl md:text-3xl tracking-wider select-all">{orderInfo?._id}</h3>
                             <div className="pt-4 grid grid-cols-2 gap-8 text-[11px] uppercase tracking-widest font-bold">
                                 <div>
                                     <p className="opacity-40 mb-1">Status</p>

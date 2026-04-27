@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom'
 
 const Footer = () => {
     return (
-        <footer className="bg-[#f6f4ec] dark:bg-[#1a1a18] w-full py-16 px-12 mt-auto border-t border-outline-variant/10">
+        <footer className="bg-[#f6f4ec] dark:bg-[#1a1a18] w-full py-12 md:py-16 px-6 md:px-12 mt-auto border-t border-outline-variant/10">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-[1720px] mx-auto text-left font-body">
                 <div className="space-y-4">
-                    <span className="font-headline text-8xl tracking-[0.1em] text-[#373831] dark:text-[#eae9de] uppercase block -ml-1">SOVRA</span>
+                    <span className="font-headline text-6xl sm:text-7xl md:text-8xl tracking-[0.1em] text-[#373831] dark:text-[#eae9de] uppercase block -ml-1">SOVRA</span>
                     <p className="font-body text-[10px] tracking-widest uppercase leading-[1.6] text-[#6e5b44] dark:text-[#babab0] max-w-xs font-bold">
                         Adorn Your Story • Tuscan SOVRA
                     </p>
@@ -41,7 +41,7 @@ const Footer = () => {
                 <p className="font-label text-[10px] tracking-widest uppercase text-[#656464]/60 dark:text-[#babab0]/40 font-bold">
                     © 2024 SOVRA. ALL RIGHTS RESERVED.
                 </p>
-                <div className="flex gap-10">
+                <div className="flex flex-col sm:flex-row gap-4 sm:gap-10 text-center items-center">
                     <Link className="text-[10px] tracking-[0.2em] uppercase text-[#656464] dark:text-[#babab0] hover:text-[#6e5b44] transition-colors font-bold" to="/privacy-policy">Privacy Policy</Link>
                     <Link className="text-[10px] tracking-[0.2em] uppercase text-[#656464] dark:text-[#babab0] hover:text-[#6e5b44] transition-colors font-bold" to="/terms-of-service">Terms & Conditions</Link>
                 </div>

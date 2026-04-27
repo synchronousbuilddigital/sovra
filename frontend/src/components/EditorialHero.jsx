@@ -37,9 +37,9 @@ const EditorialHero = () => {
     };
 
     return (
-        <section className="relative w-full min-h-screen bg-[#f5f0e8] overflow-hidden flex flex-col md:flex-row items-center justify-between pt-20">
+        <section className="relative w-full min-h-screen bg-[#f5f0e8] overflow-hidden flex flex-col md:flex-row items-center justify-between pt-16 md:pt-20">
             {/* Topbar Avatars - Positioned below the global navbar */}
-            <div className="absolute top-36 left-12 md:left-24 z-30 flex items-center">
+            <div className="absolute top-[48vh] left-6 md:bottom-auto md:top-36 md:left-24 z-30 flex items-center scale-75 origin-left md:origin-top-left md:scale-100">
                 {categories.map((item, i) => (
                     <m.div
                         key={item.id}
@@ -63,9 +63,9 @@ const EditorialHero = () => {
             </div>
 
             {/* Editorial Nav Preview - Positioned in the "Dashboard" Area (Right Top) */}
-            <div className="absolute top-36 right-12 md:right-48 z-30 flex flex-col items-end">
+            <div className="absolute top-24 right-4 md:top-36 md:right-48 z-30 flex flex-col items-end scale-75 origin-top-right md:scale-100">
                 {/* Image Frame (Updates on interaction) */}
-                <div className="relative w-36 h-[90px] rounded-full overflow-hidden mb-6 border border-black/5 shadow-lg bg-white">
+                <div className="relative w-36 h-[90px] rounded-full overflow-hidden mb-6 border border-black/5 shadow-lg bg-white hidden md:block">
                     <AnimatePresence>
                         <m.img
                             key={activeTab.id}
@@ -103,27 +103,28 @@ const EditorialHero = () => {
             </div>
 
             {/* Left Content */}
-            <div className="relative z-10 flex flex-col justify-between h-[85vh] pl-24 md:pl-[180px] py-24 order-2 md:order-1">
+            <div className="relative z-10 flex flex-col justify-between h-auto min-h-[40vh] md:h-[85vh] px-6 md:pl-[180px] py-12 md:py-24 order-2 md:order-1 mt-[50vh] md:mt-0 w-full md:w-auto text-center md:text-left">
                 <m.div
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    className="font-premium text-[clamp(4.5rem,15vw,13rem)] font-light uppercase text-[#111110] leading-[0.8] tracking-[0.1em]"
+                    className="font-premium text-6xl sm:text-7xl md:text-[clamp(4.5rem,15vw,13rem)] font-light uppercase text-[#111110] leading-[0.8] tracking-[0.1em]"
                 >
-                    JEW
+                    <span className="hidden md:inline">JEW</span>
+                    <span className="inline md:hidden">JEWELRY</span>
                 </m.div>
 
                 <m.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-                    className="max-w-[280px] space-y-8"
+                    className="max-w-[280px] mx-auto md:mx-0 space-y-6 md:space-y-8 mt-12 md:mt-0"
                 >
                     <p className="font-sans text-sm leading-relaxed text-[#7a7670] font-light">
                         Jewelry business is highly competitive. Many new and established companies are competing in the market armed.
                     </p>
 
-                    <a href="/shop" className="group inline-flex items-center gap-6 bg-[#111110] text-[#f5f0e8] px-8 py-5 text-xs tracking-widest uppercase font-sans transition-all duration-500 hover:gap-10">
+                    <a href="/shop" className="group inline-flex items-center justify-center md:justify-start gap-6 bg-[#111110] text-[#f5f0e8] px-8 py-5 text-xs tracking-widest uppercase font-sans transition-all duration-500 hover:gap-10 w-full md:w-auto">
                         Explore Now
                         <span className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center transition-transform group-hover:scale-110">
                             <Play size={12} fill="white" stroke="none" />
@@ -133,8 +134,8 @@ const EditorialHero = () => {
             </div>
 
             {/* Center Model Frame */}
-            <div className="absolute inset-x-0 bottom-0 top-0 md:relative flex items-end justify-center w-full md:w-[45vw] h-screen z-0 order-1 md:order-2 md:-translate-x-[40px]">
-                <div className="relative w-full h-[95vh] rounded-t-full overflow-hidden">
+            <div className="absolute inset-x-0 top-0 md:bottom-0 md:relative flex items-start md:items-end justify-center w-full md:w-[45vw] h-[55vh] md:h-screen z-0 order-1 md:order-2 md:-translate-x-[40px]">
+                <div className="relative w-[90%] md:w-full h-full md:h-[95vh] rounded-b-full md:rounded-b-none md:rounded-t-full overflow-hidden mt-0 md:mt-0 mx-auto">
                     <AnimatePresence>
                         <m.img
                             key={activeTab.id}
@@ -155,7 +156,7 @@ const EditorialHero = () => {
             </div>
 
             {/* Right Word Fragment */}
-            <div className="relative z-10 flex flex-col justify-end h-[85vh] pr-24 md:pr-56 py-24 order-3 overflow-hidden text-right">
+            <div className="relative z-10 hidden md:flex flex-col justify-start md:justify-end h-auto md:h-[85vh] px-6 md:pr-56 py-6 md:py-24 order-3 overflow-hidden text-center md:text-right w-full md:w-auto -mt-8 md:mt-0">
                 <m.div
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -167,7 +168,7 @@ const EditorialHero = () => {
             </div>
 
             {/* Scroll Indicator */}
-            <div className="absolute left-1/2 bottom-0 w-[1px] h-20 bg-gradient-to-t from-[#111110] to-transparent animate-bounce opacity-40"></div>
+            <div className="absolute left-1/2 bottom-4 md:bottom-0 w-[1px] h-12 md:h-20 bg-gradient-to-t from-[#111110] to-transparent animate-bounce opacity-40"></div>
         </section>
     )
 }

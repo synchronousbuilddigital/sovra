@@ -232,7 +232,7 @@ const Account = () => {
                 </motion.span>
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-[#111110]/5 pb-12">
                     <div className="space-y-4">
-                        <h1 className="font-premium text-6xl md:text-8xl text-[#111110] italic font-light tracking-tighter leading-none">
+                        <h1 className="font-premium text-5xl md:text-8xl text-[#111110] italic font-light tracking-tighter leading-none">
                             Studio <span className="not-italic font-normal">Account</span>
                         </h1>
                         <p className="font-body text-base italic text-[#656464] max-w-xl opacity-60">
@@ -373,7 +373,7 @@ const Account = () => {
                                 exit={{ opacity: 0, x: -20 }}
                                 className="space-y-10"
                             >
-                                <h3 className="font-premium text-4xl italic mb-10 border-b border-[#111110]/5 pb-6">Order History</h3>
+                                <h3 className="font-premium text-3xl md:text-4xl italic mb-6 md:mb-10 border-b border-[#111110]/5 pb-4 md:pb-6">Order History</h3>
                                 {ordersLoading ? (
                                     <div className="space-y-12">
                                         {[1, 2, 3, 4].map(i => (
@@ -450,7 +450,7 @@ const Account = () => {
                                 className="space-y-10"
                             >
                                 <div className="flex justify-between items-center mb-10 border-b border-[#111110]/5 pb-6">
-                                    <h3 className="font-premium text-4xl italic">Shipping Residencies</h3>
+                                    <h3 className="font-premium text-3xl md:text-4xl italic">Shipping Residencies</h3>
                                     {!showAddressForm && (
                                         <button 
                                             onClick={() => { resetAddressForm(); setEditingAddress(null); setShowAddressForm(true); }}
@@ -560,7 +560,7 @@ const Account = () => {
                                 exit={{ opacity: 0, x: -20 }}
                                 className="max-w-2xl"
                             >
-                                <h3 className="font-premium text-4xl italic mb-10 border-b border-[#111110]/5 pb-6">Account Details</h3>
+                                <h3 className="font-premium text-3xl md:text-4xl italic mb-6 md:mb-10 border-b border-[#111110]/5 pb-4 md:pb-6">Account Details</h3>
                                 <form onSubmit={handleUpdateProfile} className="space-y-10">
                                     <div className="space-y-2">
                                         <label className="text-[10px] uppercase tracking-[0.4em] font-black opacity-40">Client Nomenclature</label>
@@ -631,7 +631,7 @@ const Account = () => {
                                 exit={{ opacity: 0, x: -20 }}
                             >
                                 <div className="flex justify-between items-baseline mb-12 border-b border-[#111110]/5 pb-6">
-                                    <h3 className="font-premium text-4xl italic">Private Wishlist</h3>
+                                    <h3 className="font-premium text-3xl md:text-4xl italic">Private Wishlist</h3>
                                     <span className="text-[10px] uppercase tracking-widest font-black opacity-30 italic">{wishlist.length} Items Saved</span>
                                 </div>
 
@@ -676,7 +676,7 @@ const Account = () => {
                                 exit={{ opacity: 0, x: -20 }}
                                 className="max-w-2xl"
                             >
-                                <h3 className="font-premium text-4xl italic mb-10 border-b border-[#111110]/5 pb-6">Security & Vault Access</h3>
+                                <h3 className="font-premium text-3xl md:text-4xl italic mb-6 md:mb-10 border-b border-[#111110]/5 pb-4 md:pb-6">Security & Vault Access</h3>
                                 <form onSubmit={handleChangePassword} className="space-y-10">
                                     <div className="space-y-2">
                                         <label className="text-[10px] uppercase tracking-[0.4em] font-black opacity-40">Previous Authentication</label>

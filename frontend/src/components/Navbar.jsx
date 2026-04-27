@@ -11,6 +11,7 @@ const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false)
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [searchKeyword, setSearchKeyword] = useState('')
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     useEffect(() => {
         const handleScroll = () => {
@@ -36,6 +37,11 @@ const Navbar = () => {
         }
     }
 
+    // Close mobile menu on route change
+    useEffect(() => {
+        setIsMobileMenuOpen(false)
+    }, [location.pathname])
+
     return (
         <header
             className="fixed top-0 w-full z-50 flex justify-center pointer-events-none"
@@ -49,9 +55,9 @@ const Navbar = () => {
                     marginTop: isScrolled ? '1.5rem' : '0rem',
                     backgroundColor: isScrolled ? 'rgba(255, 252, 247, 0.95)' : 'rgba(255, 252, 247, 0.98)',
                     boxShadow: isScrolled ? '0 20px 40px -10px rgba(0,0,0,0.1)' : '0 0px 0px rgba(0,0,0,0)',
-                    paddingLeft: isScrolled ? '48px' : '80px',
-                    paddingRight: isScrolled ? '48px' : '80px',
-                    height: isScrolled ? '76px' : '108px',
+                    paddingLeft: isScrolled ? 'clamp(16px, 4vw, 48px)' : 'clamp(16px, 6vw, 80px)',
+                    paddingRight: isScrolled ? 'clamp(16px, 4vw, 48px)' : 'clamp(16px, 6vw, 80px)',
+                    height: isScrolled ? '76px' : 'clamp(70px, 8vh, 108px)',
                     borderWidth: '1px',
                     borderColor: isScrolled ? 'rgba(110, 91, 68, 0.1)' : 'rgba(110, 91, 68, 0.05)'
                 }}
@@ -61,8 +67,16 @@ const Navbar = () => {
                 }}
                 className={`pointer-events-auto flex items-center justify-between backdrop-blur-xl border-primary/5 font-body border-b-primary/10`}
             >
-                {/* Left Logo */}
-                <div className="flex-initial flex items-center pr-8">
+                {/* Left Logo & Mobile Toggle */}
+                <div className="flex-initial flex items-center pr-2 md:pr-8 gap-3 md:gap-0">
+                    <button
+                        className="md:hidden flex items-center text-primary hover:opacity-70 transition-opacity"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        <span className="material-symbols-outlined text-2xl">
+                            {isMobileMenuOpen ? 'close' : 'menu'}
+                        </span>
+                    </button>
                     <Link to="/" className="flex items-center group">
                         <m.img
                             initial={false}
@@ -113,8 +127,8 @@ const Navbar = () => {
                     ))}
                 </m.div>
 
-                <div className={`flex-initial flex items-center justify-end text-[#6e5b44] ${isScrolled ? 'pl-10' : 'pl-0'}`}>
-                    <div className="flex items-center gap-6 lg:gap-8">
+                <div className={`flex-initial flex items-center justify-end text-[#6e5b44] ${isScrolled ? 'pl-2 md:pl-10' : 'pl-0'}`}>
+                    <div className="flex items-center gap-3 sm:gap-4 md:gap-6 lg:gap-8">
                         {/* Search Bar */}
                         <div className="flex items-center relative">
                             <AnimatePresence>
@@ -207,6 +221,30 @@ const Navbar = () => {
                 </div>
 
             </m.nav>
+
+            {/* Mobile Menu */}
+            <AnimatePresence>
+                {isMobileMenuOpen && (
+                    <m.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                        className="pointer-events-auto fixed top-[110px] left-4 right-4 bg-surface/95 backdrop-blur-xl border border-primary/10 rounded-2xl p-6 shadow-2xl flex flex-col gap-4 z-40 md:hidden"
+                    >
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.name}
+                                to={link.path}
+                                className={`text-lg font-headline tracking-tight transition-colors duration-400 py-2 border-b border-primary/5 ${location.pathname === link.path ? 'text-primary' : 'text-[#656464]'
+                                    }`}
+                            >
+                                {link.name}
+                            </Link>
+                        ))}
+                    </m.div>
+                )}
+            </AnimatePresence>
         </header>
     )
 }

@@ -127,8 +127,8 @@ const ProductDetail = () => {
 
     if (loading) return (
         <div className="pt-32 pb-24 bg-[#fffcf7] min-h-screen">
-            <main className="max-w-[1920px] mx-auto px-12 md:px-24">
-                <div className="flex flex-col lg:flex-row gap-24 items-start">
+            <main className="max-w-[1920px] mx-auto px-6 md:px-12 lg:px-24">
+                <div className="flex flex-col lg:flex-row gap-12 md:gap-24 items-start">
                     {/* Gallery Skeleton */}
                     <div className="w-full lg:w-[45%] space-y-8">
                         <Skeleton height="auto" className="aspect-square rounded-2xl" />
@@ -144,7 +144,7 @@ const ProductDetail = () => {
                             <Skeleton width="150px" height="30px" />
                             <Skeleton width="100%" height="100px" />
                         </div>
-                        <div className="py-12 border-y border-[#111110]/5 grid grid-cols-2 gap-x-12 gap-y-10">
+                        <div className="py-12 border-y border-[#111110]/5 grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10">
                             {[1, 2, 3, 4].map(i => (
                                 <div key={i} className="space-y-4">
                                     <Skeleton width="60px" height="8px" />
@@ -185,15 +185,15 @@ const ProductDetail = () => {
                     <meta name="twitter:card" content="summary_large_image" />
                 </Helmet>
             )}
-            <main className="max-w-[1920px] mx-auto px-12 md:px-24">
+            <main className="max-w-[1920px] mx-auto px-6 md:px-12 lg:px-24">
 
                 {/* Editorial Top Navigation */}
-                <Link to="/shop" className="inline-flex items-center gap-4 font-sans text-[9px] tracking-[0.4em] uppercase text-[#7a7670] mb-16 hover:text-[#111110] transition-colors group font-black">
+                <Link to="/shop" className="inline-flex items-center gap-4 font-sans text-[9px] tracking-[0.4em] uppercase text-[#7a7670] mb-8 md:mb-16 hover:text-[#111110] transition-colors group font-black">
                     <ArrowLeft size={12} className="transition-transform group-hover:-translate-x-2" />
                     Back to Curation
                 </Link>
 
-                <div className="flex flex-col lg:flex-row gap-24 items-start">
+                <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 items-start">
 
                     {/* GALLERY Side */}
                     <div className="w-full lg:w-[45%] flex flex-col gap-8">
@@ -251,21 +251,21 @@ const ProductDetail = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.1 }}
-                                className="font-premium text-6xl md:text-7xl text-[#111110] leading-none mb-8 italic"
+                                className="font-premium text-4xl sm:text-5xl md:text-7xl text-[#111110] leading-none mb-6 md:mb-8 italic"
                             >
                                 {product.name}
                             </motion.h1>
-                            <div className="flex items-center gap-6 mb-8 text-[#111110] font-black italic text-2xl">
+                            <div className="flex items-center gap-6 mb-6 md:mb-8 text-[#111110] font-black italic text-xl md:text-2xl">
                                 <span>{formatPrice(product.price)}</span>
                                 <div className="w-12 h-[1px] bg-[#111110]/10" />
                             </div>
-                            <p className="font-body text-lg text-[#656464] leading-relaxed italic opacity-85 font-light">
+                            <p className="font-body text-base md:text-lg text-[#656464] leading-relaxed italic opacity-85 font-light">
                                 {product.description || product.details}
                             </p>
                         </header>
 
-                        <div className="py-12 border-y border-[#111110]/5 space-y-12">
-                            <div className="grid grid-cols-2 gap-x-12 gap-y-10">
+                        <div className="py-8 md:py-12 border-y border-[#111110]/5 space-y-10 md:space-y-12">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-8 md:gap-y-10">
                                 {[
                                     { label: 'Material', value: product.material || 'Stainless Steel' },
                                     { label: 'Plating', value: product.plating || 'Gold 18K PVD Plating' },
@@ -349,20 +349,20 @@ const ProductDetail = () => {
                 </div>
 
                 {/* Narrative Detail Section */}
-                <div className="mt-48 pt-32 border-t border-[#111110]/5 max-w-4xl">
-                    <span className="font-sans text-[10px] tracking-[0.5em] uppercase text-[#7a7670] block mb-12 font-black">The Visionary Process</span>
-                    <p className="font-premium text-4xl md:text-5xl text-[#111110] leading-tight italic font-light">
+                <div className="mt-32 md:mt-48 pt-20 md:pt-32 border-t border-[#111110]/5 max-w-4xl">
+                    <span className="font-sans text-[10px] tracking-[0.5em] uppercase text-[#7a7670] block mb-8 md:mb-12 font-black">The Visionary Process</span>
+                    <p className="font-premium text-3xl md:text-5xl text-[#111110] leading-tight italic font-light">
                         "For every masterpiece, there's a whisper of celestial inspiration. Our artisans spend weeks hand-sculpting each curve to ensure it captures the exact radiance of the Aravalli hills."
                     </p>
                 </div>
 
                 {/* Reviews Section */}
-                <section className="mt-48 pt-32 border-t border-[#111110]/10 overflow-hidden">
-                    <div className="flex flex-col lg:flex-row gap-24">
-                        <div className="w-full lg:w-1/3 space-y-12">
-                            <header className="space-y-6">
+                <section className="mt-32 md:mt-48 pt-20 md:pt-32 border-t border-[#111110]/10 overflow-hidden">
+                    <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
+                        <div className="w-full lg:w-1/3 space-y-8 md:space-y-12">
+                            <header className="space-y-4 md:space-y-6">
                                 <span className="font-sans text-[10px] tracking-[0.5em] uppercase text-[#7a7670] block font-black">Client Reflections</span>
-                                <h2 className="font-premium text-6xl italic leading-none">Voices of the Archive</h2>
+                                <h2 className="font-premium text-4xl md:text-6xl italic leading-none">Voices of the Archive</h2>
                                 <div className="flex items-center gap-6">
                                     <div className="flex">
                                         {[1, 2, 3, 4, 5].map((star) => (
@@ -467,10 +467,10 @@ const ProductDetail = () => {
                 </section>
 
                 {/* Similar Products section */}
-                <section className="mt-48 pt-32 border-t border-[#111110]/10 overflow-hidden pb-48">
-                    <div className="flex flex-col items-center mb-16 text-center space-y-6">
+                <section className="mt-32 md:mt-48 pt-20 md:pt-32 border-t border-[#111110]/10 overflow-hidden pb-32 md:pb-48">
+                    <div className="flex flex-col items-center mb-12 md:mb-16 text-center space-y-4 md:space-y-6">
                         <span className="font-sans text-[10px] tracking-[0.6em] uppercase text-[#7a7670] block font-black">Complete the Curation</span>
-                        <h2 className="font-premium text-6xl italic leading-none">Similar Archives</h2>
+                        <h2 className="font-premium text-4xl md:text-6xl italic leading-none">Similar Archives</h2>
                         <div className="w-16 h-[1px] bg-primary/30 mt-4 mx-auto" />
                     </div>
 

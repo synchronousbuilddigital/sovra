@@ -125,7 +125,7 @@ const Shop = () => {
                                 key={`sub-${activeFilter}`}
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="font-sans text-[10px] tracking-[0.6em] uppercase text-[#7a7670] mb-6 block font-black italic"
+                                className="font-sans text-[9px] md:text-[10px] tracking-[0.4em] md:tracking-[0.6em] uppercase text-[#7a7670] mb-4 md:mb-6 block font-black italic"
                             >
                                 {activeCategoryInfo.subtitle}
                             </motion.span>
@@ -134,7 +134,7 @@ const Shop = () => {
                                 initial={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
                                 animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                                 transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                                className="font-premium text-7xl md:text-[10rem] text-[#111110] leading-[0.8] mb-12 italic font-light tracking-tighter"
+                                className="font-premium text-5xl sm:text-7xl md:text-[10rem] text-[#111110] leading-[0.9] md:leading-[0.8] mb-8 md:mb-12 italic font-light tracking-tighter"
                             >
                                 {keyword ? `Search: ${keyword}` : activeCategoryInfo.name.split(' ').map((word, i) => (
                                     <span key={i} className={i % 2 === 1 ? 'not-italic font-normal' : ''}>
@@ -161,8 +161,8 @@ const Shop = () => {
                 </section>
 
                 {/* Refined Navigation & Filter Bar */}
-                <div className="sticky top-[108px] z-40 bg-[#fffcf7]/80 backdrop-blur-xl border-b border-[#111110]/5 -mx-32 px-32 mb-20">
-                    <div className="flex flex-col md:flex-row justify-between items-center py-8 gap-8">
+                <div className="sticky top-[70px] md:top-[108px] z-40 bg-[#fffcf7]/80 backdrop-blur-xl border-b border-[#111110]/5 -mx-6 px-6 md:-mx-16 md:px-16 lg:-mx-32 lg:px-32 mb-12 md:mb-20">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center py-6 md:py-8 gap-6 md:gap-8">
                         <div className="flex items-center gap-10 lg:gap-16 no-scrollbar overflow-x-auto w-full md:w-auto pb-4 md:pb-0">
                             {categories.map((cat) => (
                                 <Link
@@ -182,8 +182,8 @@ const Shop = () => {
                             ))}
                         </div>
 
-                        <div className="flex items-center gap-12">
-                            <div className="flex items-center gap-12">
+                        <div className="flex items-center gap-6 md:gap-12 w-full lg:w-auto justify-between lg:justify-end">
+                            <div className="flex items-center gap-6 md:gap-12">
                                 <div className="hidden lg:flex items-center gap-6">
                                     <span className="font-sans text-[9px] tracking-[0.3em] uppercase text-[#7a7670] font-black">Archive Refines ({products.length})</span>
                                 </div>
@@ -206,9 +206,9 @@ const Shop = () => {
                                                     initial={{ opacity: 0, y: 10, scale: 0.98 }}
                                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                                                    className="absolute top-full right-0 mt-8 w-[450px] bg-white shadow-lux border border-black/5 p-12 z-50 rounded-2xl grid grid-cols-2 gap-12"
+                                                    className="absolute top-full left-0 md:left-auto md:right-0 mt-8 w-[calc(100vw-3rem)] sm:w-[450px] bg-white shadow-lux border border-black/5 p-8 md:p-12 z-50 rounded-2xl grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12"
                                                 >
-                                                    <div className="space-y-6">
+                                                    <div className="space-y-4 md:space-y-6">
                                                         <p className="text-[9px] uppercase tracking-widest font-black opacity-30 italic mb-4">By Category</p>
                                                         {categories.map(cat => (
                                                             <Link
@@ -222,9 +222,9 @@ const Shop = () => {
                                                         ))}
                                                     </div>
 
-                                                    <div className="space-y-6">
-                                                        <p className="text-[9px] uppercase tracking-widest font-black opacity-30 italic mb-4">Price Range</p>
-                                                        <div className="space-y-4">
+                                                    <div className="space-y-4 md:space-y-6">
+                                                        <p className="text-[9px] uppercase tracking-widest font-black opacity-30 italic mb-2 md:mb-4">Price Range</p>
+                                                        <div className="space-y-3 md:space-y-4">
                                                             {[
                                                                 { id: 'all', name: 'Original State' },
                                                                 { id: 'low', name: 'Under ₹1000' },
@@ -262,10 +262,10 @@ const Shop = () => {
                                                     initial={{ opacity: 0, y: 10, scale: 0.98 }}
                                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                                                    className="absolute top-full right-0 mt-8 w-64 bg-white shadow-lux border border-black/5 p-8 z-50 rounded-2xl"
+                                                    className="absolute top-full right-0 mt-8 w-[calc(100vw-3rem)] sm:w-64 bg-white shadow-lux border border-black/5 p-6 md:p-8 z-50 rounded-2xl"
                                                 >
-                                                    <p className="text-[9px] uppercase tracking-widest font-black opacity-30 italic mb-6">Arrange the Vault</p>
-                                                    <div className="space-y-6">
+                                                    <p className="text-[9px] uppercase tracking-widest font-black opacity-30 italic mb-4 md:mb-6">Arrange the Vault</p>
+                                                    <div className="space-y-4 md:space-y-6">
                                                         {sortOptions.map(opt => (
                                                             <button
                                                                 key={opt.id}
@@ -289,7 +289,7 @@ const Shop = () => {
                 {/* Catalog Grid */}
                 <div className="relative pb-40">
                     {loading ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-32 gap-x-12">
+                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-y-12 md:gap-y-32 gap-x-3 md:gap-x-12">
                             {[1, 2, 3, 4, 5, 6].map((i) => (
                                 <div key={i} className="space-y-10 text-center flex flex-col items-center">
                                     <Skeleton height="auto" className="aspect-[4/5] w-full rounded-sm" />
@@ -303,7 +303,7 @@ const Shop = () => {
                         </div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-40 gap-x-16">
+                            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-y-12 md:gap-y-24 lg:gap-y-40 gap-x-3 md:gap-x-12 lg:gap-x-16">
                                 <AnimatePresence mode="popLayout">
                                     {products.map((product, idx) => (
                                         <motion.div
@@ -311,7 +311,7 @@ const Shop = () => {
                                             initial={{ opacity: 0, y: 50 }}
                                             whileInView={{ opacity: 1, y: 0 }}
                                             viewport={{ once: true, margin: "-50px" }}
-                                            transition={{ duration: 1.2, delay: (idx % 3) * 0.15, ease: [0.22, 1, 0.36, 1] }}
+                                            transition={{ duration: 1.2, delay: (idx % 4) * 0.15, ease: [0.22, 1, 0.36, 1] }}
                                             className="group"
                                             onMouseEnter={() => setHoveredProduct(product._id)}
                                             onMouseLeave={() => setHoveredProduct(null)}
@@ -351,27 +351,27 @@ const Shop = () => {
                                                 </div>
 
                                                 {/* Product Details with Premium Typography */}
-                                                <div className="space-y-6">
-                                                    <div className="space-y-2">
-                                                        <span className="font-sans text-[8px] tracking-[0.5em] uppercase text-[#7a7670] block font-black opacity-60">
+                                                <div className="space-y-2 md:space-y-6 mt-2 md:mt-0">
+                                                    <div className="space-y-1 md:space-y-2">
+                                                        <span className="font-sans text-[5px] md:text-[8px] tracking-[0.2em] md:tracking-[0.5em] uppercase text-[#7a7670] block font-black opacity-60">
                                                             {product.category || 'Collective'} • {product.weight}
                                                         </span>
-                                                        <h2 className="font-premium text-4xl text-[#111110] font-light italic leading-tight group-hover:opacity-50 transition-opacity">
+                                                        <h2 className="font-premium text-base md:text-4xl text-[#111110] font-light italic leading-tight group-hover:opacity-50 transition-opacity">
                                                             {product.name}
                                                         </h2>
                                                     </div>
 
-                                                    <div className="flex items-center justify-center gap-6">
-                                                        <div className="w-10 h-[1px] bg-[#111110]/5 transition-all group-hover:w-16 duration-700" />
-                                                        <span className="font-premium text-xl text-[#373831] font-light italic">
+                                                    <div className="flex items-center justify-center gap-2 md:gap-6">
+                                                        <div className="w-4 md:w-10 h-[1px] bg-[#111110]/5 transition-all group-hover:w-6 md:group-hover:w-16 duration-700" />
+                                                        <span className="font-premium text-xs md:text-xl text-[#373831] font-light italic">
                                                             {formatPrice(product.price)}
                                                         </span>
 
-                                                        <div className="w-10 h-[1px] bg-[#111110]/5 transition-all group-hover:w-16 duration-700" />
+                                                        <div className="w-4 md:w-10 h-[1px] bg-[#111110]/5 transition-all group-hover:w-6 md:group-hover:w-16 duration-700" />
                                                     </div>
 
-                                                    <div className="pt-2">
-                                                        <span className="font-sans text-[8px] tracking-[0.3em] uppercase text-primary font-black opacity-0 group-hover:opacity-100 transition-opacity duration-1000">
+                                                    <div className="pt-1 md:pt-2">
+                                                        <span className="font-sans text-[5px] md:text-[8px] tracking-[0.1em] md:tracking-[0.3em] uppercase text-primary font-black opacity-0 group-hover:opacity-100 transition-opacity duration-1000">
                                                             Available for Acquisition
                                                         </span>
                                                     </div>
@@ -399,7 +399,7 @@ const Shop = () => {
 
                             {/* Refined Pagination Controls */}
                             {pages > 1 && (
-                                <div className="mt-40 flex justify-center items-center gap-12">
+                                <div className="mt-20 md:mt-40 flex flex-col md:flex-row justify-center items-center gap-8 md:gap-12">
                                     <button
                                         disabled={page === 1}
                                         onClick={() => setPage(page - 1)}
@@ -409,12 +409,12 @@ const Shop = () => {
                                         Previous
                                     </button>
 
-                                    <div className="flex gap-8 items-center">
+                                    <div className="flex gap-4 md:gap-8 items-center flex-wrap justify-center">
                                         {[...Array(pages)].map((_, i) => (
                                             <button
                                                 key={i + 1}
                                                 onClick={() => setPage(i + 1)}
-                                                className={`font-premium text-2xl italic transition-all duration-500 w-10 h-10 flex items-center justify-center rounded-full ${page === i + 1 ? 'bg-primary text-white shadow-lux' : 'opacity-30 hover:opacity-100 hover:bg-primary/5'}`}
+                                                className={`font-premium text-xl md:text-2xl italic transition-all duration-500 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full ${page === i + 1 ? 'bg-primary text-white shadow-lux' : 'opacity-30 hover:opacity-100 hover:bg-primary/5'}`}
                                             >
                                                 {i + 1}
                                             </button>
