@@ -9,6 +9,8 @@ const userSchema = mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   otp: { type: String },
   otpExpire: { type: Date },
+  otpAttempts: { type: Number, default: 0 },
+  otpLastSent: { type: Date },
   status: { type: String, default: 'New' }, // e.g., 'VIP', 'Regular', 'New'
   preference: { type: String, default: 'General' }, // e.g., 'High Jewelry', 'Timepieces'
   phone: { type: String, default: '' },

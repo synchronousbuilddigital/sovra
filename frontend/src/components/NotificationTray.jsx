@@ -49,9 +49,10 @@ const NotificationTray = () => {
         <div className="relative flex items-center">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative group flex items-center hover:scale-110 transition-all"
+                className="relative group flex items-center hover:scale-110 transition-all p-0.5"
+                aria-label="Notifications"
             >
-                <span className="material-symbols-outlined text-[24px] group-hover:text-primary transition-colors">
+                <span className="material-symbols-outlined text-[20px] md:text-[24px] group-hover:text-primary transition-colors">
                     {unreadCount > 0 ? 'notifications_active' : 'notifications'}
                 </span>
                 {unreadCount > 0 && (

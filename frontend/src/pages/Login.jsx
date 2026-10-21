@@ -92,7 +92,7 @@ const Login = () => {
                 <div className="mt-12 pt-8 border-t border-primary/5 text-center">
                     <p className="font-body text-[11px] text-on-surface/40 uppercase tracking-widest font-bold">
                         New to SOVRA? 
-                        <Link to="/signup" className="text-primary hover:underline ml-2">Request Access</Link>
+                        <Link to="/signup" className="text-primary hover:underline ml-2">Create a new account</Link>
                     </p>
                 </div>
             </motion.div>

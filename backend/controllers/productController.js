@@ -1,4 +1,6 @@
 const Product = require('../models/productModel');
+const Order = require('../models/orderModel');
+
 
 // Helper function to generate SKU
 const generateSKU = (category, productCount = 0) => {
@@ -36,7 +38,8 @@ const generateSKU = (category, productCount = 0) => {
  */
 const getProducts = async (req, res) => {
   try {
-    const pageSize = Number(req.query.pageSize) || 10;
+    const isAll = req.query.pageSize === 'all' || req.query.pageSize === '0' || Number(req.query.pageSize) >= 1000;
+    const pageSize = isAll ? 0 : (Number(req.query.pageSize) || 10);
     const page = Number(req.query.pageNumber) || 1;
 
     const keyword = req.query.keyword
@@ -78,15 +81,16 @@ const getProducts = async (req, res) => {
     }
 
     const count = await Product.countDocuments(query);
-    const products = await Product.find(query)
-      .sort(sortOptions)
-      .limit(pageSize)
-      .skip(pageSize * (page - 1));
+    let queryChain = Product.find(query).sort(sortOptions);
+    if (pageSize > 0) {
+      queryChain = queryChain.limit(pageSize).skip(pageSize * (page - 1));
+    }
+    const products = await queryChain;
 
     res.json({
       products,
       page,
-      pages: Math.ceil(count / pageSize),
+      pages: pageSize > 0 ? Math.ceil(count / pageSize) : 1,
       total: count
     });
   } catch (error) {
@@ -239,41 +243,64 @@ const deleteProduct = async (req, res) => {
 const createProductReview = async (req, res) => {
   const { rating, comment } = req.body;
 
+  const numRating = parseInt(rating, 10);
+  if (isNaN(numRating) || numRating < 1 || numRating > 5) {
+    return res.status(400).json({ message: 'Rating must be an integer between 1 and 5 stars.' });
+  }
+
+  if (!comment || typeof comment !== 'string' || comment.trim().length === 0) {
+    return res.status(400).json({ message: 'A written testimonial comment is required.' });
+  }
+
   try {
     const product = await Product.findById(req.params.id);
 
-    if (product) {
-      const alreadyReviewed = product.reviews.find(
-        (r) => r.user.toString() === req.user._id.toString()
-      );
-
-      if (alreadyReviewed) {
-        res.status(400);
-        throw new Error('Product already reviewed');
-      }
-
-      const review = {
-        name: req.user.name,
-        rating: Number(rating),
-        comment,
-        user: req.user._id,
-      };
-
-      product.reviews.push(review);
-      product.numReviews = product.reviews.length;
-      product.rating =
-        product.reviews.reduce((acc, item) => item.rating + acc, 0) /
-        product.reviews.length;
-
-      await product.save();
-      res.status(201).json({ message: 'Review added' });
-    } else {
-      res.status(404).json({ message: 'Product not found' });
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found in archive vaults.' });
     }
+
+    // Check if user already reviewed this piece
+    const alreadyReviewed = product.reviews.find(
+      (r) => r.user.toString() === req.user._id.toString()
+    );
+
+    if (alreadyReviewed) {
+      return res.status(400).json({ message: 'You have already submitted an archival review for this piece.' });
+    }
+
+    // Verified Acquisition Check: Only customers who have purchased and paid for this item can review (Admins exempt for curation testing)
+    const hasPurchased = await Order.findOne({
+      user: req.user._id,
+      'orderItems.product': req.params.id,
+      isPaid: true,
+    });
+
+    if (!hasPurchased && !req.user.isAdmin) {
+      return res.status(403).json({
+        message: 'Verified Acquisition Required: Only clients who have acquired and paid for this piece may submit an archival review.'
+      });
+    }
+
+    const review = {
+      name: req.user.name,
+      rating: numRating,
+      comment: comment.trim(),
+      user: req.user._id,
+    };
+
+    product.reviews.push(review);
+    product.numReviews = product.reviews.length;
+    product.rating = Number(
+      (product.reviews.reduce((acc, item) => item.rating + acc, 0) / product.reviews.length).toFixed(1)
+    );
+
+    await product.save();
+    res.status(201).json({ message: 'Archival testimonial successfully recorded.' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 module.exports = {
   getProducts,

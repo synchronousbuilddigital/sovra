@@ -31,20 +31,28 @@ const {
 const { getNotifications, markAsRead } = require('../controllers/notificationController');
 
 
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, admin, requireVerified } = require('../middleware/authMiddleware');
 const validate = require('../middleware/validateMiddleware');
-const { registerUserSchema, loginUserSchema, updateUserProfileSchema } = require('../validation/user.schema.js');
+const {
+  registerUserSchema,
+  loginUserSchema,
+  updateUserProfileSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  verifyOtpSchema,
+} = require('../validation/user.schema.js');
+const { authLimiter, otpLimiter } = require('../middleware/rateLimiters');
 
 // Public routes
-router.post('/', validate(registerUserSchema), registerUser);
-router.post('/login', validate(loginUserSchema), authUser);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+router.post('/', authLimiter, validate(registerUserSchema), registerUser);
+router.post('/login', authLimiter, validate(loginUserSchema), authUser);
+router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), forgotPassword);
+router.post('/reset-password', authLimiter, validate(resetPasswordSchema), resetPassword);
 
 // User specific private routes
 router.route('/profile').get(protect, getUserProfile).put(protect, validate(updateUserProfileSchema), updateUserProfile);
-router.route('/verify-otp').post(protect, verifyOTP);
-router.route('/resend-otp').post(protect, resendOTP);
+router.route('/verify-otp').post(protect, otpLimiter, validate(verifyOtpSchema), verifyOTP);
+router.route('/resend-otp').post(protect, otpLimiter, resendOTP);
 
 // Address Book routes
 router.route('/addresses').get(protect, getAddresses).post(protect, addAddress);

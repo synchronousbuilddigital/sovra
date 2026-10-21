@@ -7,9 +7,12 @@ const logger = require('../utils/logger');
 const subscribeNewsletter = async (req, res) => {
   const { email } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ message: 'Email is required' });
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !emailRegex.test(email.trim())) {
+    return res.status(400).json({ message: 'A valid email address is required' });
   }
+
+  const cleanEmail = email.toLowerCase().trim();
 
   try {
     // Send welcome email

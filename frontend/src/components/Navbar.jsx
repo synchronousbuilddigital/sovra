@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { m, AnimatePresence } from 'framer-motion'
+import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { useShop } from '../context/ShopContext'
 import NotificationTray from './NotificationTray'
 
@@ -12,18 +12,27 @@ const Navbar = () => {
     const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [searchKeyword, setSearchKeyword] = useState('')
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768)
 
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 50)
         }
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768)
+        }
         window.addEventListener('scroll', handleScroll)
-        return () => window.removeEventListener('scroll', handleScroll)
+        window.addEventListener('resize', handleResize)
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+            window.removeEventListener('resize', handleResize)
+        }
     }, [])
 
     const navLinks = [
         { name: 'Collections', path: '/collections' },
-        { name: 'Find Jewelry', path: '/shop' },
+        { name: 'Shop', path: '/shop' },
+        { name: 'Reels', path: '/reels' },
         { name: 'Magazine', path: '/magazine' },
         { name: 'Heritage', path: '/story' }
     ]
@@ -38,26 +47,35 @@ const Navbar = () => {
     }
 
     // Close mobile menu on route change
-    useEffect(() => {
-        setIsMobileMenuOpen(false)
-    }, [location.pathname])
+    const [prevPath, setPrevPath] = useState(location.pathname)
+    if (prevPath !== location.pathname) {
+        setPrevPath(location.pathname)
+        if (isMobileMenuOpen) {
+            setIsMobileMenuOpen(false)
+        }
+    }
+
+    // Do not mount storefront floating navbar on mobile within the admin panel
+    if (isMobile && location.pathname.startsWith('/admin')) {
+        return null
+    }
 
     return (
         <header
             className="fixed top-0 w-full z-50 flex justify-center pointer-events-none"
         >
-            <m.nav
+            <Motion.nav
                 initial={false}
                 animate={{
-                    width: isScrolled ? '92%' : '100%',
+                    width: isMobile ? (isScrolled ? '95%' : '100%') : (isScrolled ? '92%' : '100%'),
                     maxWidth: isScrolled ? '1200px' : '2500px',
-                    borderRadius: isScrolled ? '100px' : '0px',
-                    marginTop: isScrolled ? '1.5rem' : '0rem',
-                    backgroundColor: isScrolled ? 'rgba(255, 252, 247, 0.95)' : 'rgba(255, 252, 247, 0.98)',
-                    boxShadow: isScrolled ? '0 20px 40px -10px rgba(0,0,0,0.1)' : '0 0px 0px rgba(0,0,0,0)',
-                    paddingLeft: isScrolled ? 'clamp(16px, 4vw, 48px)' : 'clamp(16px, 6vw, 80px)',
-                    paddingRight: isScrolled ? 'clamp(16px, 4vw, 48px)' : 'clamp(16px, 6vw, 80px)',
-                    height: isScrolled ? '76px' : 'clamp(70px, 8vh, 108px)',
+                    borderRadius: isScrolled ? (isMobile ? '32px' : '100px') : '0px',
+                    marginTop: isScrolled ? (isMobile ? '0.4rem' : '1.5rem') : '0rem',
+                    backgroundColor: isScrolled ? 'rgba(255, 252, 247, 0.96)' : 'rgba(255, 252, 247, 0.98)',
+                    boxShadow: isScrolled ? '0 10px 30px -10px rgba(0,0,0,0.08)' : '0 0px 0px rgba(0,0,0,0)',
+                    paddingLeft: isMobile ? '12px' : (isScrolled ? 'clamp(16px, 4vw, 48px)' : 'clamp(16px, 6vw, 80px)'),
+                    paddingRight: isMobile ? '12px' : (isScrolled ? 'clamp(16px, 4vw, 48px)' : 'clamp(16px, 6vw, 80px)'),
+                    height: isMobile ? (isScrolled ? '54px' : '60px') : (isScrolled ? '76px' : 'clamp(70px, 8vh, 108px)'),
                     borderWidth: '1px',
                     borderColor: isScrolled ? 'rgba(110, 91, 68, 0.1)' : 'rgba(110, 91, 68, 0.05)'
                 }}
@@ -68,20 +86,21 @@ const Navbar = () => {
                 className={`pointer-events-auto flex items-center justify-between backdrop-blur-xl border-primary/5 font-body border-b-primary/10`}
             >
                 {/* Left Logo & Mobile Toggle */}
-                <div className="flex-initial flex items-center pr-2 md:pr-8 gap-3 md:gap-0">
+                <div className="flex-initial flex items-center pr-1 md:pr-8 gap-2 md:gap-0">
                     <button
-                        className="md:hidden flex items-center text-primary hover:opacity-70 transition-opacity"
+                        className="md:hidden flex items-center text-primary hover:opacity-70 transition-opacity p-1"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        aria-label="Toggle Navigation Menu"
                     >
-                        <span className="material-symbols-outlined text-2xl">
+                        <span className="material-symbols-outlined text-[22px]">
                             {isMobileMenuOpen ? 'close' : 'menu'}
                         </span>
                     </button>
                     <Link to="/" className="flex items-center group">
-                        <m.img
+                        <Motion.img
                             initial={false}
                             animate={{
-                                height: isScrolled ? 56 : 96 // h-14 (56px) and h-24 (96px)
+                                height: isMobile ? (isScrolled ? 34 : 40) : (isScrolled ? 56 : 96)
                             }}
                             transition={{
                                 duration: 0.8,
@@ -95,7 +114,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Center Links */}
-                <m.div
+                <Motion.div
                     initial={false}
                     animate={{
                         fontSize: isScrolled ? '15px' : '18px'
@@ -115,7 +134,7 @@ const Navbar = () => {
                         >
                             {link.name}
                             {location.pathname === link.path && (
-                                <m.span
+                                <Motion.span
                                     layoutId="navUnderline"
                                     className="absolute -bottom-1 left-0 w-full h-[1px] bg-primary"
                                 />
@@ -125,94 +144,86 @@ const Navbar = () => {
                             )}
                         </Link>
                     ))}
-                </m.div>
+                </Motion.div>
 
-                <div className={`flex-initial flex items-center justify-end text-[#6e5b44] ${isScrolled ? 'pl-2 md:pl-10' : 'pl-0'}`}>
-                    <div className="flex items-center gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+                <div className={`flex-initial flex items-center justify-end text-[#6e5b44] ${isScrolled ? 'pl-1 md:pl-10' : 'pl-0'}`}>
+                    <div className="flex items-center gap-2 sm:gap-3.5 md:gap-6 lg:gap-8">
                         {/* Search Bar */}
                         <div className="flex items-center relative">
                             <AnimatePresence>
                                 {isSearchOpen && (
-                                    <m.form
+                                    <Motion.form
                                         initial={{ width: 0, opacity: 0 }}
-                                        animate={{ width: isScrolled ? 200 : 250, opacity: 1 }}
+                                        animate={{ width: isMobile ? 130 : (isScrolled ? 200 : 250), opacity: 1 }}
                                         exit={{ width: 0, opacity: 0 }}
                                         onSubmit={handleSearch}
-                                        className="absolute right-full mr-4 flex items-center"
+                                        className="absolute right-full mr-2 md:mr-4 flex items-center bg-surface/90 rounded-full px-2 py-0.5 border border-primary/20"
                                     >
                                         <input
                                             autoFocus
                                             type="text"
-                                            placeholder="Search the archive..."
+                                            placeholder="Search..."
                                             value={searchKeyword}
                                             onChange={(e) => setSearchKeyword(e.target.value)}
-                                            className="bg-transparent border-b border-primary/30 py-1 px-2 text-sm focus:outline-none w-full font-body placeholder:text-[#6e5b44]/40"
+                                            className="bg-transparent border-none py-0.5 px-1 text-xs focus:outline-none w-full font-body placeholder:text-[#6e5b44]/40"
                                         />
-                                    </m.form>
+                                    </Motion.form>
                                 )}
                             </AnimatePresence>
                             <button
                                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                                className="flex items-center hover:opacity-70 transition-all hover:scale-110"
+                                className="flex items-center hover:opacity-70 transition-all hover:scale-110 p-0.5"
+                                aria-label="Search"
                             >
-                                <m.span
+                                <Motion.span
                                     initial={false}
-                                    animate={{ fontSize: isScrolled ? '24px' : '26px' }}
+                                    animate={{ fontSize: isMobile ? '20px' : (isScrolled ? '24px' : '26px') }}
                                     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                                     className="material-symbols-outlined"
                                 >
                                     {isSearchOpen ? 'close' : 'search'}
-                                </m.span>
+                                </Motion.span>
                             </button>
                         </div>
-
-                        {isAdmin && (
-                            <Link to="/admin" className="flex items-center hover:opacity-70 transition-all hover:scale-110" title="Admin Control">
-                                <m.span
-                                    initial={false}
-                                    animate={{ fontSize: isScrolled ? '24px' : '26px' }}
-                                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                                    className="material-symbols-outlined"
-                                >
-                                    settings
-                                </m.span>
-                            </Link>
-                        )}
 
                         <div className="flex items-center">
                             <NotificationTray />
                         </div>
 
-                        <Link to="/wishlist" className="flex items-center hover:opacity-70 transition-all hover:scale-110" title="The Vault">
-                            <m.span
+                        <Link to="/wishlist" className="flex items-center hover:opacity-70 transition-all hover:scale-110 p-0.5" title="Wishlist">
+                            <Motion.span
                                 initial={false}
-                                animate={{ fontSize: isScrolled ? '24px' : '26px' }}
+                                animate={{ fontSize: isMobile ? '20px' : (isScrolled ? '24px' : '26px') }}
                                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                                 className="material-symbols-outlined"
                             >
                                 favorite
-                            </m.span>
+                            </Motion.span>
                         </Link>
 
-                        <Link to="/account" className="flex items-center hover:opacity-70 transition-all hover:scale-110">
-                            <m.span
+                        <Link
+                            to={isAdmin ? "/admin" : "/account"}
+                            className="flex items-center hover:opacity-70 transition-all hover:scale-110 p-0.5"
+                            title={isAdmin ? "Admin Panel" : "My Account"}
+                        >
+                            <Motion.span
                                 initial={false}
-                                animate={{ fontSize: isScrolled ? '24px' : '26px' }}
+                                animate={{ fontSize: isMobile ? '20px' : (isScrolled ? '24px' : '26px') }}
                                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                                 className="material-symbols-outlined"
                             >
                                 person
-                            </m.span>
+                            </Motion.span>
                         </Link>
-                        <Link to="/bag" className="flex items-center hover:opacity-70 transition-all relative hover:scale-110">
-                            <m.span
+                        <Link to="/bag" className="flex items-center hover:opacity-70 transition-all relative hover:scale-110 p-0.5">
+                            <Motion.span
                                 initial={false}
-                                animate={{ fontSize: isScrolled ? '24px' : '26px' }}
+                                animate={{ fontSize: isMobile ? '20px' : (isScrolled ? '24px' : '26px') }}
                                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                                 className="material-symbols-outlined block"
                             >
                                 shopping_bag
-                            </m.span>
+                            </Motion.span>
                             <span className="absolute -top-1 -right-1 text-[8px] bg-primary text-on-primary rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold shadow-sm border border-[#fffcf7]">
                                 {cart.reduce((acc, item) => acc + item.qty, 0)}
                             </span>
@@ -220,17 +231,17 @@ const Navbar = () => {
                     </div>
                 </div>
 
-            </m.nav>
+            </Motion.nav>
 
             {/* Mobile Menu */}
             <AnimatePresence>
                 {isMobileMenuOpen && (
-                    <m.div
-                        initial={{ opacity: 0, y: -20 }}
+                    <Motion.div
+                        initial={{ opacity: 0, y: -12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                        className="pointer-events-auto fixed top-[110px] left-4 right-4 bg-surface/95 backdrop-blur-xl border border-primary/10 rounded-2xl p-6 shadow-2xl flex flex-col gap-4 z-40 md:hidden"
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                        className="pointer-events-auto fixed top-[66px] left-3 right-3 bg-surface/98 backdrop-blur-xl border border-primary/10 rounded-2xl p-5 shadow-2xl flex flex-col gap-3 z-40 md:hidden"
                     >
                         {navLinks.map((link) => (
                             <Link
@@ -242,7 +253,7 @@ const Navbar = () => {
                                 {link.name}
                             </Link>
                         ))}
-                    </m.div>
+                    </Motion.div>
                 )}
             </AnimatePresence>
         </header>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { motion } from 'framer-motion'
+import { motion as Motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Sparkles, Gem, Disc } from 'lucide-react'
 
@@ -40,96 +40,91 @@ const collections = [
 
 const Collections = () => {
     return (
-        <div className="pt-32 pb-24 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
-            <main className="max-w-[1920px] mx-auto px-12 md:px-24">
-                {/* Editorial Header */}
-                <header className="mb-32 text-center max-w-4xl mx-auto">
-                    <motion.span
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="font-sans text-[10px] tracking-[0.4em] uppercase text-[#7a7670] mb-8 block font-black"
-                    >
-                        Our Masterwork Curation
-                    </motion.span>
-                    <motion.h1
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="font-premium text-7xl md:text-9xl text-[#111110] leading-[0.9] mb-12 italic font-light"
-                    >
-                        The <span className="not-italic font-normal">Archive</span>
-                    </motion.h1>
-                    <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                        className="font-sans text-lg text-[#656464] leading-relaxed max-w-2xl mx-auto font-light"
-                    >
-                        Explore our categorized masterpieces. Each collection represents a distinct chapter in the SOVRA story, where British heritage meets celestial inspiration.
-                    </motion.p>
-                </header>
-
+        <div className="pt-20 sm:pt-24 md:pt-28 pb-20 md:pb-28 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
+            <main className="max-w-[1500px] mx-auto px-6 sm:px-10 md:px-14 lg:px-20">
                 {/* Collections List */}
-                <div className="space-y-32">
+                <div className="space-y-16 sm:space-y-20 md:space-y-28">
                     {collections.map((item, index) => (
-                        <motion.section
+                        <Motion.section
                             key={item.id}
-                            initial={{ opacity: 0, y: 100 }}
+                            initial={{ opacity: 0, y: 40 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true, margin: "-100px" }}
-                            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-                            className={`flex flex-col ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} items-center gap-20 md:gap-32`}
+                            viewport={{ once: true, margin: "-50px" }}
+                            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                            className={`flex flex-col ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} items-center gap-8 sm:gap-12 md:gap-14 lg:gap-20`}
                         >
                             {/* Image Side */}
-                            <div className="relative w-full md:w-1/2 group overflow-hidden bg-[#f5f0e8] rounded-sm border border-[#111110]/5">
-                                <Link to={`/shop/${item.id}`} className="block overflow-hidden h-[700px]">
-                                    <motion.img
-                                        whileHover={{ scale: 1.05 }}
-                                        transition={{ duration: 2, ease: [0.22, 1, 0.36, 1] }}
+                            <div className="relative w-full md:w-1/2 group overflow-hidden bg-[#f5f0e8] rounded-xl sm:rounded-2xl border border-[#111110]/8 shadow-[0_4px_24px_rgba(0,0,0,0.03)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.08)] transition-all duration-700">
+                                <Link to={`/shop/${item.id}`} className="block overflow-hidden aspect-[4/5] max-h-[480px] lg:max-h-[520px] w-full">
+                                    <Motion.img
+                                        whileHover={{ scale: 1.04 }}
+                                        transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
                                         src={item.image}
                                         alt={item.title}
-                                        className="w-full h-full object-cover transition-all duration-1000 grayscale-[0.2] group-hover:grayscale-0"
+                                        className="w-full h-full object-cover transition-all duration-700"
                                     />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                                 </Link>
-                                <div className="absolute top-12 left-12 md:left-24 z-10 flex flex-col items-start gap-4 pointer-events-none">
-                                    <div className="w-16 h-16 rounded-full border border-white/30 flex items-center justify-center backdrop-blur-sm bg-white/10">
-                                        {item.id === 'necklaces' && <Sparkles className="text-white" size={20} />}
-                                        {item.id === 'bracelets' && <Disc className="text-white" size={20} />}
-                                        {item.id === 'rings' && <Gem className="text-white" size={20} />}
-                                        {item.id === 'earrings' && <Sparkles className="text-white" size={20} />}
+
+                                {/* Luxury Frosted Pill Badge */}
+                                <div className="absolute top-4 left-4 sm:top-5 sm:left-5 z-10 pointer-events-none">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-white/50 shadow-sm">
+                                        {item.id === 'necklaces' && <Sparkles size={11} className="text-[#6e5b44]" />}
+                                        {item.id === 'bracelets' && <Disc size={11} className="text-[#6e5b44]" />}
+                                        {item.id === 'rings' && <Gem size={11} className="text-[#6e5b44]" />}
+                                        {item.id === 'earrings' && <Sparkles size={11} className="text-[#6e5b44]" />}
+                                        <span className="font-sans text-[9px] tracking-[0.2em] uppercase font-bold text-[#111110]">
+                                            {item.count}
+                                        </span>
                                     </div>
-                                    <span className="font-sans text-[10px] tracking-[0.3em] uppercase text-white font-black">{item.count}</span>
                                 </div>
                             </div>
 
                             {/* Content Side */}
-                            <div className="w-full md:w-1/2 space-y-10">
-                                <div>
-                                    <span className="font-premium text-2xl text-[#6e5b44] italic mb-4 block">{item.subtitle}</span>
-                                    <h2 className="font-premium text-5xl md:text-7xl text-[#111110] leading-none mb-8 tracking-tight">{item.title}</h2>
-                                    <p className="font-sans text-base leading-[1.8] text-[#7a7670] max-w-lg font-light">
+                            <div className="w-full md:w-1/2 flex flex-col justify-center space-y-4 sm:space-y-5 md:px-4 lg:px-8">
+                                <div className="space-y-2.5 sm:space-y-3">
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="h-[1px] w-6 bg-[#6e5b44]/40" />
+                                        <span className="font-sans text-[10px] sm:text-[11px] tracking-[0.25em] uppercase text-[#6e5b44] font-semibold">
+                                            {item.subtitle}
+                                        </span>
+                                    </div>
+
+                                    <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#111110] font-light italic leading-[1.08] tracking-tight">
+                                        {item.title}
+                                    </h2>
+
+                                    <p className="font-body text-xs sm:text-sm md:text-base leading-relaxed text-[#656464] font-light max-w-md pt-1">
                                         {item.desc}
                                     </p>
                                 </div>
-                                <div className="pt-6">
+
+                                <div className="pt-2 sm:pt-3">
                                     <Link
                                         to={`/shop/${item.id}`}
-                                        className="group inline-flex items-center gap-6 text-[10px] tracking-[0.4em] uppercase font-sans text-[#111110] border-b border-[#111110] pb-4 transition-all hover:gap-10"
+                                        className="group inline-flex items-center gap-3 px-6 sm:px-7 py-3 sm:py-3.5 bg-[#111110] hover:bg-black text-[#f5f0e8] text-[10px] sm:text-[11px] tracking-[0.25em] uppercase font-sans font-medium rounded-md transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5"
                                     >
-                                        Explore Collection
-                                        <ArrowRight size={14} className="transition-transform group-hover:translate-x-2" />
+                                        <span>Explore Collection</span>
+                                        <ArrowRight size={13} className="transition-transform duration-300 group-hover:translate-x-1" />
                                     </Link>
                                 </div>
                             </div>
-                        </motion.section>
+                        </Motion.section>
                     ))}
                 </div>
 
                 {/* Bottom CTA */}
-                <section className="mt-4 py-8 border-t border-[#111110]/5 text-center">
-                    <h3 className="font-premium text-5xl text-[#111110] mb-12 italic">Searching for something <br /><span className="not-italic">Specific?</span></h3>
-                    <Link to="/shop" className="bg-[#111110] text-[#f5f0e8] px-12 py-6 text-[10px] tracking-[0.4em] uppercase font-sans hover:opacity-90 transition-opacity rounded-full">
-                        View Fine Jewellery Shop
+                <section className="mt-20 md:mt-28 py-12 md:py-16 border-t border-[#111110]/8 text-center max-w-2xl mx-auto">
+                    <span className="font-sans text-[9px] sm:text-[10px] tracking-[0.3em] uppercase text-[#7a7670] block mb-2 font-medium">Bespoke Curation</span>
+                    <h3 className="font-headline text-2xl sm:text-3xl md:text-4xl text-[#111110] mb-6 font-light italic leading-tight">
+                        Searching for something <span className="not-italic font-normal">specific?</span>
+                    </h3>
+                    <Link
+                        to="/shop"
+                        className="inline-flex items-center gap-3 bg-[#111110] hover:bg-black text-[#f5f0e8] px-8 sm:px-10 py-3.5 text-[10px] sm:text-[11px] tracking-[0.25em] uppercase font-sans font-medium rounded-md transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5"
+                    >
+                        <span>View All Fine Jewellery</span>
+                        <ArrowRight size={13} />
                     </Link>
                 </section>
             </main>

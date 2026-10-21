@@ -16,38 +16,79 @@ const getPromos = async (req, res) => {
 // @route   POST /api/promos
 // @access  Private/Admin
 const createPromo = async (req, res) => {
-  const { code, discount, expiryDate, limit } = req.body;
+  try {
+    const { code, discount, expiryDate, limit, perUserLimit, minOrderAmount, maxDiscountAmount } = req.body;
 
-  const promoExists = await Promo.findOne({ code });
+    if (!code || typeof code !== 'string' || !code.trim()) {
+      return res.status(400).json({ message: 'Promo code is required.' });
+    }
 
-  if (promoExists) {
-    res.status(400).json({ message: 'Promo code already exists' });
-    return;
+    const normalizedCode = code.trim().toUpperCase();
+
+    if (normalizedCode.length < 3 || normalizedCode.length > 30) {
+      return res.status(400).json({ message: 'Promo code must be between 3 and 30 characters.' });
+    }
+
+    const numDiscount = Number(discount);
+    if (isNaN(numDiscount) || numDiscount < 1 || numDiscount > 100) {
+      return res.status(400).json({ message: 'Discount percentage must be a number between 1 and 100.' });
+    }
+
+    let parsedLimit;
+    if (limit !== undefined && limit !== null && limit !== '') {
+      parsedLimit = Number(limit);
+      if (isNaN(parsedLimit) || parsedLimit < 1) {
+        return res.status(400).json({ message: 'Usage limit must be at least 1.' });
+      }
+    }
+
+    let parsedExpiry;
+    if (expiryDate) {
+      parsedExpiry = new Date(expiryDate);
+      if (isNaN(parsedExpiry.getTime())) {
+        return res.status(400).json({ message: 'Invalid expiry date.' });
+      }
+    }
+
+    const promoExists = await Promo.findOne({ code: normalizedCode });
+    if (promoExists) {
+      return res.status(400).json({ message: `Promo code "${normalizedCode}" already exists.` });
+    }
+
+    const promo = new Promo({
+      code: normalizedCode,
+      discount: numDiscount,
+      expiryDate: parsedExpiry,
+      limit: parsedLimit,
+      perUserLimit: perUserLimit ? Math.max(1, Number(perUserLimit) || 1) : 1,
+      minOrderAmount: minOrderAmount ? Math.max(0, Number(minOrderAmount) || 0) : 0,
+      maxDiscountAmount: maxDiscountAmount ? Math.max(1, Number(maxDiscountAmount) || 1) : null,
+      usedCount: 0,
+      usedBy: []
+    });
+
+    const createdPromo = await promo.save();
+    res.status(201).json(createdPromo);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
-
-  const promo = new Promo({
-    code,
-    discount,
-    expiryDate,
-    limit
-  });
-
-  const createdPromo = await promo.save();
-  res.status(201).json(createdPromo);
 };
 
 // @desc    Delete promo
 // @route   DELETE /api/promos/:id
 // @access  Private/Admin
 const deletePromo = async (req, res) => {
-  const promo = await Promo.findById(req.params.id);
+  try {
+    const promo = await Promo.findById(req.params.id);
 
-  if (promo) {
-    await promo.deleteOne();
-
-    res.json({ message: 'Promo removed' });
-  } else {
-    res.status(404).json({ message: 'Promo not found' });
+    if (promo) {
+      await promo.deleteOne();
+      res.json({ message: 'Promo removed successfully' });
+    } else {
+      res.status(404).json({ message: 'Promo not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -56,10 +97,16 @@ const deletePromo = async (req, res) => {
 // @access  Private
 const validatePromo = async (req, res) => {
   try {
-    const promo = await Promo.findOne({ code: req.params.code.toUpperCase() });
+    const rawCode = (req.params.code || '').trim().toUpperCase();
+
+    if (!rawCode) {
+      return res.status(400).json({ message: 'Coupon code is required.' });
+    }
+
+    const promo = await Promo.findOne({ code: rawCode });
 
     if (!promo) {
-      return res.status(404).json({ message: 'Invalid artisanal code.' });
+      return res.status(404).json({ message: 'Invalid artisanal coupon code.' });
     }
 
     if (!promo.isActive) {
@@ -67,16 +114,42 @@ const validatePromo = async (req, res) => {
     }
 
     if (promo.expiryDate && new Date(promo.expiryDate) < new Date()) {
-      return res.status(400).json({ message: 'This code has expired.' });
+      return res.status(400).json({ message: 'This coupon code has expired.' });
     }
 
     if (promo.limit && promo.usedCount >= promo.limit) {
-      return res.status(400).json({ message: 'This code has reached its usage limit.' });
+      return res.status(400).json({ message: 'This coupon code has reached its maximum usage limit.' });
+    }
+
+    // Per-user redemption check
+    if (req.user && promo.usedBy && Array.isArray(promo.usedBy)) {
+      const userRedemptionCount = promo.usedBy.filter(
+        (userId) => userId.toString() === req.user._id.toString()
+      ).length;
+
+      const allowedPerUser = promo.perUserLimit || 1;
+      if (userRedemptionCount >= allowedPerUser) {
+        return res.status(400).json({
+          message: 'You have already redeemed this coupon code on a previous order.'
+        });
+      }
+    }
+
+    // Minimum order amount check if subtotal is provided in query
+    if (req.query.subtotal) {
+      const subtotal = Number(req.query.subtotal);
+      if (!isNaN(subtotal) && promo.minOrderAmount > 0 && subtotal < promo.minOrderAmount) {
+        return res.status(400).json({
+          message: `Minimum cart subtotal of ₹${promo.minOrderAmount.toLocaleString()} required for this coupon.`
+        });
+      }
     }
 
     res.json({
       code: promo.code,
-      discount: promo.discount
+      discount: promo.discount,
+      minOrderAmount: promo.minOrderAmount || 0,
+      maxDiscountAmount: promo.maxDiscountAmount || null
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

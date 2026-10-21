@@ -21,8 +21,8 @@ const addOrderItems = async (req, res) => {
     promoCode
   } = req.body;
 
-  if (orderItems && orderItems.length === 0) {
-    res.status(400).json({ message: 'No order items' });
+  if (!orderItems || !Array.isArray(orderItems) || orderItems.length === 0) {
+    res.status(400).json({ message: 'No order items provided' });
     return;
   }
 
@@ -30,8 +30,16 @@ const addOrderItems = async (req, res) => {
   session.startTransaction();
 
   try {
-    // 1. Atomic Stock Check and Decrement
+    // 1. Atomic Stock Check, Decrement, and Server-Side Price Verification
+    let serverSubtotal = 0;
+
     for (const item of orderItems) {
+      if (!item.qty || item.qty < 1) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Invalid quantity for item: ${item.name || 'Unknown'}` });
+      }
+
       const updatedProduct = await Product.findOneAndUpdate(
         { _id: item.product, stock: { $gte: item.qty } },
         { $inc: { stock: -item.qty } },
@@ -41,32 +49,106 @@ const addOrderItems = async (req, res) => {
       if (!updatedProduct) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(400).json({ message: `Insufficient stock for product: ${item.name}` });
+        return res.status(400).json({ message: `Insufficient stock for product: ${item.name || 'Selected piece'}` });
       }
+
+      // Enforce authoritative catalog price from the verified database record
+      const authoritativePrice = Number(updatedProduct.price) || 0;
+      item.price = authoritativePrice;
+      item.name = updatedProduct.name;
+      serverSubtotal += authoritativePrice * item.qty;
     }
 
-    // 2. Validate Promo Code
+    // 2. Authoritative Promo Code Validation & Discount Calculation
     let finalDiscount = 0;
-    if (promoCode) {
-      const promo = await Promo.findOne({ code: promoCode.toUpperCase(), isActive: true }).session(session);
-      if (promo && (!promo.expiryDate || new Date(promo.expiryDate) > new Date()) && (!promo.limit || promo.usedCount < promo.limit)) {
-        finalDiscount = (itemsPrice * promo.discount) / 100;
-        promo.usedCount += 1;
-        await promo.save({ session });
+    let appliedPromoCode = undefined;
+
+    if (promoCode && typeof promoCode === 'string' && promoCode.trim()) {
+      const cleanCode = promoCode.trim().toUpperCase();
+      const promo = await Promo.findOne({ code: cleanCode }).session(session);
+
+      if (!promo) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Coupon code "${cleanCode}" does not exist.` });
       }
+
+      if (!promo.isActive) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Coupon code "${cleanCode}" is no longer active.` });
+      }
+
+      if (promo.expiryDate && new Date(promo.expiryDate) < new Date()) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Coupon code "${cleanCode}" has expired.` });
+      }
+
+      if (promo.limit && promo.usedCount >= promo.limit) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Coupon code "${cleanCode}" has reached its maximum usage limit.` });
+      }
+
+      // Per-user redemption limit check
+      if (promo.usedBy && Array.isArray(promo.usedBy)) {
+        const userRedemptionCount = promo.usedBy.filter(
+          (userId) => userId.toString() === req.user._id.toString()
+        ).length;
+
+        const allowedPerUser = promo.perUserLimit || 1;
+        if (userRedemptionCount >= allowedPerUser) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({
+            message: `You have already redeemed coupon "${cleanCode}" on a previous order.`
+          });
+        }
+      }
+
+      // Minimum cart subtotal check
+      if (promo.minOrderAmount > 0 && serverSubtotal < promo.minOrderAmount) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          message: `Coupon "${cleanCode}" requires a minimum cart subtotal of ₹${promo.minOrderAmount.toLocaleString()}.`
+        });
+      }
+
+      // Calculate authoritative discount percentage with optional ceiling
+      let calculatedDiscount = (serverSubtotal * promo.discount) / 100;
+      if (promo.maxDiscountAmount && calculatedDiscount > promo.maxDiscountAmount) {
+        calculatedDiscount = promo.maxDiscountAmount;
+      }
+
+      finalDiscount = Math.round(calculatedDiscount);
+      appliedPromoCode = cleanCode;
+
+      // Atomic usage count and user tracking
+      promo.usedCount = (promo.usedCount || 0) + 1;
+      if (!promo.usedBy) promo.usedBy = [];
+      promo.usedBy.push(req.user._id);
+      await promo.save({ session });
     }
 
-    // 3. Create Order
+    // 3. Authoritative Tax, Shipping, and Total Calculation
+    const netTaxableAmount = Math.max(0, serverSubtotal - finalDiscount);
+    const serverTaxPrice = Math.round(netTaxableAmount * 0.08); // 8% jewellery tax
+    const serverShippingPrice = 0; // Complimentary luxury shipping
+    const serverTotalPrice = netTaxableAmount + serverTaxPrice + serverShippingPrice;
+
+    // 4. Create Order with Server-Verified Financials
     const order = new Order({
       orderItems,
       user: req.user._id,
       shippingAddress,
       paymentMethod,
-      itemsPrice,
-      taxPrice,
-      shippingPrice,
-      totalPrice,
-      promoCode,
+      itemsPrice: serverSubtotal,
+      taxPrice: serverTaxPrice,
+      shippingPrice: serverShippingPrice,
+      totalPrice: serverTotalPrice,
+      promoCode: appliedPromoCode,
       discountPrice: finalDiscount
     });
 
@@ -112,13 +194,19 @@ const addOrderItems = async (req, res) => {
 // @access  Private
 const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate('user', 'name email');
+    const order = await Order.findById(req.params.id).populate('user', 'name email phone');
 
-    if (order) {
-      res.json(order);
-    } else {
-      res.status(404).json({ message: 'Order not found' });
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
     }
+
+    // Security: IDOR prevention - only the customer who placed the order or an admin can access it
+    const orderUserId = order.user ? (order.user._id ? order.user._id.toString() : order.user.toString()) : null;
+    if (orderUserId !== req.user._id.toString() && !req.user.isAdmin) {
+      return res.status(403).json({ message: 'Access denied: You are not authorized to view this archival order.' });
+    }
+
+    res.json(order);
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving record from vault' });
   }
@@ -131,25 +219,36 @@ const updateOrderToPaid = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
 
-    if (order) {
-      order.isPaid = true;
-      order.paidAt = Date.now();
-      order.paymentResult = {
-        id: req.body.id,
-        status: req.body.status,
-        update_time: req.body.update_time,
-        email_address: req.body.email_address,
-      };
-
-      const updatedOrder = await order.save();
-      res.json(updatedOrder);
-    } else {
-      res.status(404).json({ message: 'Order not found' });
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
     }
+
+    // Security: Only the order owner or an admin can update payment status
+    if (order.user.toString() !== req.user._id.toString() && !req.user.isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to settle payment for this order.' });
+    }
+
+    const { id, status } = req.body;
+    if (!id || !status) {
+      return res.status(400).json({ message: 'Invalid payment confirmation payload. Transaction identifier and status required.' });
+    }
+
+    order.isPaid = true;
+    order.paidAt = Date.now();
+    order.paymentResult = {
+      id: String(id).slice(0, 100),
+      status: String(status).slice(0, 50),
+      update_time: req.body.update_time || new Date().toISOString(),
+      email_address: req.body.email_address || req.user.email,
+    };
+
+    const updatedOrder = await order.save();
+    res.json(updatedOrder);
   } catch (error) {
     res.status(500).json({ message: 'Treasury update failure' });
   }
 };
+
 
 // @desc    Update order to delivered
 // @route   PUT /api/orders/:id/deliver

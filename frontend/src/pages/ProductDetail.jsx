@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useParams, Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion as Motion } from 'framer-motion'
 import { useShop } from '../context/ShopContext'
-import { ArrowLeft, Sparkles, Heart, Minus, Plus, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, Sparkles, Heart, Minus, Plus, ShoppingBag, X, Check } from 'lucide-react'
 import api from '../utils/api'
 import { formatPrice } from '../utils/currency'
 import { getOptimizedImage } from '../utils/imageUtils'
@@ -17,14 +17,16 @@ const ProductDetail = () => {
     const [product, setProduct] = useState(null)
     const [loading, setLoading] = useState(true)
     const [quantity, setQuantity] = useState(1)
-    const [activeImg, setActiveImg] = useState(0)
+    const [selectedImage, setSelectedImage] = useState(null)
     const [similarProducts, setSimilarProducts] = useState([])
     const [loadingSimilar, setLoadingSimilar] = useState(true)
 
     // Review States
     const [rating, setRating] = useState(5)
+    const [hoverRating, setHoverRating] = useState(0)
     const [comment, setComment] = useState('')
     const [submittingReview, setSubmittingReview] = useState(false)
+    const [showReviewForm, setShowReviewForm] = useState(false)
 
     const isWishlisted = wishlist.some(item => (item._id || item) === id);
     const cartItem = cart.find(item => (item.product?._id || item.product) === id);
@@ -35,12 +37,14 @@ const ProductDetail = () => {
         window.scrollTo(0, 0)
         fetchProduct()
         trackView()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id])
 
     useEffect(() => {
         if (product && product.category) {
             fetchSimilarProducts()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [product])
 
     const trackView = async () => {
@@ -49,7 +53,7 @@ const ProductDetail = () => {
                 await api.post('/users/recently-viewed', { productId: id })
             }
         } catch (error) {
-            console.error('Archival observation error:', error)
+            console.error('Observation error:', error)
         }
     }
 
@@ -102,9 +106,10 @@ const ProductDetail = () => {
         try {
             setSubmittingReview(true);
             await api.post(`/products/${id}/reviews`, { rating, comment });
-            toast.success('Review Received by the Archive');
+            toast.success('Thank you! Your review has been submitted.');
             setComment('');
             setRating(5);
+            setShowReviewForm(false);
             fetchProduct();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Review submission failed');
@@ -126,35 +131,38 @@ const ProductDetail = () => {
     }
 
     if (loading) return (
-        <div className="pt-32 pb-24 bg-[#fffcf7] min-h-screen">
-            <main className="max-w-[1920px] mx-auto px-6 md:px-12 lg:px-24">
-                <div className="flex flex-col lg:flex-row gap-12 md:gap-24 items-start">
-                    {/* Gallery Skeleton */}
-                    <div className="w-full lg:w-[45%] space-y-8">
-                        <Skeleton height="auto" className="aspect-square rounded-2xl" />
-                        <div className="grid grid-cols-5 gap-4">
-                            {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} height="auto" className="aspect-square rounded-2xl" />)}
-                        </div>
+        <div className="pt-16 sm:pt-20 md:pt-28 pb-12 md:pb-20 bg-[#fffcf7] min-h-screen">
+            <main className="max-w-[1600px] mx-auto px-3.5 sm:px-6 md:px-10 lg:px-12">
+                <div className="flex flex-col lg:flex-row gap-6 md:gap-10 xl:gap-14 items-start">
+                    {/* Gallery Skeleton: 2-Column Grid */}
+                    <div className="w-full lg:w-[60%] xl:w-[62%] grid grid-cols-2 gap-2 sm:gap-4 md:gap-5">
+                        {[1, 2, 3, 4].map(i => (
+                            <Skeleton key={i} height="auto" className="aspect-[4/5] rounded-xl sm:rounded-2xl" />
+                        ))}
                     </div>
-                    {/* Content Skeleton */}
-                    <div className="w-full lg:w-[55%] space-y-12 pt-10">
-                        <div className="space-y-6">
+                    {/* Content Skeleton: Sticky Info Panel */}
+                    <div className="w-full lg:w-[40%] xl:w-[38%] space-y-7">
+                        <div className="space-y-4">
                             <Skeleton width="100px" height="10px" />
-                            <Skeleton width="80%" height="80px" />
-                            <Skeleton width="150px" height="30px" />
-                            <Skeleton width="100%" height="100px" />
+                            <Skeleton width="75%" height="44px" />
+                            <Skeleton width="130px" height="28px" />
+                            <Skeleton width="95%" height="50px" />
                         </div>
-                        <div className="py-12 border-y border-[#111110]/5 grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-10">
-                            {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="space-y-4">
-                                    <Skeleton width="60px" height="8px" />
-                                    <Skeleton width="120px" height="24px" />
+                        <div className="py-6 border-y border-[#111110]/8 grid grid-cols-2 gap-6">
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <div key={i} className="space-y-1.5">
+                                    <Skeleton width="50px" height="8px" />
+                                    <Skeleton width="90px" height="20px" />
                                 </div>
                             ))}
                         </div>
-                        <div className="space-y-8">
-                            <Skeleton width="200px" height="50px" className="rounded-full" />
-                            <Skeleton width="100%" height="70px" className="rounded-full" />
+                        <div className="space-y-4 pt-2">
+                            <Skeleton width="140px" height="10px" />
+                            <div className="flex gap-3">
+                                <Skeleton width="120px" height="52px" className="rounded-full" />
+                                <Skeleton width="100%" height="52px" className="rounded-full" />
+                                <Skeleton width="52px" height="52px" className="rounded-full" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -164,15 +172,15 @@ const ProductDetail = () => {
 
     if (!product) return (
         <div className="pt-64 text-center bg-[#fffcf7] min-h-screen px-12">
-            <h2 className="font-premium text-4xl italic mb-8">Piece not found in the archives.</h2>
+            <h2 className="font-premium text-4xl italic mb-8">Piece not found in the collection.</h2>
             <Link to="/shop" className="font-sans text-[10px] tracking-widest uppercase border-b border-[#111110] pb-2 font-black">Return to Gallery</Link>
         </div>
     )
 
-    const displayImages = [product.img || product.image, ...(product.images || [])].filter(url => !!url);
+    const displayImages = Array.from(new Set([product.img || product.image, ...(product.images || [])].filter(Boolean)));
 
     return (
-        <div className="pt-32 pb-24 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
+        <div className="pt-16 sm:pt-20 md:pt-28 pb-12 md:pb-20 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
             {product && (
                 <Helmet>
                     <title>{`${product.name} | SOVRA SOVRA`}</title>
@@ -185,145 +193,184 @@ const ProductDetail = () => {
                     <meta name="twitter:card" content="summary_large_image" />
                 </Helmet>
             )}
-            <main className="max-w-[1920px] mx-auto px-6 md:px-12 lg:px-24">
+            <main className="max-w-[1600px] mx-auto px-3.5 sm:px-6 md:px-10 lg:px-12">
 
                 {/* Editorial Top Navigation */}
-                <Link to="/shop" className="inline-flex items-center gap-4 font-sans text-[9px] tracking-[0.4em] uppercase text-[#7a7670] mb-8 md:mb-16 hover:text-[#111110] transition-colors group font-black">
-                    <ArrowLeft size={12} className="transition-transform group-hover:-translate-x-2" />
+                <Link to="/shop" className="inline-flex items-center gap-2 sm:gap-3 font-sans text-[8.5px] sm:text-[9px] tracking-[0.3em] sm:tracking-[0.35em] uppercase text-[#7a7670] mb-3 sm:mb-5 md:mb-8 hover:text-[#111110] transition-colors group font-black">
+                    <ArrowLeft size={12} className="transition-transform group-hover:-translate-x-1.5" />
                     Back to Curation
                 </Link>
 
-                <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 items-start">
+                <div className="flex flex-col lg:flex-row gap-6 md:gap-10 xl:gap-14 items-start">
 
-                    {/* GALLERY Side */}
-                    <div className="w-full lg:w-[45%] flex flex-col gap-8">
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                            className="relative aspect-square bg-[#f5f0e8] rounded-2xl overflow-hidden shadow-lux-sm"
-                        >
-                            <img
-                                src={getOptimizedImage(displayImages[activeImg], 1200)}
-                                alt={product.name}
-                                className="w-full h-full object-cover grayscale-[0.2] hover:grayscale-0 transition-grayscale duration-500 hover:scale-105"
-                            />
+                    {/* GALLERY: Responsive Product Images Grid */}
+                    <div className="w-full lg:w-[60%] xl:w-[62%]">
+                        <div className={`grid ${displayImages.length === 1 ? 'grid-cols-1 max-w-lg mx-auto' : 'grid-cols-2'} gap-2 sm:gap-4 md:gap-5`}>
+                            {displayImages.map((img, i) => (
+                                <Motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: 15 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ duration: 0.5, delay: i * 0.05 }}
+                                    onClick={() => setSelectedImage(img)}
+                                    className="relative aspect-[4/5] bg-[#fbf9f6] rounded-xl sm:rounded-2xl overflow-hidden shadow-lux-sm border border-[#111110]/5 cursor-zoom-in group"
+                                >
+                                    <img
+                                        src={getOptimizedImage(img, 1200)}
+                                        alt={`${product.name} perspective ${i + 1}`}
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    />
 
-
-                            {/* Wishlist Toggle on Image */}
-                            <button
-                                onClick={handleWishlist}
-                                className={`absolute top-12 right-12 w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-md transition-all duration-500 z-10 ${isWishlisted ? 'bg-primary text-white shadow-lux' : 'bg-white/20 text-white/60 hover:bg-white/40 border border-white/10 hover:text-white'
-                                    }`}
-                            >
-                                <Heart size={20} className={isWishlisted ? 'fill-current' : ''} />
-                            </button>
-                        </motion.div>
-
-                        {/* Detail views thumbnails */}
-                        {displayImages.length > 1 && (
-                            <div className="grid grid-cols-5 gap-4">
-                                {displayImages.map((img, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setActiveImg(i)}
-                                        className={`relative aspect-square overflow-hidden bg-[#f5f0e8] rounded-2xl transition-all duration-500 border ${activeImg === i ? 'border-[#111110] p-1 scale-95' : 'border-transparent opacity-60 hover:opacity-100'
+                                    {/* Wishlist Toggle on First Image */}
+                                    {i === 0 && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleWishlist()
+                                            }}
+                                            aria-label="Toggle Wishlist"
+                                            className={`absolute top-2.5 right-2.5 sm:top-4 sm:right-4 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center backdrop-blur-md transition-all duration-300 z-10 ${
+                                                isWishlisted ? 'bg-primary text-white shadow-lux' : 'bg-white/70 text-[#111110]/70 hover:bg-white hover:text-[#111110] border border-white/40 shadow-xs'
                                             }`}
-                                    >
-                                        <img src={getOptimizedImage(img, 200)} alt="Detail" className="w-full h-full object-cover rounded-xl" />
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                                        >
+                                            <Heart size={15} className={isWishlisted ? 'fill-current' : ''} />
+                                        </button>
+                                    )}
+                                </Motion.div>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* CONTENT SIDE */}
-                    <div className="w-full lg:w-[55%] lg:sticky lg:top-40 space-y-12 pt-10">
+                    {/* CONTENT SIDE: Sticky Info & Purchase Panel */}
+                    <div className="w-full lg:w-[40%] xl:w-[38%] lg:sticky lg:top-28 space-y-4 sm:space-y-6">
                         <header>
-                            <motion.span
+                            <Motion.div
                                 initial={{ opacity: 0 }}
                                 whileInView={{ opacity: 1 }}
-                                className="font-sans text-[10px] tracking-[0.4em] uppercase text-[#7a7670] block mb-6 font-black"
+                                className="flex items-center gap-2 mb-1.5 sm:mb-2"
                             >
-                                {product.series || product.category || 'Fine Jewellery Archive'}
-                            </motion.span>
-                            <motion.h1
-                                initial={{ opacity: 0, y: 20 }}
+                                <span className="font-sans text-[9.5px] sm:text-[10.5px] tracking-[0.25em] uppercase text-[#a88243] font-bold">
+                                    {product.series || product.category || 'Fine Jewellery Archive'}
+                                </span>
+                            </Motion.div>
+                            <Motion.h1
+                                initial={{ opacity: 0, y: 15 }}
                                 whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 }}
-                                className="font-premium text-4xl sm:text-5xl md:text-7xl text-[#111110] leading-none mb-6 md:mb-8 italic"
+                                transition={{ delay: 0.05 }}
+                                className="font-premium text-2xl sm:text-4xl lg:text-[42px] text-[#111110] leading-[1.12] mb-2 sm:mb-3 italic"
                             >
                                 {product.name}
-                            </motion.h1>
-                            <div className="flex items-center gap-6 mb-6 md:mb-8 text-[#111110] font-black italic text-xl md:text-2xl">
-                                <span>{formatPrice(product.price)}</span>
-                                <div className="w-12 h-[1px] bg-[#111110]/10" />
+                            </Motion.h1>
+                            
+                            {/* Price & Value Details */}
+                            <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 mb-2.5 sm:mb-3.5">
+                                <span className="font-sans text-xl sm:text-3xl font-bold text-[#111110] tracking-tight">
+                                    {formatPrice(product.price)}
+                                </span>
+                                <span className="font-sans text-[10px] sm:text-[11px] text-[#78736a] uppercase tracking-wider font-medium">
+                                    • Taxes Included
+                                </span>
+                                <span className="font-sans text-[9.5px] sm:text-[10.5px] text-[#15803d] font-semibold bg-[#eef8f1] px-2 sm:px-2.5 py-0.5 rounded-full border border-[#d1ebd7]">
+                                    Free Insured Delivery
+                                </span>
                             </div>
-                            <p className="font-body text-base md:text-lg text-[#656464] leading-relaxed italic opacity-85 font-light">
+
+                            <p className="font-sans text-[12.5px] sm:text-[14px] text-[#4a4742] leading-relaxed font-normal">
                                 {product.description || product.details}
                             </p>
                         </header>
 
-                        <div className="py-8 md:py-12 border-y border-[#111110]/5 space-y-10 md:space-y-12">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-8 md:gap-y-10">
+                        {/* Elevated Atelier Specifications & Standards Card */}
+                        <div className="bg-[#faf8f4] rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-[#e8e3d8] shadow-[0_2px_16px_rgba(0,0,0,0.02)] space-y-3 sm:space-y-4">
+                            <div className="flex items-center justify-between border-b border-[#111110]/8 pb-2">
+                                <div className="flex items-center gap-1.5 sm:gap-2">
+                                    <Sparkles size={12} className="text-[#a88243]" />
+                                    <span className="font-sans text-[9.5px] sm:text-[10.5px] tracking-[0.18em] sm:tracking-[0.2em] uppercase text-[#615c54] font-bold">
+                                        Atelier Specifications
+                                    </span>
+                                </div>
+                                <span className="font-sans text-[8.5px] sm:text-[9px] uppercase tracking-wider text-[#a88243] font-bold bg-[#a88243]/10 px-2 py-0.5 rounded">
+                                    18K PVD Certified
+                                </span>
+                            </div>
+
+                            {/* 2-Column Specification Micro-Tiles */}
+                            <div className="grid grid-cols-2 gap-1.5 sm:gap-2.5">
                                 {[
                                     { label: 'Material', value: product.material || 'Stainless Steel' },
                                     { label: 'Plating', value: product.plating || 'Gold 18K PVD Plating' },
-                                    { label: 'Stone/Pearl', value: product.stone || 'Natural' },
+                                    { label: 'Stone / Pearl', value: product.stone || 'Natural' },
                                     { label: 'Length', value: product.length || '46 cm' },
-                                    { label: 'Weight', value: product.weight || '6g' }
+                                    { label: 'Weight', value: product.weight || '5g/pair' }
                                 ].map(spec => (
-                                    <div key={spec.label} className="space-y-2 group/spec">
-                                        <span className="font-sans text-[8px] tracking-[0.4em] uppercase text-[#7a7670] font-black opacity-60 italic group-hover/spec:text-primary transition-colors">{spec.label}</span>
-                                        <p className="font-premium text-xl text-[#373831] font-light italic leading-tight">{spec.value}</p>
+                                    <div key={spec.label} className="bg-white/95 rounded-lg sm:rounded-xl px-2.5 sm:px-3.5 py-2 sm:py-2.5 border border-[#111110]/6 flex flex-col justify-center">
+                                        <span className="font-sans text-[8.5px] sm:text-[9.5px] tracking-[0.15em] uppercase text-[#7a756c] font-semibold block mb-0.5">
+                                            {spec.label}
+                                        </span>
+                                        <span className="font-sans text-[11.5px] sm:text-[13.5px] text-[#1c1b18] font-semibold tracking-tight truncate">
+                                            {spec.value}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="pt-10 border-t border-[#111110]/5">
-                                <span className="font-sans text-[8px] tracking-[0.4em] uppercase text-[#7a7670] font-black opacity-60 italic block mb-8 px-1">Maison Standards</span>
-                                <div className="flex flex-wrap gap-4">
+                            {/* Maison Quality Standards Hallmarks */}
+                            <div className="pt-2 sm:pt-3 border-t border-[#111110]/8">
+                                <span className="font-sans text-[9.5px] sm:text-[10px] tracking-[0.16em] uppercase text-[#615c54] font-bold block mb-1.5 sm:mb-2">
+                                    Maison Quality Standards
+                                </span>
+                                <div className="flex flex-wrap gap-1 sm:gap-1.5">
                                     {(product.features || ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic']).map(feature => (
-                                        <div key={feature} className="bg-primary/5 px-6 py-2 rounded-full border border-primary/10 group/feat hover:bg-primary transition-all duration-700">
-                                            <span className="font-sans text-[9px] tracking-widest uppercase text-primary font-black italic group-hover/feat:text-on-primary transition-colors">{feature}</span>
+                                        <div 
+                                            key={feature} 
+                                            className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white border border-[#e2dcd0] shadow-xs text-[#1c1b18]"
+                                        >
+                                            <Check size={10} className="text-[#a88243]" strokeWidth={2.5} />
+                                            <span className="font-sans text-[9px] sm:text-[10px] tracking-wider uppercase font-semibold">
+                                                {feature}
+                                            </span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="space-y-8 pt-4">
-                            <div className="flex items-center gap-12">
-                                <div className="flex items-center border border-[#111110]/10 rounded-full px-6 py-3">
+                        {/* Action Area (Quantity + Add to Bag + Wishlist) */}
+                        <div className="space-y-2.5 sm:space-y-3.5 pt-0.5 sm:pt-1">
+                            <div className="flex items-center justify-between text-[9.5px] sm:text-[10px] tracking-wider uppercase text-[#615c54] font-bold px-1">
+                                <span className="inline-flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    {product.stock > 0 ? (availableToAdd > 0 ? 'In Stock' : 'In Bag') : 'Out of Stock'}
+                                </span>
+                                {product.stock > 0 && product.stock < 10 && (
+                                    <span className="text-[#a88243] font-bold">
+                                        {availableToAdd > 0 ? `${availableToAdd} units left` : 'All in your bag'}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="flex items-center border border-[#111110]/15 rounded-full px-2.5 sm:px-3.5 h-11 sm:h-13.5 bg-white/80 backdrop-blur-sm shrink-0 shadow-xs">
                                     <button
                                         disabled={availableToAdd === 0}
                                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                        className="p-2 hover:opacity-50 transition-opacity disabled:opacity-20"
+                                        className="p-1 hover:opacity-50 transition-opacity disabled:opacity-20"
+                                        aria-label="Decrease quantity"
                                     >
-                                        <Minus size={14} />
+                                        <Minus size={12} />
                                     </button>
-                                    <span className="px-8 font-sans font-black text-xs">{availableToAdd === 0 ? 0 : quantity}</span>
+                                    <span className="px-2 sm:px-4 font-sans font-bold text-xs text-[#111110]">{availableToAdd === 0 ? 0 : quantity}</span>
                                     <button
                                         disabled={availableToAdd === 0 || quantity >= availableToAdd}
                                         onClick={() => setQuantity(Math.min(availableToAdd, quantity + 1))}
-                                        className="p-2 hover:opacity-50 transition-opacity disabled:opacity-20"
+                                        className="p-1 hover:opacity-50 transition-opacity disabled:opacity-20"
+                                        aria-label="Increase quantity"
                                     >
-                                        <Plus size={14} />
+                                        <Plus size={12} />
                                     </button>
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="font-sans text-[9px] tracking-widest uppercase text-[#7a7670] font-black">
-                                        {product.stock > 0 ? (availableToAdd > 0 ? 'Limited Edition Piece' : 'Vault Limit Reached') : 'Currently Unavailable'}
-                                    </span>
-                                    {product.stock > 0 && product.stock < 10 && (
-                                        <span className="font-sans text-[8px] tracking-wider uppercase text-primary font-black mt-1 italic">
-                                            {availableToAdd > 0 ? `Only ${availableToAdd} more pieces available for you` : 'All available units are in your bag'}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
 
-                            <div className="flex flex-col md:flex-row gap-4">
                                 <button
                                     disabled={availableToAdd === 0}
                                     onClick={() => {
@@ -331,192 +378,246 @@ const ProductDetail = () => {
                                         // GA4: add_to_cart
                                         trackAddToCart(product, quantity)
                                     }}
-                                    className={`flex-1 ${availableToAdd === 0 ? 'bg-[#111110]/20' : 'bg-[#111110]'} text-[#f5f0e8] py-6 px-10 text-[10px] tracking-[0.4em] uppercase font-sans font-black flex items-center justify-center gap-4 hover:opacity-95 transition-all rounded-full shadow-lux-sm active:scale-95 disabled:cursor-not-allowed`}
+                                    className={`flex-1 h-11 sm:h-13.5 ${availableToAdd === 0 ? 'bg-[#111110]/20' : 'bg-[#111110] hover:bg-black'} text-[#f5f0e8] px-3 sm:px-6 text-[10px] sm:text-[11px] tracking-[0.16em] sm:tracking-[0.2em] uppercase font-sans font-bold flex items-center justify-center gap-2 sm:gap-3 transition-all rounded-full shadow-lux-sm active:scale-[0.99] disabled:cursor-not-allowed`}
                                 >
                                     <ShoppingBag size={14} />
-                                    {product.stock === 0 ? 'Vault Empty' : (availableToAdd === 0 ? 'In Bag' : 'Begin Acquisition')}
+                                    <span>{product.stock === 0 ? 'Out of Stock' : (availableToAdd === 0 ? 'In Bag' : 'Buy Now')}</span>
                                 </button>
+
                                 <button
                                     onClick={handleWishlist}
-                                    className={`w-full md:w-20 h-20 rounded-full border flex items-center justify-center transition-all duration-500 ${isWishlisted ? 'bg-primary/5 border-primary/20 text-error shadow-inner' : 'border-[#111110]/10 text-[#111110] hover:bg-[#111110] hover:text-white'
+                                    aria-label="Wishlist item"
+                                    className={`h-11 w-11 sm:h-13.5 sm:w-13.5 rounded-full border border-[#111110]/15 flex items-center justify-center transition-all duration-300 shrink-0 ${isWishlisted ? 'bg-primary/10 border-primary/30 text-error shadow-inner' : 'bg-white hover:bg-[#111110] text-[#111110] hover:text-white shadow-xs'
                                         }`}
                                 >
-                                    <Heart size={20} className={isWishlisted ? 'fill-current' : ''} />
+                                    <Heart size={15} className={isWishlisted ? 'fill-current' : ''} />
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Narrative Detail Section */}
-                <div className="mt-32 md:mt-48 pt-20 md:pt-32 border-t border-[#111110]/5 max-w-4xl">
-                    <span className="font-sans text-[10px] tracking-[0.5em] uppercase text-[#7a7670] block mb-8 md:mb-12 font-black">The Visionary Process</span>
-                    <p className="font-premium text-3xl md:text-5xl text-[#111110] leading-tight italic font-light">
-                        "For every masterpiece, there's a whisper of celestial inspiration. Our artisans spend weeks hand-sculpting each curve to ensure it captures the exact radiance of the Aravalli hills."
-                    </p>
-                </div>
+                {/* Lightbox Modal */}
+                {selectedImage && (
+                    <div 
+                        className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-8"
+                        onClick={() => setSelectedImage(null)}
+                    >
+                        <div className="relative max-w-4xl max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+                            <img 
+                                src={getOptimizedImage(selectedImage, 1600)} 
+                                alt="Zoomed view"
+                                className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl" 
+                            />
+                            <button
+                                onClick={() => setSelectedImage(null)}
+                                aria-label="Close preview"
+                                className="absolute -top-12 right-0 text-white/80 hover:text-white flex items-center gap-2 font-sans text-xs tracking-widest uppercase font-bold"
+                            >
+                                Close <X size={16} />
+                            </button>
+                        </div>
+                    </div>
+                )}
 
-                {/* Reviews Section */}
-                <section className="mt-32 md:mt-48 pt-20 md:pt-32 border-t border-[#111110]/10 overflow-hidden">
-                    <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
-                        <div className="w-full lg:w-1/3 space-y-8 md:space-y-12">
-                            <header className="space-y-4 md:space-y-6">
-                                <span className="font-sans text-[10px] tracking-[0.5em] uppercase text-[#7a7670] block font-black">Client Reflections</span>
-                                <h2 className="font-premium text-4xl md:text-6xl italic leading-none">Voices of the Archive</h2>
-                                <div className="flex items-center gap-6">
-                                    <div className="flex">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <Sparkles key={star} size={20} className={star <= Math.round(product.rating || 0) ? 'text-primary fill-current' : 'text-[#111110]/10'} />
-                                        ))}
-                                    </div>
-                                    <span className="font-sans text-xs tracking-widest font-black opacity-40 uppercase">{product.numReviews || 0} Acquisitions</span>
+                {/* Reviews Section - Redesigned & Balanced */}
+                <section className="mt-12 sm:mt-20 md:mt-28 pt-8 sm:pt-16 md:pt-20 border-t border-[#111110]/10">
+                    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6 mb-6 sm:mb-12">
+                        <header className="space-y-2 sm:space-y-3">
+                            <span className="font-sans text-[8.5px] sm:text-[9px] tracking-[0.35em] sm:tracking-[0.4em] uppercase text-[#7a7670] block font-black">Verified Feedback</span>
+                            <h2 className="font-premium text-2xl sm:text-4xl md:text-5xl italic leading-none text-[#111110]">Customer Reviews</h2>
+                            <div className="flex items-center gap-3 sm:gap-4 pt-1">
+                                <div className="flex text-primary">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Sparkles key={star} size={14} className={star <= Math.round(product.rating || 5) ? 'fill-current' : 'text-[#111110]/15'} />
+                                    ))}
                                 </div>
-                            </header>
+                                <span className="font-sans text-[11px] sm:text-xs tracking-wider font-bold text-[#111110]/80">
+                                    {product.rating ? product.rating.toFixed(1) : '5.0'} / 5.0
+                                </span>
+                                <span className="text-xs text-[#7a7670]">•</span>
+                                <span className="font-sans text-[11px] sm:text-xs tracking-wider font-medium text-[#7a7670]">
+                                    {product.numReviews || 0} {product.numReviews === 1 ? 'Review' : 'Reviews'}
+                                </span>
+                            </div>
+                        </header>
 
-                            {/* Review Form */}
+                        <button
+                            onClick={() => setShowReviewForm(!showReviewForm)}
+                            className="inline-flex items-center justify-center gap-2 bg-[#111110] text-[#f5f0e8] hover:bg-black px-4 sm:px-6 py-2 sm:py-3 rounded-full text-[8.5px] sm:text-[9px] tracking-[0.25em] sm:tracking-[0.3em] uppercase font-sans font-black transition-all shadow-lux-sm self-start sm:self-auto shrink-0"
+                        >
+                            {showReviewForm ? 'Close Form' : 'Write a Review'}
+                        </button>
+                    </div>
+
+                    {/* Review Submission Form (Expandable) */}
+                    {showReviewForm && (
+                        <div className="mb-8 sm:mb-14 bg-white p-4 sm:p-8 md:p-10 rounded-2xl sm:rounded-3xl border border-[#111110]/8 shadow-lux-soft max-w-3xl">
                             {localStorage.getItem('userInfo') ? (
-                                <form onSubmit={submitReviewHandler} className="bg-white p-12 shadow-lux-soft border border-[#111110]/5 space-y-10 group">
-                                    <h3 className="font-premium text-2xl italic">Leave your record</h3>
+                                <form onSubmit={submitReviewHandler} className="space-y-4 sm:space-y-6">
+                                    <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-[#111110]/8">
+                                        <h3 className="font-premium text-xl sm:text-2xl italic text-[#111110]">Share Your Experience</h3>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setShowReviewForm(false)}
+                                            className="text-[#7a7670] hover:text-[#111110] p-1"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
 
-                                    <div className="space-y-4">
-                                        <label className="text-[9px] uppercase tracking-[0.4em] font-black opacity-40">Star Rating</label>
-                                        <div className="flex gap-4">
+                                    <div className="space-y-1.5 sm:space-y-2">
+                                        <label className="text-[8.5px] sm:text-[9px] uppercase tracking-[0.25em] sm:tracking-[0.3em] font-black text-[#7a7670] block">Your Rating</label>
+                                        <div className="flex gap-2 sm:gap-3">
                                             {[1, 2, 3, 4, 5].map((s) => (
                                                 <button
                                                     key={s}
                                                     type="button"
+                                                    onMouseEnter={() => setHoverRating(s)}
+                                                    onMouseLeave={() => setHoverRating(0)}
                                                     onClick={() => setRating(s)}
-                                                    className={`transition-all duration-500 ${rating >= s ? 'text-primary scale-125' : 'text-[#111110]/10'}`}
+                                                    className="p-1 transition-transform hover:scale-125 focus:outline-none"
                                                 >
-                                                    <Sparkles size={24} className={rating >= s ? 'fill-current' : ''} />
+                                                    <Sparkles 
+                                                        size={18} 
+                                                        className={(hoverRating || rating) >= s ? 'text-primary fill-current' : 'text-[#111110]/15'} 
+                                                    />
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
 
-                                    <div className="space-y-4">
-                                        <label className="text-[9px] uppercase tracking-[0.4em] font-black opacity-40">Your Correspondence</label>
+                                    <div className="space-y-1.5 sm:space-y-2">
+                                        <label className="text-[8.5px] sm:text-[9px] uppercase tracking-[0.25em] sm:tracking-[0.3em] font-black text-[#7a7670] block">Your Review</label>
                                         <textarea
                                             required
                                             value={comment}
                                             onChange={(e) => setComment(e.target.value)}
-                                            className="w-full bg-transparent border-b border-[#111110]/10 py-4 font-body text-lg italic outline-none focus:border-primary min-h-[120px] resize-none"
-                                            placeholder="Write your reflection of this piece..."
-                                        ></textarea>
+                                            rows={3}
+                                            className="w-full bg-[#fbf9f6] border border-[#111110]/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 font-body text-sm sm:text-base italic outline-none focus:border-primary focus:bg-white transition-all resize-none"
+                                            placeholder="Write your honest reflection of this piece..."
+                                        />
                                     </div>
 
                                     <button
                                         disabled={submittingReview}
                                         type="submit"
-                                        className="w-full bg-primary text-on-primary py-5 text-[10px] tracking-[0.5em] uppercase font-black hover:opacity-95 transition-all shadow-lux disabled:opacity-50"
+                                        className="bg-[#111110] text-white px-6 sm:px-8 py-2.5 sm:py-3.5 text-[8.5px] sm:text-[9px] tracking-[0.3em] uppercase font-black hover:bg-black transition-all rounded-full shadow-lux disabled:opacity-50"
                                     >
-                                        {submittingReview ? 'Syncing...' : 'Secure Review'}
+                                        {submittingReview ? 'Submitting...' : 'Submit Review'}
                                     </button>
                                 </form>
                             ) : (
-                                <div className="p-12 border border-dashed border-[#111110]/20 text-center space-y-8">
-                                    <p className="font-premium text-2xl italic opacity-30">Login to leave your reflection.</p>
-                                    <Link to="/login" className="inline-block bg-[#111110] text-white px-12 py-5 text-[10px] tracking-widest uppercase font-black">Identify Yourself</Link>
+                                <div className="text-center py-4 sm:py-6 space-y-3 sm:space-y-4">
+                                    <p className="font-premium text-lg sm:text-xl italic text-[#111110]/70">Please identify yourself to leave a review.</p>
+                                    <Link to="/login" className="inline-block bg-[#111110] text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full text-[8.5px] sm:text-[9px] tracking-widest uppercase font-black hover:bg-black transition-all">
+                                        Sign In
+                                    </Link>
                                 </div>
                             )}
                         </div>
+                    )}
 
-                        <div className="w-full lg:w-2/3 space-y-16">
-                            {product.reviews?.length === 0 ? (
-                                <div className="py-40 text-center border-l border-[#111110]/5 pl-12 flex flex-col items-center justify-center gap-8">
-                                    <Sparkles size={48} className="text-[#111110]/5" />
-                                    <p className="font-premium text-4xl italic opacity-20">The archive is silent. Be the first to speak.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                                    {product.reviews?.map((review, idx) => (
-                                        <motion.div
-                                            key={review._id}
-                                            initial={{ opacity: 0, y: 30 }}
-                                            whileInView={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: idx * 0.1 }}
-                                            className="p-10 bg-[#fbf9f6] border border-[#111110]/5 shadow-sm space-y-8 relative overflow-hidden group"
-                                        >
-                                            <div className="absolute top-0 right-0 p-8 opacity-[0.03] select-none pointer-events-none group-hover:opacity-[0.08] transition-opacity duration-1000">
-                                                <span className="font-premium text-8xl italic">S.</span>
-                                            </div>
-
-                                            <div className="flex justify-between items-start relative z-10">
-                                                <div className="flex">
-                                                    {[1, 2, 3, 4, 5].map((s) => (
-                                                        <Sparkles key={s} size={14} className={s <= review.rating ? 'text-primary fill-current' : 'text-[#111110]/10'} />
-                                                    ))}
-                                                </div>
-                                                <span className="text-[8px] uppercase tracking-widest font-black opacity-30">{new Date(review.createdAt).toLocaleDateString()}</span>
-                                            </div>
-
-                                            <p className="font-body text-lg italic text-[#656464] leading-relaxed relative z-10">
-                                                "{review.comment}"
-                                            </p>
-
-                                            <div className="pt-6 border-t border-[#111110]/5 relative z-10">
-                                                <span className="font-sans text-[9px] tracking-[0.3em] uppercase text-primary font-black block mb-2">Verified Client</span>
-                                                <span className="font-premium text-xl italic text-[#111110]">{review.name}</span>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
+                    {/* Reviews List or Empty State */}
+                    {!product.reviews || product.reviews.length === 0 ? (
+                        <div className="py-10 sm:py-16 px-4 sm:px-6 text-center bg-[#fbf9f6] rounded-2xl sm:rounded-3xl border border-[#111110]/5 max-w-2xl mx-auto flex flex-col items-center justify-center gap-3 sm:gap-4">
+                            <Sparkles size={26} className="text-primary/40" />
+                            <h3 className="font-premium text-xl sm:text-2xl italic text-[#111110]">No reviews yet</h3>
+                            <p className="font-body text-xs sm:text-sm italic text-[#7a7670] max-w-sm">Be the first to share your experience with this creation.</p>
+                            {!showReviewForm && (
+                                <button
+                                    onClick={() => setShowReviewForm(true)}
+                                    className="mt-1 text-[8.5px] sm:text-[9px] tracking-[0.25em] sm:tracking-[0.3em] uppercase font-black text-primary border-b border-primary/40 pb-1 hover:border-primary transition-all"
+                                >
+                                    Write the First Review
+                                </button>
                             )}
                         </div>
-                    </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                            {product.reviews.map((review, idx) => (
+                                <Motion.div
+                                    key={review._id || idx}
+                                    initial={{ opacity: 0, y: 15 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: idx * 0.05 }}
+                                    className="p-4 sm:p-8 bg-[#fbf9f6] border border-[#111110]/5 rounded-2xl sm:rounded-3xl shadow-xs space-y-3 sm:space-y-5 relative overflow-hidden"
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex text-primary">
+                                            {[1, 2, 3, 4, 5].map((s) => (
+                                                <Sparkles key={s} size={13} className={s <= review.rating ? 'fill-current' : 'text-[#111110]/15'} />
+                                            ))}
+                                        </div>
+                                        <span className="text-[7.5px] sm:text-[8px] uppercase tracking-widest font-black text-[#7a7670]">{new Date(review.createdAt).toLocaleDateString()}</span>
+                                    </div>
+
+                                    <p className="font-body text-sm sm:text-base italic text-[#4a4947] leading-relaxed">
+                                        "{review.comment}"
+                                    </p>
+
+                                    <div className="pt-3 sm:pt-4 border-t border-[#111110]/5 flex items-center justify-between">
+                                        <span className="font-premium text-base sm:text-lg italic text-[#111110]">{review.name}</span>
+                                        <span className="font-sans text-[7.5px] sm:text-[8px] tracking-[0.2em] sm:tracking-[0.25em] uppercase text-primary font-bold bg-primary/8 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">Verified Client</span>
+                                    </div>
+                                </Motion.div>
+                            ))}
+                        </div>
+                    )}
                 </section>
 
-                {/* Similar Products section */}
-                <section className="mt-32 md:mt-48 pt-20 md:pt-32 border-t border-[#111110]/10 overflow-hidden pb-32 md:pb-48">
-                    <div className="flex flex-col items-center mb-12 md:mb-16 text-center space-y-4 md:space-y-6">
-                        <span className="font-sans text-[10px] tracking-[0.6em] uppercase text-[#7a7670] block font-black">Complete the Curation</span>
-                        <h2 className="font-premium text-4xl md:text-6xl italic leading-none">Similar Archives</h2>
-                        <div className="w-16 h-[1px] bg-primary/30 mt-4 mx-auto" />
+                {/* Similar Products Section */}
+                <section className="mt-14 sm:mt-24 md:mt-32 pt-10 sm:pt-16 md:pt-20 border-t border-[#111110]/10 overflow-hidden pb-16 sm:pb-32 md:pb-48">
+                    <div className="flex flex-col items-center mb-6 sm:mb-12 md:mb-16 text-center space-y-2 sm:space-y-3">
+                        <span className="font-sans text-[8.5px] sm:text-[9px] tracking-[0.4em] sm:tracking-[0.5em] uppercase text-[#7a7670] block font-black">Complete the Curation</span>
+                        <h2 className="font-premium text-2xl sm:text-4xl md:text-5xl italic leading-none text-[#111110]">You May Also Like</h2>
+                        <div className="w-10 sm:w-12 h-[1px] bg-primary/40 mt-2 sm:mt-3 mx-auto" />
                     </div>
 
                     {loadingSimilar ? (
-                        <div className="flex justify-center p-24">
+                        <div className="flex justify-center p-12 sm:p-20">
                             <div className="w-8 h-8 border border-primary/20 border-t-primary rounded-full animate-spin" />
                         </div>
                     ) : similarProducts.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6 md:gap-8">
                             {similarProducts.map((p, idx) => (
-                                <motion.div
+                                <Motion.div
                                     key={p._id}
                                     initial={{ opacity: 0, scale: 0.98 }}
                                     whileInView={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: idx * 0.1, duration: 1 }}
+                                    transition={{ delay: idx * 0.08, duration: 0.6 }}
                                     viewport={{ once: true }}
-                                    className="group flex flex-col h-full bg-white shadow-lux-soft hover:shadow-lux transition-all duration-700 rounded-3xl overflow-hidden border border-[#111110]/5"
+                                    className="group flex flex-col h-full bg-white shadow-lux-soft hover:shadow-lux transition-all duration-700 rounded-xl sm:rounded-3xl overflow-hidden border border-[#111110]/5"
                                 >
                                     <Link to={`/product/${p._id}`} className="relative aspect-[3/4] overflow-hidden bg-[#f5f0e8]">
                                         <img
                                             src={getOptimizedImage(p.img || p.image, 600)}
                                             alt={p.name}
-                                            className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-grayscale duration-[1.5s] group-hover:scale-105"
+                                            className="w-full h-full object-cover grayscale-[0.1] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
                                         />
-                                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
 
-                                        <div className="absolute bottom-6 left-6 right-6 translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-700 z-10">
-                                            <div className="bg-white/90 backdrop-blur-md px-6 py-4 rounded-full text-center">
-                                                <span className="font-sans text-[8px] tracking-[0.3em] uppercase text-[#111110] font-black">Observe Masterpiece</span>
+                                        <div className="absolute bottom-3 sm:bottom-5 left-3 right-3 sm:left-5 sm:right-5 translate-y-6 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-10">
+                                            <div className="bg-white/95 backdrop-blur-md px-3 sm:px-5 py-2 sm:py-3 rounded-full text-center shadow-sm">
+                                                <span className="font-sans text-[7.5px] sm:text-[8px] tracking-[0.25em] sm:tracking-[0.3em] uppercase text-[#111110] font-black">View Piece</span>
                                             </div>
                                         </div>
                                     </Link>
 
-                                    <div className="p-10 flex flex-col flex-1 text-center justify-center items-center gap-4">
-                                        <span className="text-[8px] uppercase tracking-[0.4em] font-black opacity-40">{p.category}</span>
+                                    <div className="p-3 sm:p-6 md:p-8 flex flex-col flex-1 text-center justify-center items-center gap-1.5 sm:gap-3">
+                                        <span className="text-[7.5px] sm:text-[8px] uppercase tracking-[0.3em] font-black opacity-40">{p.category}</span>
                                         <Link to={`/product/${p._id}`}>
-                                            <h3 className="font-premium text-2xl italic text-[#111110] group-hover:text-primary transition-colors duration-500 line-clamp-1">{p.name}</h3>
+                                            <h3 className="font-premium text-sm sm:text-lg md:text-xl italic text-[#111110] group-hover:text-primary transition-colors duration-300 line-clamp-1">{p.name}</h3>
                                         </Link>
-                                        <span className="font-sans font-black text-xs text-[#111110] italic">{formatPrice(p.price)}</span>
+                                        <span className="font-sans font-bold text-xs sm:text-sm text-[#111110]">{formatPrice(p.price)}</span>
                                     </div>
-                                </motion.div>
+                                </Motion.div>
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-20 px-8 border border-dashed border-[#111110]/10 rounded-3xl">
-                            <p className="font-premium text-2xl italic opacity-30 italic">No similar pieces found in this niche of the archive.</p>
+                        <div className="text-center py-10 sm:py-16 px-4 sm:px-8 border border-dashed border-[#111110]/10 rounded-2xl sm:rounded-3xl max-w-xl mx-auto">
+                            <p className="font-premium text-lg sm:text-xl italic opacity-40">No similar pieces found in this collection.</p>
                         </div>
                     )}
                 </section>

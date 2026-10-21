@@ -78,8 +78,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+// Swagger Documentation (Restricted in production unless ENABLE_SWAGGER is set)
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+}
+
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -96,6 +99,7 @@ const analyticsRoutes = require('./routes/analyticsRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const promoRoutes = require('./routes/promoRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
+const reelRoutes = require('./routes/reelRoutes');
 
 
 app.use('/api/products', productRoutes);
@@ -107,6 +111,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/promos', promoRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/reels', reelRoutes);
 
 
 const PORT = process.env.PORT || 5000;

@@ -35,6 +35,7 @@ const Ethics = lazyRetry(() => import('./pages/Ethics'))
 const Admin = lazyRetry(() => import('./pages/Admin'))
 const Collections = lazyRetry(() => import('./pages/Collections'))
 const Magazine = lazyRetry(() => import('./pages/Magazine'))
+const Reels = lazyRetry(() => import('./pages/Reels'))
 const Login = lazyRetry(() => import('./pages/Login'))
 const Signup = lazyRetry(() => import('./pages/Signup'))
 const OTPVerification = lazyRetry(() => import('./pages/OTPVerification'))
@@ -79,7 +80,7 @@ const ScrollToTop = () => {
 
 const AppBody = () => {
   const location = useLocation();
-  const isAdminPage = location.pathname === '/admin';
+  const hideFooter = ['/admin', '/reels', '/account', '/bag', '/wishlist', '/checkout'].includes(location.pathname);
 
   return (
     <>
@@ -94,6 +95,7 @@ const AppBody = () => {
             <Route path="/shop" element={<Shop />} />
             <Route path="/shop/:category" element={<Shop />} />
             <Route path="/magazine" element={<Magazine />} />
+            <Route path="/reels" element={<Reels />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/bag" element={<Bag />} />
             <Route path="/story" element={<Story />} />
@@ -131,7 +133,7 @@ const AppBody = () => {
           </Routes>
         </Suspense>
       </main>
-      {!isAdminPage && <Footer />}
+      {!hideFooter && <Footer />}
     </>
   );
 };

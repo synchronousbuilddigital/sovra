@@ -87,10 +87,12 @@ const registerUser = async (req, res) => {
 
     const user = await User.create({
       name,
-      email,
+      email: email.toLowerCase().trim(),
       password,
       otp,
       otpExpire,
+      otpAttempts: 0,
+      otpLastSent: Date.now(),
     });
 
     if (user) {
@@ -101,7 +103,7 @@ const registerUser = async (req, res) => {
           subject: 'Your SOVRA Access Code',
           html: getOTPTemplate(otp, user.name),
         });
-        console.log(`OTP sent to ${email}: ${otp}`);
+        // OTP email dispatched securely
       } catch (emailError) {
         console.error('Email failed to send:', emailError.message);
         // We still return 201 so the user can try "resend" if they set up .env later
@@ -141,16 +143,37 @@ const verifyOTP = async (req, res) => {
       return res.status(400).json({ message: 'User already verified' });
     }
 
-    if (user.otp === otp && user.otpExpire > Date.now()) {
-      user.isVerified = true;
+    // Security: Lockout after 5 failed attempts
+    if (user.otpAttempts >= 5) {
       user.otp = undefined;
       user.otpExpire = undefined;
+      user.otpAttempts = 0;
       await user.save();
-
-      res.json({ message: 'Email verified successfully', isVerified: true });
-    } else {
-      res.status(400).json({ message: 'Invalid or expired OTP' });
+      return res.status(429).json({ message: 'Maximum verification attempts exceeded. Please request a new verification code.' });
     }
+
+    if (!user.otp || !user.otpExpire || new Date(user.otpExpire).getTime() <= Date.now()) {
+      return res.status(400).json({ message: 'Verification code has expired. Please request a new code.' });
+    }
+
+    if (user.otp !== otp) {
+      user.otpAttempts = (user.otpAttempts || 0) + 1;
+      await user.save();
+      const remaining = 5 - user.otpAttempts;
+      return res.status(400).json({
+        message: remaining > 0
+          ? `Invalid verification code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
+          : 'Maximum attempts reached. Please request a new code.'
+      });
+    }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpire = undefined;
+    user.otpAttempts = 0;
+    await user.save();
+
+    res.json({ message: 'Email verified successfully', isVerified: true });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -167,11 +190,19 @@ const resendOTP = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Security: 60-second cooldown between resends
+    if (user.otpLastSent && (Date.now() - new Date(user.otpLastSent).getTime() < 60000)) {
+      const waitSeconds = Math.ceil((60000 - (Date.now() - new Date(user.otpLastSent).getTime())) / 1000);
+      return res.status(429).json({ message: `Please wait ${waitSeconds} seconds before requesting a new code.` });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpire = new Date(Date.now() + 10 * 60 * 1000);
 
     user.otp = otp;
     user.otpExpire = otpExpire;
+    user.otpAttempts = 0;
+    user.otpLastSent = Date.now();
     await user.save();
 
     try {
@@ -180,7 +211,6 @@ const resendOTP = async (req, res) => {
         subject: 'Your New SOVRA Access Code',
         html: getOTPTemplate(otp, user.name),
       });
-      console.log(`New OTP sent to ${user.email}: ${otp}`);
       res.json({ message: 'A new verification code has been sent to your email.' });
     } catch (emailError) {
       console.error('Email failed to send:', emailError.message);
@@ -228,12 +258,41 @@ const updateUserProfile = async (req, res) => {
 
   if (user) {
     user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
     user.preference = req.body.preference || user.preference;
     user.phone = req.body.phone || user.phone;
     user.newsletter = req.body.newsletter !== undefined ? req.body.newsletter : user.newsletter;
+
+    // Security: Handle email change and require re-verification
+    if (req.body.email && req.body.email.toLowerCase().trim() !== user.email.toLowerCase()) {
+      const newEmail = req.body.email.toLowerCase().trim();
+      const emailExists = await User.findOne({ email: newEmail, _id: { $ne: user._id } });
+      if (emailExists) {
+        return res.status(400).json({ message: 'This email is already in use by another account.' });
+      }
+
+      user.email = newEmail;
+      user.isVerified = false;
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.otp = otp;
+      user.otpExpire = new Date(Date.now() + 10 * 60 * 1000);
+      user.otpAttempts = 0;
+      user.otpLastSent = Date.now();
+
+      try {
+        await sendEmail({
+          email: user.email,
+          subject: 'Verify your new SOVRA email',
+          html: getOTPTemplate(otp, user.name),
+        });
+      } catch (err) {
+        console.error('Email change verification send failed:', err.message);
+      }
+    }
     
     if (req.body.password) {
+      if (req.body.password.length < 6) {
+        return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+      }
       user.password = req.body.password;
     }
 
@@ -250,6 +309,7 @@ const updateUserProfile = async (req, res) => {
       preference: updatedUser.preference,
       newsletter: updatedUser.newsletter,
       token: generateToken(updatedUser._id),
+      message: !updatedUser.isVerified ? 'Email updated. A verification code has been sent to your new email.' : undefined,
     });
   } else {
     res.status(404).json({ message: 'User not found' });
@@ -375,11 +435,16 @@ const updateCartQty = async (req, res) => {
         return res.status(404).json({ message: 'Product not found in the archives.' });
       }
 
-      if (Number(qty) > product.stock) {
+      const parsedQty = parseInt(qty, 10);
+      if (isNaN(parsedQty) || parsedQty < 1) {
+        return res.status(400).json({ message: 'Quantity must be at least 1 unit.' });
+      }
+
+      if (parsedQty > product.stock) {
         return res.status(400).json({ message: `Insufficient stock. Only ${product.stock} units available.` });
       }
 
-      item.qty = Number(qty);
+      item.qty = parsedQty;
       user.cartLastUpdated = Date.now();
       await user.save();
 
@@ -535,6 +600,10 @@ const getUsers = async (req, res) => {
 // @access  Private/Admin
 const deleteUser = async (req, res) => {
   try {
+    if (req.params.id === req.user._id.toString()) {
+      return res.status(400).json({ message: 'Security restriction: An administrator cannot delete their own account.' });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (user) {
@@ -574,6 +643,10 @@ const getUserById = async (req, res) => {
 // @access  Private/Admin
 const updateUser = async (req, res) => {
   try {
+    if (req.params.id === req.user._id.toString() && req.body.isAdmin === false) {
+      return res.status(400).json({ message: 'Security restriction: An administrator cannot revoke their own administrative status.' });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (user) {
@@ -618,11 +691,19 @@ const forgotPassword = async (req, res) => {
       return res.status(404).json({ message: 'User with this email does not exist' });
     }
 
+    // Cooldown on password reset requests (60 seconds)
+    if (user.otpLastSent && (Date.now() - new Date(user.otpLastSent).getTime() < 60000)) {
+      const waitSeconds = Math.ceil((60000 - (Date.now() - new Date(user.otpLastSent).getTime())) / 1000);
+      return res.status(429).json({ message: `Please wait ${waitSeconds} seconds before requesting another reset code.` });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpire = new Date(Date.now() + 10 * 60 * 1000);
 
     user.otp = otp;
     user.otpExpire = otpExpire;
+    user.otpAttempts = 0;
+    user.otpLastSent = Date.now();
     await user.save();
 
     try {
@@ -653,16 +734,37 @@ const resetPassword = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (user.otp === otp && user.otpExpire > Date.now()) {
-      user.password = password;
+    // Lockout after 5 failed attempts
+    if (user.otpAttempts >= 5) {
       user.otp = undefined;
       user.otpExpire = undefined;
+      user.otpAttempts = 0;
       await user.save();
-
-      res.json({ message: 'Password reset successful. You can now login.' });
-    } else {
-      res.status(400).json({ message: 'Invalid or expired OTP' });
+      return res.status(429).json({ message: 'Maximum reset attempts exceeded. Please request a new code.' });
     }
+
+    if (!user.otp || !user.otpExpire || new Date(user.otpExpire).getTime() <= Date.now()) {
+      return res.status(400).json({ message: 'Reset code has expired. Please request a new code.' });
+    }
+
+    if (user.otp !== otp) {
+      user.otpAttempts = (user.otpAttempts || 0) + 1;
+      await user.save();
+      const remaining = 5 - user.otpAttempts;
+      return res.status(400).json({
+        message: remaining > 0
+          ? `Invalid reset code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
+          : 'Maximum reset attempts exceeded. Please request a new code.'
+      });
+    }
+
+    user.password = password;
+    user.otp = undefined;
+    user.otpExpire = undefined;
+    user.otpAttempts = 0;
+    await user.save();
+
+    res.json({ message: 'Password reset successful. You can now login.' });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }

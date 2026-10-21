@@ -34,4 +34,15 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, admin };
+const requireVerified = (req, res, next) => {
+  if (req.user && !req.user.isVerified) {
+    return res.status(403).json({
+      message: 'Email verification required. Please verify your email with the OTP sent to your inbox before proceeding.',
+      isVerified: false,
+    });
+  }
+  next();
+};
+
+module.exports = { protect, admin, requireVerified };
+

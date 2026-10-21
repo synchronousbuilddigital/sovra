@@ -413,7 +413,7 @@ const products = [
         weight: "3g",
         features: ["Sweatproof", "Anti Tarnish", "Water Resistant", "Hypoallergenic"],
         stock: 40,
-        img: "https://images.unsplash.com/photo-1605100804763-247f67b3f4ad",
+        img: "https://res.cloudinary.com/dylkhqjgm/image/upload/v1775541718/sovra_products/ya1bekrkwgzevnseiutg.webp",
         hero: false
     },
     {
@@ -427,7 +427,7 @@ const products = [
         weight: "5g",
         features: ["Sweatproof", "Anti Tarnish", "Water proof", "Hypoallergenic"],
         stock: 20,
-        img: "https://images.unsplash.com/photo-1605100804763-247f67b3f4ad",
+        img: "https://images.unsplash.com/photo-1605100804763-247f67b3557e",
         hero: false
     },
     {
