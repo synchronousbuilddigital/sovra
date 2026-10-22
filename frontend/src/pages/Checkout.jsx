@@ -9,7 +9,8 @@ import { trackPurchase } from '../utils/analytics'
 import {
     MapPin, Phone, User, Check, Plus, ShieldCheck, Truck, Lock,
     ArrowRight, ArrowLeft, Tag, ShoppingBag, CreditCard, Banknote,
-    QrCode, AlertCircle, CheckCircle2, ChevronRight, X, Building, Mail
+    QrCode, AlertCircle, CheckCircle2, ChevronRight, X, Building, Mail,
+    Sparkles, Ticket
 } from 'lucide-react'
 
 const INDIAN_STATES = [
@@ -50,15 +51,35 @@ const Checkout = () => {
     // Payment Method
     const [paymentMethod, setPaymentMethod] = useState('Online Card / NetBanking')
 
-    // Promo Code
+    // Promo Code & Available Vouchers
     const [promoCode, setPromoCode] = useState('')
     const [promoDiscount, setPromoDiscount] = useState(0)
     const [isApplying, setIsApplying] = useState(false)
+    const [availablePromos, setAvailablePromos] = useState([])
+    const [loadingPromos, setLoadingPromos] = useState(false)
 
     const subtotal = cart.reduce((acc, item) => acc + ((item.product?.price || 0) * (item.qty || 0)), 0)
     const discountAmount = (subtotal * promoDiscount) / 100
     const taxes = (subtotal - discountAmount) * 0.08
     const total = subtotal - discountAmount + taxes
+
+    // Fetch active/available promos for the customer
+    useEffect(() => {
+        const fetchAvailablePromos = async () => {
+            try {
+                setLoadingPromos(true)
+                const { data } = await api.get('/promos/active')
+                if (Array.isArray(data)) {
+                    setAvailablePromos(data)
+                }
+            } catch (err) {
+                console.error('Failed to load active vouchers:', err)
+            } finally {
+                setLoadingPromos(false)
+            }
+        }
+        fetchAvailablePromos()
+    }, [])
 
     // Fetch user's saved addresses on mount
     useEffect(() => {
@@ -114,11 +135,13 @@ const Checkout = () => {
         setPostalCode(numeric)
     }
 
-    const handleApplyPromo = async () => {
-        if (!promoCode.trim()) return
+    const handleApplyPromo = async (codeOverride) => {
+        const codeToValidate = (typeof codeOverride === 'string' ? codeOverride : promoCode).trim().toUpperCase()
+        if (!codeToValidate) return
         try {
             setIsApplying(true)
-            const { data } = await api.get(`/promos/validate/${promoCode.trim().toUpperCase()}`)
+            const { data } = await api.get(`/promos/validate/${codeToValidate}?subtotal=${subtotal}`)
+            setPromoCode(data.code || codeToValidate)
             setPromoDiscount(data.discount)
             toast.success(`Coupon code applied: ${data.discount}% OFF`)
         } catch (error) {
@@ -127,6 +150,12 @@ const Checkout = () => {
         } finally {
             setIsApplying(false)
         }
+    }
+
+    const handleRemovePromo = () => {
+        setPromoDiscount(0)
+        setPromoCode('')
+        toast.info('Coupon voucher removed.')
     }
 
     const handlePlaceOrder = async (e) => {
@@ -618,11 +647,21 @@ const Checkout = () => {
                                         })}
                                     </div>
 
-                                    {/* Promotion Vault Input */}
-                                    <div className="pt-4 border-t border-stone-100 space-y-2">
-                                        <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400 block">
-                                            Promotion Voucher
-                                        </label>
+                                    {/* Promotion Voucher Section */}
+                                    <div className="pt-4 border-t border-stone-100 space-y-2.5">
+                                        <div className="flex items-center justify-between">
+                                            <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400 block">
+                                                Promotion Voucher
+                                            </label>
+                                            {availablePromos.length > 0 && (
+                                                <span className="font-sans text-[9.5px] font-semibold tracking-wider uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60 flex items-center gap-1">
+                                                    <Sparkles size={10} className="text-amber-600" />
+                                                    {availablePromos.length} {availablePromos.length === 1 ? 'Voucher' : 'Vouchers'} Available
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Input Box and Apply Button */}
                                         <div className="flex gap-2">
                                             <div className="relative flex-1">
                                                 <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
@@ -636,23 +675,122 @@ const Checkout = () => {
                                             </div>
                                             <button
                                                 type="button"
-                                                onClick={handleApplyPromo}
+                                                onClick={() => handleApplyPromo()}
                                                 disabled={isApplying || !promoCode.trim()}
-                                                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                                                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:bg-stone-100 disabled:text-stone-400"
                                             >
                                                 {isApplying ? 'Checking...' : 'Apply'}
                                             </button>
                                         </div>
+
+                                        {/* Applied Coupon Status Banner */}
                                         {promoDiscount > 0 && (
-                                            <div className="p-2 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between text-xs text-emerald-800 font-sans">
-                                                <span className="font-bold">Artisanal Code Applied: {promoDiscount}% OFF</span>
+                                            <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900 font-sans shadow-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle2 size={15} className="text-emerald-600 flex-shrink-0" />
+                                                    <div>
+                                                        <span className="font-bold">{promoCode} Applied: </span>
+                                                        <span className="text-emerald-700 font-medium">{promoDiscount}% OFF (-{formatPrice(discountAmount)})</span>
+                                                    </div>
+                                                </div>
                                                 <button
                                                     type="button"
-                                                    onClick={() => { setPromoDiscount(0); setPromoCode(''); }}
-                                                    className="text-stone-400 hover:text-stone-700"
+                                                    onClick={handleRemovePromo}
+                                                    className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 rounded-lg transition-colors"
+                                                    title="Remove voucher"
                                                 >
                                                     <X size={14} />
                                                 </button>
+                                            </div>
+                                        )}
+
+                                        {/* Customer Available Vouchers */}
+                                        {availablePromos.length > 0 && (
+                                            <div className="pt-1.5 space-y-2">
+                                                <span className="font-sans text-[10px] uppercase tracking-[0.16em] font-semibold text-stone-400 block">
+                                                    Available For You
+                                                </span>
+                                                <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
+                                                    {availablePromos.map((promo) => {
+                                                        const isApplied = promoDiscount > 0 && promoCode.toUpperCase() === promo.code.toUpperCase()
+                                                        const minMet = !promo.minOrderAmount || subtotal >= promo.minOrderAmount
+                                                        const isRedeemed = promo.alreadyUsed
+
+                                                        return (
+                                                            <div
+                                                                key={promo._id || promo.code}
+                                                                className={`p-2.5 rounded-xl border transition-all text-xs ${
+                                                                    isApplied
+                                                                        ? 'bg-emerald-50/70 border-emerald-300 ring-1 ring-emerald-400/20'
+                                                                        : isRedeemed
+                                                                        ? 'bg-stone-50/60 border-stone-200 opacity-60'
+                                                                        : minMet
+                                                                        ? 'bg-white hover:bg-amber-50/30 border-dashed border-stone-300 hover:border-amber-400 cursor-pointer shadow-[0_1px_3px_rgba(0,0,0,0.02)]'
+                                                                        : 'bg-stone-50/70 border-dashed border-stone-200'
+                                                                }`}
+                                                                onClick={() => {
+                                                                    if (!isApplied && !isRedeemed && minMet && !isApplying) {
+                                                                        handleApplyPromo(promo.code)
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <div className="flex items-start justify-between gap-2">
+                                                                    <div className="space-y-1">
+                                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                                            <span className="font-mono font-bold text-[10.5px] px-2 py-0.5 bg-stone-900 text-[#fffcf7] rounded-md tracking-wider uppercase inline-flex items-center gap-1">
+                                                                                <Ticket size={11} className="text-amber-400" />
+                                                                                {promo.code}
+                                                                            </span>
+                                                                            <span className="font-sans font-bold text-emerald-800 text-xs">
+                                                                                {promo.discount}% OFF
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-[11px] text-stone-500 font-sans leading-tight">
+                                                                            {promo.minOrderAmount > 0
+                                                                                ? `Valid on orders above ${formatPrice(promo.minOrderAmount)}`
+                                                                                : 'No minimum order required'}
+                                                                            {promo.maxDiscountAmount && ` (up to ${formatPrice(promo.maxDiscountAmount)})`}
+                                                                        </p>
+                                                                        {!minMet && promo.minOrderAmount > 0 && (
+                                                                            <p className="text-[10px] text-amber-700 font-sans font-medium">
+                                                                                Add {formatPrice(promo.minOrderAmount - subtotal)} more to unlock
+                                                                            </p>
+                                                                        )}
+                                                                        {isRedeemed && (
+                                                                            <p className="text-[10px] text-stone-400 font-sans">
+                                                                                Already redeemed on a previous order
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <div className="flex-shrink-0 pt-0.5">
+                                                                        {isApplied ? (
+                                                                            <span className="inline-flex items-center gap-1 text-[11px] font-sans font-bold text-emerald-700 bg-emerald-100/70 px-2 py-1 rounded-lg">
+                                                                                <Check size={12} /> Applied
+                                                                            </span>
+                                                                        ) : isRedeemed ? (
+                                                                            <span className="text-[10px] font-sans text-stone-400 px-2 py-1 bg-stone-100 rounded-lg">
+                                                                                Redeemed
+                                                                            </span>
+                                                                        ) : (
+                                                                            <button
+                                                                                type="button"
+                                                                                disabled={!minMet || isApplying}
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation()
+                                                                                    handleApplyPromo(promo.code)
+                                                                                }}
+                                                                                className="px-2.5 py-1 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-[10px] font-sans font-bold uppercase tracking-wider transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                                                                            >
+                                                                                {isApplying && promoCode === promo.code ? '...' : 'Apply'}
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
                                             </div>
                                         )}
                                     </div>

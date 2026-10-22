@@ -92,6 +92,68 @@ const deletePromo = async (req, res) => {
   }
 };
 
+const isPromoExpired = (expiryDate) => {
+  if (!expiryDate) return false;
+  const exp = new Date(expiryDate);
+  if (exp.getUTCHours() === 0 && exp.getUTCMinutes() === 0 && exp.getUTCSeconds() === 0) {
+    exp.setUTCHours(23, 59, 59, 999);
+  }
+  return exp.getTime() < Date.now();
+};
+
+// @desc    Get active promos for customers
+// @route   GET /api/promos/active
+// @access  Public / Optional Auth
+const getActivePromos = async (req, res) => {
+  try {
+    const promos = await Promo.find({ isActive: true });
+
+    const eligiblePromos = promos.filter((promo) => {
+      if (promo.limit && promo.usedCount >= promo.limit) {
+        return false;
+      }
+      if (isPromoExpired(promo.expiryDate)) {
+        return false;
+      }
+      return true;
+    });
+
+    const sanitized = eligiblePromos.map((p) => {
+      let isRedeemedByUser = false;
+      if (req.user && p.usedBy && Array.isArray(p.usedBy)) {
+        const userRedemptionCount = p.usedBy.filter(
+          (uId) => uId.toString() === req.user._id.toString()
+        ).length;
+        const allowed = p.perUserLimit || 1;
+        if (userRedemptionCount >= allowed) {
+          isRedeemedByUser = true;
+        }
+      }
+
+      return {
+        _id: p._id,
+        code: p.code,
+        discount: p.discount,
+        expiryDate: p.expiryDate,
+        minOrderAmount: p.minOrderAmount || 0,
+        maxDiscountAmount: p.maxDiscountAmount || null,
+        alreadyUsed: isRedeemedByUser
+      };
+    });
+
+    sanitized.sort((a, b) => {
+      if (a.alreadyUsed === b.alreadyUsed) {
+        return b.discount - a.discount;
+      }
+      return a.alreadyUsed ? 1 : -1;
+    });
+
+    res.json(sanitized);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Validate promo code
 // @route   GET /api/promos/validate/:code
 // @access  Private
@@ -113,7 +175,7 @@ const validatePromo = async (req, res) => {
       return res.status(400).json({ message: 'This code is no longer active.' });
     }
 
-    if (promo.expiryDate && new Date(promo.expiryDate) < new Date()) {
+    if (isPromoExpired(promo.expiryDate)) {
       return res.status(400).json({ message: 'This coupon code has expired.' });
     }
 
@@ -158,8 +220,10 @@ const validatePromo = async (req, res) => {
 
 module.exports = {
   getPromos,
+  getActivePromos,
   createPromo,
   deletePromo,
   validatePromo,
+  isPromoExpired,
 };
 

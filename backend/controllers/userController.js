@@ -198,6 +198,9 @@ const registerUser = async (req, res) => {
     });
 
     if (user) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`\n========================================\n[DEV OTP] Verification Code for ${user.email}: ${otp}\n========================================\n`);
+      }
       // Send real email
       try {
         await sendEmail({
@@ -307,6 +310,10 @@ const resendOTP = async (req, res) => {
     user.otpAttempts = 0;
     user.otpLastSent = Date.now();
     await user.save();
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`\n========================================\n[DEV OTP] New Verification Code for ${user.email}: ${otp}\n========================================\n`);
+    }
 
     try {
       await sendEmail({

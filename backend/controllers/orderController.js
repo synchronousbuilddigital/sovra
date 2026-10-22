@@ -79,10 +79,16 @@ const addOrderItems = async (req, res) => {
         return res.status(400).json({ message: `Coupon code "${cleanCode}" is no longer active.` });
       }
 
-      if (promo.expiryDate && new Date(promo.expiryDate) < new Date()) {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(400).json({ message: `Coupon code "${cleanCode}" has expired.` });
+      if (promo.expiryDate) {
+        const exp = new Date(promo.expiryDate);
+        if (exp.getUTCHours() === 0 && exp.getUTCMinutes() === 0 && exp.getUTCSeconds() === 0) {
+          exp.setUTCHours(23, 59, 59, 999);
+        }
+        if (exp.getTime() < Date.now()) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(400).json({ message: `Coupon code "${cleanCode}" has expired.` });
+        }
       }
 
       if (promo.limit && promo.usedCount >= promo.limit) {

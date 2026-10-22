@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
-const { getPromos, createPromo, deletePromo, validatePromo } = require('../controllers/promoController');
-const { protect, admin } = require('../middleware/authMiddleware');
+const { getPromos, getActivePromos, createPromo, deletePromo, validatePromo } = require('../controllers/promoController');
+const { protect, admin, optionalProtect } = require('../middleware/authMiddleware');
 
 // Dedicated rate limiter to prevent coupon code enumeration / brute-force guessing
 const promoValidateLimiter = rateLimit({
@@ -17,7 +17,10 @@ router.route('/')
   .get(protect, admin, getPromos)
   .post(protect, admin, createPromo);
 
-router.get('/validate/:code', protect, promoValidateLimiter, validatePromo);
+// Active promos visible to customers in voucher section
+router.get('/active', optionalProtect, getActivePromos);
+
+router.get('/validate/:code', optionalProtect, promoValidateLimiter, validatePromo);
 
 router.route('/:id')
   .delete(protect, admin, deletePromo);

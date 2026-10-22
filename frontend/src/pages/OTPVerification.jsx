@@ -120,10 +120,14 @@ const OTPVerification = () => {
                     </button>
                     <div className="mt-6">
                         <button 
-                            onClick={() => navigate('/login')}
-                            className="text-[9px] text-on-surface/40 uppercase tracking-widest hover:text-primary transition-colors"
+                            onClick={() => {
+                                localStorage.removeItem('userInfo');
+                                if (refreshProfile) refreshProfile();
+                                navigate('/login');
+                            }}
+                            className="text-[9px] text-on-surface/40 uppercase tracking-widest hover:text-primary transition-colors font-sans"
                         >
-                            Return to Sign In
+                            Return to Sign In / Switch Account
                         </button>
                     </div>
                 </div>
