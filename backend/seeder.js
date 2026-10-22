@@ -34,16 +34,21 @@ const importData = async () => {
             limit: 1000
         });
 
-        // Create Admin User
-        await User.create({
-            name: 'Maison Admin',
-            email: 'admin@sovra.com',
-            password: 'adminpassword123',
-            isAdmin: true,
-            isVerified: true,
-            status: 'Elite',
-            preference: 'High Jewelry'
-        });
+        // Create Admin User from environment configuration
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+
+        if (adminEmail && adminPassword) {
+            await User.create({
+                name: 'SOVRA Admin',
+                email: adminEmail.toLowerCase().trim(),
+                password: adminPassword,
+                isAdmin: true,
+                isVerified: true,
+                status: 'Elite',
+                preference: 'High Jewelry'
+            });
+        }
 
         // Map fresh products with unique SKUs
         const productsWithSKU = products.map(p => ({

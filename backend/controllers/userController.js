@@ -84,6 +84,10 @@ const googleLogin = async (req, res) => {
     const { sub: googleId, email, name, picture } = payload;
     const cleanEmail = email.toLowerCase().trim();
 
+    // Check if user is a designated administrator from environment config
+    const designatedAdminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
+    const isDesignatedAdmin = Boolean(designatedAdminEmail && cleanEmail === designatedAdminEmail);
+
     // Check if user exists by email or googleId
     let user = await User.findOne({
       $or: [{ email: cleanEmail }, { googleId }],
@@ -99,6 +103,10 @@ const googleLogin = async (req, res) => {
         user.isVerified = true;
         updated = true;
       }
+      if (isDesignatedAdmin && !user.isAdmin) {
+        user.isAdmin = true;
+        updated = true;
+      }
       if (picture && !user.avatar) {
         user.avatar = picture;
         updated = true;
@@ -110,14 +118,15 @@ const googleLogin = async (req, res) => {
       // First-time Google user - create verified account
       const randomPassword = crypto.randomBytes(32).toString('hex');
       user = await User.create({
-        name: name || 'Google Patron',
+        name: name || (isDesignatedAdmin ? 'SOVRA Admin' : 'Google Patron'),
         email: cleanEmail,
         password: randomPassword,
         googleId,
         authProvider: 'google',
         avatar: picture || '',
+        isAdmin: isDesignatedAdmin,
         isVerified: true,
-        status: 'New',
+        status: isDesignatedAdmin ? 'Elite' : 'New',
         preference: 'General',
       });
     }
