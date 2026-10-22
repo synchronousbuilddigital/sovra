@@ -15,9 +15,9 @@ const Login = () => {
     const { refreshProfile } = useShop();
 
     useEffect(() => {
-        const userInfo = localStorage.getItem('userInfo');
+        const userInfo = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null;
         if (userInfo) {
-            navigate('/account');
+            navigate(userInfo.isAdmin ? '/admin' : '/account');
         }
     }, [navigate]);
 
@@ -29,8 +29,12 @@ const Login = () => {
             const { data } = await api.post('/users/login', { email, password });
             localStorage.setItem('userInfo', JSON.stringify(data));
             await refreshProfile();
-            toast.success('Login successful');
-            navigate('/account');
+            toast.success(data.isAdmin ? 'Welcome to Admin Dashboard' : 'Login successful');
+            if (data.isAdmin) {
+                navigate('/admin');
+            } else {
+                navigate('/account');
+            }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Invalid email or password');
             console.error('Login failed:', error);

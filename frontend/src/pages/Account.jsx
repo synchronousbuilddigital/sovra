@@ -1267,6 +1267,15 @@ const Account = () => {
                         </span>
                     </div>
                     <div className="flex items-center gap-3">
+                        {userInfo.isAdmin && (
+                            <>
+                                <Link to="/admin" className="text-[10px] font-sans uppercase tracking-widest text-primary bg-primary/10 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 hover:bg-primary hover:text-white transition-all">
+                                    <ShieldCheck className="w-3 h-3 text-amber-500" />
+                                    <span>Admin</span>
+                                </Link>
+                                <span className="text-stone-300 text-xs">•</span>
+                            </>
+                        )}
                         <Link to="/shop" className="text-[10px] font-sans uppercase tracking-widest text-primary font-bold flex items-center gap-1 hover:underline">
                             <span>Shop</span>
                             <ExternalLink className="w-3 h-3" />
@@ -1328,6 +1337,20 @@ const Account = () => {
                             <p className="font-mono text-[10px] text-stone-500 truncate leading-snug">{userInfo.email}</p>
                         </div>
                     </div>
+
+                    {/* Admin Dashboard Switcher for Administrators */}
+                    {userInfo.isAdmin && (
+                        <Link
+                            to="/admin"
+                            className="mt-3 w-full flex items-center justify-between px-4 py-2.5 bg-primary text-white rounded-xl text-[10px] font-sans font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all group"
+                        >
+                            <span className="flex items-center gap-2">
+                                <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                                <span>Switch to Admin Panel</span>
+                            </span>
+                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                        </Link>
+                    )}
                 </div>
 
                 {/* Navigation items */}

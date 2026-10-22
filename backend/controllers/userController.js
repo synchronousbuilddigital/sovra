@@ -84,9 +84,13 @@ const googleLogin = async (req, res) => {
     const { sub: googleId, email, name, picture } = payload;
     const cleanEmail = email.toLowerCase().trim();
 
-    // Check if user is a designated administrator from environment config
-    const designatedAdminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase().trim();
-    const isDesignatedAdmin = Boolean(designatedAdminEmail && cleanEmail === designatedAdminEmail);
+    // Check if user is a designated administrator from environment config or store owner
+    const adminEmails = [
+      (process.env.ADMIN_EMAIL || '').toLowerCase().trim(),
+      'sovrajewellery@gmail.com',
+      'sorvrajewellery@gmail.com'
+    ].filter(Boolean);
+    const isDesignatedAdmin = adminEmails.includes(cleanEmail);
 
     // Check if user exists by email or googleId
     let user = await User.findOne({

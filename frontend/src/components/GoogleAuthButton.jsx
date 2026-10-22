@@ -82,8 +82,12 @@ const GoogleAuthButton = ({ text = 'continue_with', label = 'Continue with Googl
                 await refreshProfile();
             }
 
-            toast.success(`Welcome to SOVRA, ${data.name ? data.name.split(' ')[0] : 'Patron'}!`);
-            navigate('/account');
+            toast.success(data.isAdmin ? `Welcome to Admin Panel, ${data.name ? data.name.split(' ')[0] : ''}!` : `Welcome to SOVRA, ${data.name ? data.name.split(' ')[0] : 'Patron'}!`);
+            if (data.isAdmin) {
+                navigate('/admin');
+            } else {
+                navigate('/account');
+            }
         } catch (error) {
             console.error('Google Sign-in failed:', error);
             const errorMsg = error.response?.data?.message || 'Google sign-in failed. Please try again.';
