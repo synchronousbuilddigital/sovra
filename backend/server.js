@@ -25,9 +25,12 @@ app.use(compression());
 
 // --- PRODUCTION CORS GATEWAY (GLOBAL AUTHORIZATION) ---
 app.use((req, res, next) => {
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000,https://sovra-topaz.vercel.app,https://sovrajewellery.com,https://www.sovrajewellery.com').split(',');
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000,https://sovrajewellery.com,https://www.sovrajewellery.com').split(',');
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
+  
+  // Allow explicit origins or any Vercel deployment preview domain (*.vercel.app)
+  const isVercelDomain = origin && /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.vercel\.app$/i.test(origin);
+  if (origin && (allowedOrigins.includes(origin) || isVercelDomain)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
