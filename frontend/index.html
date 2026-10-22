@@ -7,7 +7,7 @@
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
   j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-WSCFMLS7');</script>
+  })(window,document,'script','dataLayer','%VITE_GTM_ID%');</script>
   <!-- End Google Tag Manager -->
 
   <meta charset="UTF-8" />
@@ -41,12 +41,12 @@
   <meta property="twitter:description" content="Discover a sanctuary for artisanal jewelry and high-end editorial collections." />
 
   <!-- Google Analytics 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-W76YXXTNS3"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_ID%"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-W76YXXTNS3');
+    gtag('config', '%VITE_GA_ID%');
   </script>
 
   <!-- Google Identity Services (GIS) -->
@@ -55,7 +55,7 @@
 
 <body>
   <!-- Google Tag Manager (noscript) -->
-  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WSCFMLS7"
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=%VITE_GTM_ID%"
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 

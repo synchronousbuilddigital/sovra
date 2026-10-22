@@ -4,7 +4,7 @@
  * All events follow the GA4 e-commerce event schema.
  */
 
-const GA_ID = 'G-W76YXXTNS3';
+const GA_ID = import.meta.env.VITE_GA_ID || 'G-W76YXXTNS3';
 
 /** Safe gtag wrapper — no-ops silently if gtag hasn't loaded yet */
 const gtag = (...args) => {
