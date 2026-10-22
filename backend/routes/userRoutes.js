@@ -26,7 +26,7 @@ const {
   getRecentlyViewed,
   getAbandonedCarts,
   sendRecoveryNote,
-
+  googleLogin,
 } = require('../controllers/userController');
 const { getNotifications, markAsRead } = require('../controllers/notificationController');
 
@@ -40,12 +40,14 @@ const {
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyOtpSchema,
+  googleLoginSchema,
 } = require('../validation/user.schema.js');
 const { authLimiter, otpLimiter } = require('../middleware/rateLimiters');
 
 // Public routes
 router.post('/', authLimiter, validate(registerUserSchema), registerUser);
 router.post('/login', authLimiter, validate(loginUserSchema), authUser);
+router.post('/google-login', authLimiter, validate(googleLoginSchema), googleLogin);
 router.post('/forgot-password', authLimiter, validate(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password', authLimiter, validate(resetPasswordSchema), resetPassword);
 

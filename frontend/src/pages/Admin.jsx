@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-toastify'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import api from '../utils/api'
 import Skeleton from '../components/Skeleton'
 import { getOptimizedImage } from '../utils/imageUtils'
+import { useShop } from '../context/ShopContext'
 import {
     LayoutDashboard, Package, ShoppingBag, ShoppingCart, Tag, Users, Settings,
     ShieldCheck, TrendingUp, Plus, Search, Eye, Edit3, Trash2, ExternalLink,
@@ -12,10 +13,12 @@ import {
     Check, X, ChevronRight, ArrowRight, Sparkles, Gem, Clock, CircleDot,
     CircleDollarSign, Layers, ChevronLeft, ImagePlus, UserCheck,
     Copy, Download, Mail, Percent, Filter, Film, Play, Video,
-    Star, Sliders, ArrowLeftRight
+    Star, Sliders, ArrowLeftRight, LogOut
 } from 'lucide-react'
 
 const Admin = () => {
+    const navigate = useNavigate()
+    const { logout } = useShop()
     const [activeTab, setActiveTab] = useState('dashboard')
     const [orderSearch, setOrderSearch] = useState('')
     const [orderFilter, setOrderFilter] = useState('All')
@@ -103,6 +106,11 @@ const Admin = () => {
     const [uploadingReelImg, setUploadingReelImg] = useState(false)
     const [reelSearch, setReelSearch] = useState('')
     const [isSavingShowcase, setIsSavingShowcase] = useState(false)
+
+    const handleLogout = () => {
+        logout()
+        navigate('/login')
+    }
 
     // Data Fetching Central
     useEffect(() => {
@@ -1948,6 +1956,20 @@ const Admin = () => {
                             <span>Download All Data (.CSV)</span>
                         </button>
                     </section>
+
+                    <section className="bg-white/80 backdrop-blur-md p-6 md:p-8 rounded-2xl border border-stone-200/70 space-y-4 shadow-sm">
+                        <h3 className="font-headline text-xl italic text-primary border-b border-stone-100 pb-4">Session & Security</h3>
+                        <p className="text-xs text-stone-500 leading-relaxed">
+                            Safely terminate your administrator session on this device.
+                        </p>
+                        <button
+                            onClick={handleLogout}
+                            className="inline-flex items-center justify-center gap-2 w-full py-3 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 rounded-xl text-xs font-label uppercase tracking-wider font-bold transition-all border border-rose-200/80 shadow-sm"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out from Admin</span>
+                        </button>
+                    </section>
                 </div>
 
                 {/* Staff Privileges */}
@@ -3055,6 +3077,14 @@ const Admin = () => {
                         <Link to="/account" className="text-[10px] font-label uppercase tracking-widest text-stone-600 hover:text-primary font-bold flex items-center gap-1">
                             <span>Account</span>
                         </Link>
+                        <span className="text-stone-300 text-xs">•</span>
+                        <button
+                            onClick={handleLogout}
+                            className="text-[10px] font-label uppercase tracking-widest text-stone-500 hover:text-red-600 font-bold flex items-center gap-1 transition-colors"
+                        >
+                            <LogOut className="w-3 h-3" />
+                            <span>Sign Out</span>
+                        </button>
                     </div>
                 </div>
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
@@ -3145,6 +3175,15 @@ const Admin = () => {
                         </span>
                         <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </Link>
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-stone-500 hover:text-red-600 hover:bg-red-50 text-[10px] font-label uppercase tracking-widest font-bold transition-all group cursor-pointer"
+                    >
+                        <span className="flex items-center gap-2">
+                            <LogOut className="w-3.5 h-3.5" />
+                            <span>Sign Out</span>
+                        </span>
+                    </button>
                     <p className="text-center font-mono text-[9px] text-stone-400 tracking-wider">
                         v2.4 Admin Edition
                     </p>

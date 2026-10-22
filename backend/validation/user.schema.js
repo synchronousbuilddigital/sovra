@@ -46,6 +46,12 @@ const verifyOtpSchema = z.object({
   }),
 });
 
+const googleLoginSchema = z.object({
+  body: z.object({
+    credential: z.string().min(1, 'Google credential is required'),
+  }),
+});
+
 module.exports = {
   registerUserSchema,
   loginUserSchema,
@@ -53,5 +59,6 @@ module.exports = {
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyOtpSchema,
+  googleLoginSchema,
 };
 

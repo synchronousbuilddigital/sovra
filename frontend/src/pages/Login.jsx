@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
 import { useShop } from '../context/ShopContext';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -89,7 +90,20 @@ const Login = () => {
                     </motion.button>
                 </form>
 
-                <div className="mt-12 pt-8 border-t border-primary/5 text-center">
+                {/* Elegant Luxury Divider */}
+                <div className="relative my-8">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-stone-200/80" />
+                    </div>
+                    <div className="relative flex justify-center text-[9px] uppercase tracking-[0.25em] font-mono">
+                        <span className="bg-white px-4 text-stone-400">or continue with</span>
+                    </div>
+                </div>
+
+                {/* Google Sign In Button */}
+                <GoogleAuthButton text="signin_with" label="Sign in with Google" />
+
+                <div className="mt-10 pt-8 border-t border-primary/5 text-center">
                     <p className="font-body text-[11px] text-on-surface/40 uppercase tracking-widest font-bold">
                         New to SOVRA? 
                         <Link to="/signup" className="text-primary hover:underline ml-2">Create a new account</Link>

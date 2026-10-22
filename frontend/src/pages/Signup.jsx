@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 
 const Signup = () => {
     const [name, setName] = useState('');
@@ -43,7 +44,7 @@ const Signup = () => {
 
     return (
         <div className="min-h-screen pt-32 pb-20 px-6 flex flex-col items-center justify-center bg-[#fdfaf5]">
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
@@ -57,10 +58,10 @@ const Signup = () => {
                 <form onSubmit={handleSubmit} className="space-y-8">
                     <div className="space-y-2 group">
                         <label className="font-label text-[10px] uppercase tracking-widest font-black text-primary/60 group-focus-within:text-primary transition-colors">Full Name</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             required
-                            placeholder="Aurelia Sovra"
+                            placeholder="Enter Your Name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="w-full bg-transparent border-b border-primary/10 py-3 font-body text-base outline-none focus:border-primary transition-all placeholder:opacity-20 italic italic"
@@ -69,10 +70,10 @@ const Signup = () => {
 
                     <div className="space-y-2 group">
                         <label className="font-label text-[10px] uppercase tracking-widest font-black text-primary/60 group-focus-within:text-primary transition-colors">Email Address</label>
-                        <input 
-                            type="email" 
+                        <input
+                            type="email"
                             required
-                            placeholder="aurelia@sovra.com"
+                            placeholder="Enter Your Email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full bg-transparent border-b border-primary/10 py-3 font-body text-base outline-none focus:border-primary transition-all placeholder:opacity-20 italic italic"
@@ -81,8 +82,8 @@ const Signup = () => {
 
                     <div className="space-y-2 group">
                         <label className="font-label text-[10px] uppercase tracking-widest font-black text-primary/60 group-focus-within:text-primary transition-colors">Create Password</label>
-                        <input 
-                            type="password" 
+                        <input
+                            type="password"
                             required
                             placeholder="••••••••"
                             value={password}
@@ -93,8 +94,8 @@ const Signup = () => {
 
                     <div className="space-y-2 group">
                         <label className="font-label text-[10px] uppercase tracking-widest font-black text-primary/60 group-focus-within:text-primary transition-colors">Confirm Password</label>
-                        <input 
-                            type="password" 
+                        <input
+                            type="password"
                             required
                             placeholder="••••••••"
                             value={confirmPassword}
@@ -103,7 +104,7 @@ const Signup = () => {
                         />
                     </div>
 
-                    <motion.button 
+                    <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         disabled={loading}
@@ -113,9 +114,22 @@ const Signup = () => {
                     </motion.button>
                 </form>
 
-                <div className="mt-12 pt-8 border-t border-primary/5 text-center">
+                {/* Elegant Luxury Divider */}
+                <div className="relative my-8">
+                    <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-stone-200/80" />
+                    </div>
+                    <div className="relative flex justify-center text-[9px] uppercase tracking-[0.25em] font-mono">
+                        <span className="bg-white px-4 text-stone-400">or continue with</span>
+                    </div>
+                </div>
+
+                {/* Google Sign In Button */}
+                <GoogleAuthButton text="signup_with" label="Sign up with Google" />
+
+                <div className="mt-10 pt-8 border-t border-primary/5 text-center">
                     <p className="font-body text-[11px] text-on-surface/40 uppercase tracking-widest font-bold">
-                        Already a member? 
+                        Already a member?
                         <Link to="/login" className="text-primary hover:underline ml-2">Sign In</Link>
                     </p>
                 </div>

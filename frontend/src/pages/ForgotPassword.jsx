@@ -11,7 +11,7 @@ const ForgotPassword = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    
+
     const navigate = useNavigate();
 
     const handleSendOTP = async (e) => {
@@ -49,7 +49,7 @@ const ForgotPassword = () => {
 
     return (
         <div className="min-h-screen pt-32 pb-20 px-6 flex flex-col items-center justify-center bg-[#fdfaf5]">
-            <motion.div 
+            <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
@@ -64,27 +64,27 @@ const ForgotPassword = () => {
 
                 <AnimatePresence mode="wait">
                     {step === 1 ? (
-                        <motion.form 
+                        <motion.form
                             key="step1"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
-                            onSubmit={handleSendOTP} 
+                            onSubmit={handleSendOTP}
                             className="space-y-8"
                         >
                             <div className="space-y-2 group">
                                 <label className="font-label text-[10px] uppercase tracking-widest font-black text-primary/60 group-focus-within:text-primary transition-colors">Email Address</label>
-                                <input 
-                                    type="email" 
+                                <input
+                                    type="email"
                                     required
-                                    placeholder="aurelia@sovra.com"
+                                    placeholder="Enter your email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="w-full bg-transparent border-b border-primary/10 py-3 font-body text-base outline-none focus:border-primary transition-all placeholder:opacity-20 italic italic"
                                 />
                             </div>
 
-                            <motion.button 
+                            <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 disabled={loading}
@@ -94,18 +94,18 @@ const ForgotPassword = () => {
                             </motion.button>
                         </motion.form>
                     ) : (
-                        <motion.form 
+                        <motion.form
                             key="step2"
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
-                            onSubmit={handleResetPassword} 
+                            onSubmit={handleResetPassword}
                             className="space-y-6"
                         >
                             <div className="space-y-2 group">
                                 <label className="font-label text-[10px] uppercase tracking-widest font-black text-primary/60 group-focus-within:text-primary transition-colors">Verification Code (OTP)</label>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     required
                                     maxLength="6"
                                     placeholder="******"
@@ -117,8 +117,8 @@ const ForgotPassword = () => {
 
                             <div className="space-y-2 group">
                                 <label className="font-label text-[10px] uppercase tracking-widest font-black text-primary/60 group-focus-within:text-primary transition-colors">New Password</label>
-                                <input 
-                                    type="password" 
+                                <input
+                                    type="password"
                                     required
                                     placeholder="••••••••"
                                     value={password}
@@ -129,8 +129,8 @@ const ForgotPassword = () => {
 
                             <div className="space-y-2 group">
                                 <label className="font-label text-[10px] uppercase tracking-widest font-black text-primary/60 group-focus-within:text-primary transition-colors">Confirm New Password</label>
-                                <input 
-                                    type="password" 
+                                <input
+                                    type="password"
                                     required
                                     placeholder="••••••••"
                                     value={confirmPassword}
@@ -139,7 +139,7 @@ const ForgotPassword = () => {
                                 />
                             </div>
 
-                            <motion.button 
+                            <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 disabled={loading}

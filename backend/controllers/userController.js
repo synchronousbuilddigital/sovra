@@ -2,7 +2,11 @@ const User = require('../models/userModel');
 const Product = require('../models/productModel');
 const Order = require('../models/orderModel');
 const generateToken = require('../utils/generateToken');
-const { sendEmail, getOTPTemplate } = require('../utils/sendEmail');
+const { sendEmail, getOTPTemplate, getOTPText } = require('../utils/sendEmail');
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * @swagger
@@ -55,6 +59,91 @@ const authUser = async (req, res) => {
 };
 
 /**
+ * @desc    Authenticate with Google OAuth ID Token
+ * @route   POST /api/users/google-login
+ * @access  Public
+ */
+const googleLogin = async (req, res) => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    return res.status(400).json({ message: 'Google credential is required' });
+  }
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return res.status(400).json({ message: 'Invalid Google authentication token' });
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+    const cleanEmail = email.toLowerCase().trim();
+
+    // Check if user exists by email or googleId
+    let user = await User.findOne({
+      $or: [{ email: cleanEmail }, { googleId }],
+    });
+
+    if (user) {
+      let updated = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        updated = true;
+      }
+      if (!user.isVerified) {
+        user.isVerified = true;
+        updated = true;
+      }
+      if (picture && !user.avatar) {
+        user.avatar = picture;
+        updated = true;
+      }
+      if (updated) {
+        await user.save();
+      }
+    } else {
+      // First-time Google user - create verified account
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      user = await User.create({
+        name: name || 'Google Patron',
+        email: cleanEmail,
+        password: randomPassword,
+        googleId,
+        authProvider: 'google',
+        avatar: picture || '',
+        isVerified: true,
+        status: 'New',
+        preference: 'General',
+      });
+    }
+
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      isVerified: user.isVerified,
+      status: user.status,
+      preference: user.preference,
+      phone: user.phone || '',
+      spend: user.spend || 0,
+      newsletter: user.newsletter || false,
+      addresses: user.addresses || [],
+      avatar: user.avatar || '',
+      token: generateToken(user._id),
+    });
+  } catch (error) {
+    console.error('Google Auth Verification Error:', error.message);
+    res.status(401).json({ message: 'Google sign-in verification failed. Please try again.' });
+  }
+};
+
+/**
  * @swagger
  * /api/users:
  *   post:
@@ -100,8 +189,9 @@ const registerUser = async (req, res) => {
       try {
         await sendEmail({
           email: user.email,
-          subject: 'Your SOVRA Access Code',
-          html: getOTPTemplate(otp, user.name),
+          subject: `Your SOVRA Access Code: ${otp}`,
+          text: getOTPText(otp, user.name, 'signup'),
+          html: getOTPTemplate(otp, user.name, 'signup'),
         });
         // OTP email dispatched securely
       } catch (emailError) {
@@ -208,8 +298,9 @@ const resendOTP = async (req, res) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Your New SOVRA Access Code',
-        html: getOTPTemplate(otp, user.name),
+        subject: `Your New SOVRA Access Code: ${otp}`,
+        text: getOTPText(otp, user.name, 'signup'),
+        html: getOTPTemplate(otp, user.name, 'signup'),
       });
       res.json({ message: 'A new verification code has been sent to your email.' });
     } catch (emailError) {
@@ -281,8 +372,9 @@ const updateUserProfile = async (req, res) => {
       try {
         await sendEmail({
           email: user.email,
-          subject: 'Verify your new SOVRA email',
-          html: getOTPTemplate(otp, user.name),
+          subject: `Your SOVRA Verification Code: ${otp}`,
+          text: getOTPText(otp, user.name, 'verification'),
+          html: getOTPTemplate(otp, user.name, 'verification'),
         });
       } catch (err) {
         console.error('Email change verification send failed:', err.message);
@@ -709,8 +801,9 @@ const forgotPassword = async (req, res) => {
     try {
       await sendEmail({
         email: user.email,
-        subject: 'Password Reset - SOVRA',
-        html: getOTPTemplate(otp, user.name),
+        subject: `Your SOVRA Password Reset Code: ${otp}`,
+        text: getOTPText(otp, user.name, 'reset'),
+        html: getOTPTemplate(otp, user.name, 'reset'),
       });
       res.json({ message: 'OTP sent successfully to your email' });
     } catch (error) {
@@ -890,7 +983,7 @@ module.exports = {
   getRecentlyViewed,
   getAbandonedCarts,
   sendRecoveryNote,
-
+  googleLogin,
 };
 
 
