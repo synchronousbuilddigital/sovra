@@ -5,6 +5,7 @@ import api from '../utils/api';
 import { toast } from 'react-toastify';
 import { useShop } from '../context/ShopContext';
 import GoogleAuthButton from '../components/GoogleAuthButton';
+import { trackLogin } from '../utils/analytics';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -28,6 +29,7 @@ const Login = () => {
             setLoading(true);
             const { data } = await api.post('/users/login', { email, password });
             localStorage.setItem('userInfo', JSON.stringify(data));
+            trackLogin('email');
             await refreshProfile();
             toast.success(data.isAdmin ? 'Welcome to Admin Dashboard' : 'Login successful');
             if (data.isAdmin) {

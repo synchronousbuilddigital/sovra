@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
 import { useShop } from '../context/ShopContext';
+import { trackLogin } from '../utils/analytics';
 
 const GoogleAuthButton = ({ text = 'continue_with', label = 'Continue with Google' }) => {
     const navigate = useNavigate();
@@ -78,6 +79,7 @@ const GoogleAuthButton = ({ text = 'continue_with', label = 'Continue with Googl
             });
 
             localStorage.setItem('userInfo', JSON.stringify(data));
+            trackLogin('google');
             if (refreshProfile) {
                 await refreshProfile();
             }

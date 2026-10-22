@@ -4,7 +4,7 @@
  * All events follow the GA4 e-commerce event schema.
  */
 
-const GA_ID = 'G-SJPL5MB07G';
+const GA_ID = 'G-W76YXXTNS3';
 
 /** Safe gtag wrapper — no-ops silently if gtag hasn't loaded yet */
 const gtag = (...args) => {
@@ -12,14 +12,33 @@ const gtag = (...args) => {
     window.gtag(...args);
   }
   
-  // Also push to dataLayer for GTM Custom Event Triggers
+  // Push to dataLayer for GTM Custom Event Triggers with both standard ecommerce & flat properties
   if (args[0] === 'event') {
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
-      event: args[1], // e.g., 'add_to_cart'
+      event: args[1], // e.g., 'add_to_cart', 'purchase', etc.
+      ecommerce: args[2] || {},
       ...args[2]      // metadata/items
     });
   }
+};
+
+// ─── SPA Page View ───────────────────────────────────────────────────────────
+export const trackPageView = (path, title) => {
+  const currentTitle = title || document.title;
+  if (typeof window.gtag === 'function') {
+    window.gtag('config', GA_ID, {
+      page_path: path,
+      page_title: currentTitle,
+    });
+  }
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: 'page_view',
+    page_path: path,
+    page_title: currentTitle,
+    page_location: window.location.href,
+  });
 };
 
 // ─── Add to Cart ────────────────────────────────────────────────────────────
@@ -125,3 +144,82 @@ export const trackViewItem = (product) => {
     ],
   });
 };
+
+// ─── Remove from Cart ─────────────────────────────────────────────────────────
+/**
+ * @param {{ _id, name, price, category }} product
+ * @param {number} quantity
+ */
+export const trackRemoveFromCart = (product, quantity = 1) => {
+  if (!product) return;
+  gtag('event', 'remove_from_cart', {
+    currency: 'INR',
+    value: (product.price || 0) * quantity,
+    items: [
+      {
+        item_id: product._id,
+        item_name: product.name,
+        item_category: product.category || 'Jewellery',
+        price: product.price || 0,
+        quantity,
+      },
+    ],
+  });
+};
+
+// ─── View Item List (Catalog / Collections) ──────────────────────────────────
+/**
+ * @param {Array} products
+ * @param {string} listName
+ */
+export const trackViewItemList = (products = [], listName = 'Product Catalog') => {
+  if (!Array.isArray(products) || products.length === 0) return;
+  gtag('event', 'view_item_list', {
+    item_list_name: listName,
+    items: products.slice(0, 20).map((product, index) => ({
+      item_id: product._id,
+      item_name: product.name,
+      item_category: product.category || 'Jewellery',
+      price: product.price || 0,
+      index: index + 1,
+    })),
+  });
+};
+
+// ─── Select Item (Clicked from grid) ─────────────────────────────────────────
+/**
+ * @param {{ _id, name, price, category }} product
+ * @param {string} listName
+ * @param {number} index
+ */
+export const trackSelectItem = (product, listName = 'Product Catalog', index = 1) => {
+  if (!product) return;
+  gtag('event', 'select_item', {
+    item_list_name: listName,
+    items: [
+      {
+        item_id: product._id,
+        item_name: product.name,
+        item_category: product.category || 'Jewellery',
+        price: product.price || 0,
+        index,
+      },
+    ],
+  });
+};
+
+// ─── Auth Events ──────────────────────────────────────────────────────────────
+/**
+ * @param {'google' | 'email'} method
+ */
+export const trackLogin = (method = 'email') => {
+  gtag('event', 'login', { method });
+};
+
+/**
+ * @param {'google' | 'email'} method
+ */
+export const trackSignUp = (method = 'email') => {
+  gtag('event', 'sign_up', { method });
+};
+

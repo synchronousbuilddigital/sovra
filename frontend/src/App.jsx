@@ -8,6 +8,7 @@ import Footer from './components/Footer'
 import { ShopProvider } from './context/ShopContext'
 import PrivateRoute from './components/PrivateRoute'
 import AdminRoute from './components/AdminRoute'
+import { trackPageView } from './utils/analytics'
 
 // Helper to handle ChunkLoadErrors after a new deployment
 const lazyRetry = (componentImport) => {
@@ -68,12 +69,8 @@ const ScrollToTop = () => {
   const { pathname } = useLocation()
   useEffect(() => {
     window.scrollTo(0, 0)
-    // Fire GA4 page_view on every React Router navigation
-    if (typeof window.gtag === 'function') {
-      window.gtag('config', 'G-SJPL5MB07G', {
-        page_path: pathname,
-      })
-    }
+    // Fire GA4 & GTM dataLayer page_view on every React Router navigation
+    trackPageView(pathname, document.title)
   }, [pathname])
   return null
 }

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useShop } from '../context/ShopContext'
 import { formatPrice } from '../utils/currency'
-import { trackBeginCheckout } from '../utils/analytics'
+import { trackBeginCheckout, trackRemoveFromCart } from '../utils/analytics'
 import {
     ShoppingBag, Trash2, Plus, Minus, ArrowRight, ArrowLeft,
     Truck, Lock
@@ -17,6 +17,13 @@ const Bag = () => {
     const taxes = (subtotal || 0) * 0.08
     const total = (subtotal || 0) + (taxes || 0)
     const totalItems = cart.reduce((acc, item) => acc + (item.qty || 1), 0)
+
+    const handleRemoveItem = (piece, qty) => {
+        if (piece) {
+            trackRemoveFromCart(piece, qty || 1)
+            removeFromCart(piece._id)
+        }
+    }
 
     const handleUpdateQty = (id, currentQty, delta, stock) => {
         const newQty = currentQty + delta
@@ -224,7 +231,7 @@ const Bag = () => {
                                             {/* Remove Button */}
                                             <button
                                                 type="button"
-                                                onClick={() => removeFromCart(piece._id)}
+                                                onClick={() => handleRemoveItem(piece, item.qty)}
                                                 className="p-1.5 sm:p-2 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded-lg sm:rounded-xl transition-all"
                                                 title="Remove item"
                                             >

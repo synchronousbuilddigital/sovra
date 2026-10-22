@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
 import GoogleAuthButton from '../components/GoogleAuthButton';
+import { trackSignUp } from '../utils/analytics';
 
 const Signup = () => {
     const [name, setName] = useState('');
@@ -32,6 +33,7 @@ const Signup = () => {
             setLoading(true);
             const { data } = await api.post('/users', { name, email, password });
             localStorage.setItem('userInfo', JSON.stringify(data));
+            trackSignUp('email');
             toast.info(data.message || 'OTP shared to your credentials');
             navigate('/verify-otp');
         } catch (error) {

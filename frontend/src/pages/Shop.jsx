@@ -8,6 +8,7 @@ import api from '../utils/api'
 import { formatPrice } from '../utils/currency'
 import { getOptimizedImage } from '../utils/imageUtils'
 import Skeleton from '../components/Skeleton'
+import { trackViewItemList, trackSelectItem } from '../utils/analytics'
 
 
 const Shop = () => {
@@ -52,6 +53,9 @@ const Shop = () => {
 
                 const productsArray = Array.isArray(data) ? data : (data.products || [])
                 setProducts(productsArray)
+                if (productsArray.length > 0) {
+                    trackViewItemList(productsArray, activeFilter === 'all' ? 'All Jewellery' : activeFilter)
+                }
             } catch (error) {
                 console.error('Fetch failed:', error)
                 setProducts([])
@@ -272,7 +276,11 @@ const Shop = () => {
                                             transition={{ duration: 0.8, delay: (idx % 4) * 0.1, ease: [0.22, 1, 0.36, 1] }}
                                             className="group"
                                         >
-                                            <Link to={`/product/${product._id}`} className="block text-center px-0.5 sm:px-2">
+                                            <Link
+                                                to={`/product/${product._id}`}
+                                                onClick={() => trackSelectItem(product, activeFilter === 'all' ? 'All Jewellery' : activeFilter, idx + 1)}
+                                                className="block text-center px-0.5 sm:px-2"
+                                            >
                                                 {/* Architectural Frame with Hover Interaction */}
                                                 <div className="relative aspect-[4/5] overflow-hidden bg-white mb-2 sm:mb-4 shadow-sm transition-all duration-700 group-hover:shadow-lux group-hover:-translate-y-1 rounded-sm border border-[#111110]/5 p-0.5">
                                                     <div className="w-full h-full rounded-[inherit] overflow-hidden relative">
