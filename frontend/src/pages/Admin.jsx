@@ -34,6 +34,8 @@ const Admin = () => {
         name: '',
         category: 'Necklaces',
         price: '',
+        mrp: '',
+        showOnHome: false,
         details: '',
         material: 'Stainless Steel',
         plating: 'Gold 18K PVD Plating',
@@ -107,6 +109,31 @@ const Admin = () => {
     const [reelSearch, setReelSearch] = useState('')
     const [isSavingShowcase, setIsSavingShowcase] = useState(false)
 
+    // Category Management States (Home 4-Slot Strict Limit)
+    const [categories, setCategories] = useState([])
+    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+    const [editCategoryMode, setEditCategoryMode] = useState(false)
+    const [currentCategory, setCurrentCategory] = useState({
+        _id: null,
+        name: '',
+        slug: '',
+        title: '',
+        subtitle: '',
+        tagline: '',
+        count: '',
+        desc: '',
+        homeImage: '',
+        collectionImage: '',
+        showOnHome: false,
+        order: 0,
+        isActive: true
+    })
+    const [isSavingCategory, setIsSavingCategory] = useState(false)
+    const [uploadingHomeImg, setUploadingHomeImg] = useState(false)
+    const [uploadingCollectionImg, setUploadingCollectionImg] = useState(false)
+    const [categorySearch, setCategorySearch] = useState('')
+    const [categoryFilter, setCategoryFilter] = useState('all')
+
     const handleLogout = () => {
         logout()
         navigate('/login')
@@ -120,7 +147,7 @@ const Admin = () => {
     const fetchAdminData = async () => {
         try {
             setLoading(true)
-            const [statsRes, productsRes, ordersRes, usersRes, revenueRes, promosRes, abandonedRes, reelsRes] = await Promise.all([
+            const [statsRes, productsRes, ordersRes, usersRes, revenueRes, promosRes, abandonedRes, reelsRes, categoriesRes] = await Promise.all([
                 api.get('/analytics/stats'),
                 api.get('/products?pageSize=all'),
                 api.get('/orders'),
@@ -128,7 +155,8 @@ const Admin = () => {
                 api.get('/analytics/revenue'),
                 api.get('/promos').catch(() => ({ data: [] })),
                 api.get('/users/admin/abandoned-carts').catch(() => ({ data: [] })),
-                api.get('/reels?all=true').catch(() => ({ data: [] }))
+                api.get('/reels?all=true').catch(() => ({ data: [] })),
+                api.get('/categories?all=true').catch(() => ({ data: [] }))
             ])
 
             setStats(statsRes.data)
@@ -139,6 +167,7 @@ const Admin = () => {
             setPromos(promosRes.data || [])
             setAbandonedCarts(abandonedRes.data || [])
             setReels(reelsRes.data || [])
+            setCategories(categoriesRes.data || [])
 
 
 
@@ -247,7 +276,7 @@ const Admin = () => {
     const handleAddProduct = () => {
         setEditMode(false)
         setCurrentProduct({
-            name: '', category: 'Necklaces', price: '', details: '', material: 'Stainless Steel',
+            name: '', category: 'Necklaces', price: '', mrp: '', showOnHome: false, details: '', material: 'Stainless Steel',
             plating: 'Gold 18K PVD Plating', stone: 'Natural', length: '46 cm', weight: '6g',
             features: ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic'],
             stock: 0, img: '', images: ['', '', '', ''], hero: false
@@ -263,9 +292,32 @@ const Admin = () => {
 
         setCurrentProduct({
             ...product,
+            price: product.price ?? '',
+            mrp: product.mrp || '',
+            showOnHome: Boolean(product.showOnHome),
             images: gallery
         })
         setIsModalOpen(true)
+    }
+
+    const handleToggleHomeProduct = async (product) => {
+        const willShow = !product.showOnHome
+        if (willShow) {
+            const currentHomeCount = products.filter(p => p.showOnHome && p._id !== product._id).length
+            if (currentHomeCount >= 8) {
+                toast.error('Home Screen Showcase is full (8/8 slots used). Click "★ In Home Shop" on any active piece to free up a slot first.')
+                return
+            }
+        }
+        try {
+            const { data } = await api.put(`/products/${product._id}/toggle-home`, { showOnHome: willShow })
+            setProducts(prev => prev.map(p => p._id === data._id ? { ...p, showOnHome: data.showOnHome } : p))
+            toast.success(data.showOnHome ? `"${product.name}" added to Home Screen Showcase (8 max).` : `"${product.name}" removed from Home Screen Showcase.`)
+        } catch (error) {
+            console.error('Toggle home showcase error:', error)
+            const msg = error.response?.data?.message || error.message || 'Failed to update Home Screen showcase status.'
+            toast.error(msg)
+        }
     }
 
     const handleDeleteProduct = async (id) => {
@@ -308,18 +360,33 @@ const Admin = () => {
     const handleSaveProduct = async (e) => {
         e.preventDefault()
         try {
+            if (currentProduct.showOnHome) {
+                const currentHomeCount = products.filter(p => p.showOnHome && p._id !== currentProduct._id).length
+                if (currentHomeCount >= 8) {
+                    toast.error('Home Screen Shop is strictly limited to 8 products. Please uncheck one first.')
+                    return
+                }
+            }
+
+            const payload = {
+                ...currentProduct,
+                price: Number(currentProduct.price),
+                mrp: currentProduct.mrp ? Number(currentProduct.mrp) : 0,
+                showOnHome: Boolean(currentProduct.showOnHome)
+            }
+
             if (editMode) {
-                const { data } = await api.put(`/products/${currentProduct._id}`, currentProduct)
+                const { data } = await api.put(`/products/${currentProduct._id}`, payload)
                 setProducts(products.map(p => p._id === data._id ? data : p))
                 toast.success('Product updated successfully.')
             } else {
-                const { data } = await api.post('/products', currentProduct)
+                const { data } = await api.post('/products', payload)
                 toast.success('Product added successfully.')
                 fetchAdminData()
             }
             setIsModalOpen(false)
         } catch (error) {
-            toast.error('Saving failed.')
+            toast.error(error.response?.data?.message || 'Saving failed.')
         }
     }
 
@@ -572,6 +639,193 @@ const Admin = () => {
         await handleSetHomeShowcase(activeReels.map(r => r._id))
     }
 
+    // ----------------------------------------------------
+    // CATEGORY MANAGEMENT HANDLERS (STRICT 4-SLOT HOME RULE)
+    // ----------------------------------------------------
+    const homeCategoriesCount = useMemo(() => {
+        return categories.filter(c => c.showOnHome).length
+    }, [categories])
+
+    const homeCategoriesList = useMemo(() => {
+        return categories.filter(c => c.showOnHome).sort((a, b) => (a.order || 0) - (b.order || 0))
+    }, [categories])
+
+    const filteredCategories = useMemo(() => {
+        return categories.filter(cat => {
+            const matchesSearch = !categorySearch.trim() || 
+                (cat.name && cat.name.toLowerCase().includes(categorySearch.toLowerCase())) ||
+                (cat.title && cat.title.toLowerCase().includes(categorySearch.toLowerCase())) ||
+                (cat.subtitle && cat.subtitle.toLowerCase().includes(categorySearch.toLowerCase())) ||
+                (cat.slug && cat.slug.toLowerCase().includes(categorySearch.toLowerCase()))
+
+            if (!matchesSearch) return false
+
+            if (categoryFilter === 'home') return cat.showOnHome
+            if (categoryFilter === 'collection') return !cat.showOnHome
+            return true
+        })
+    }, [categories, categorySearch, categoryFilter])
+
+    const handleOpenAddCategory = () => {
+        const isSlotsAvailable = categories.filter(c => c.showOnHome).length < 4
+        setCurrentCategory({
+            _id: null,
+            name: '',
+            slug: '',
+            title: '',
+            subtitle: `The Archive ${categories.length + 1}`,
+            tagline: '',
+            count: '',
+            desc: '',
+            homeImage: '',
+            collectionImage: '',
+            showOnHome: isSlotsAvailable,
+            order: categories.length + 1,
+            isActive: true
+        })
+        setEditCategoryMode(false)
+        setIsCategoryModalOpen(true)
+    }
+
+    const handleOpenEditCategory = (cat) => {
+        setCurrentCategory({
+            _id: cat._id,
+            name: cat.name || '',
+            slug: cat.slug || '',
+            title: cat.title || '',
+            subtitle: cat.subtitle || '',
+            tagline: cat.tagline || '',
+            count: cat.count || '',
+            desc: cat.desc || '',
+            homeImage: cat.homeImage || '',
+            collectionImage: cat.collectionImage || cat.homeImage || '',
+            showOnHome: Boolean(cat.showOnHome),
+            order: cat.order ?? 0,
+            isActive: cat.isActive !== false
+        })
+        setEditCategoryMode(true)
+        setIsCategoryModalOpen(true)
+    }
+
+    const handleCategoryHomeImageUpload = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        const formData = new FormData()
+        formData.append('image', file)
+        try {
+            setUploadingHomeImg(true)
+            const { data } = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            setCurrentCategory(prev => ({
+                ...prev,
+                homeImage: data.url,
+                collectionImage: prev.collectionImage ? prev.collectionImage : data.url
+            }))
+            toast.success('Home Screen image uploaded successfully.')
+        } catch (error) {
+            toast.error('Home image upload failed.')
+        } finally {
+            setUploadingHomeImg(false)
+        }
+    }
+
+    const handleCategoryCollectionImageUpload = async (e) => {
+        const file = e.target.files[0]
+        if (!file) return
+        const formData = new FormData()
+        formData.append('image', file)
+        try {
+            setUploadingCollectionImg(true)
+            const { data } = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            })
+            setCurrentCategory(prev => ({
+                ...prev,
+                collectionImage: data.url
+            }))
+            toast.success('Collection image uploaded successfully.')
+        } catch (error) {
+            toast.error('Collection image upload failed.')
+        } finally {
+            setUploadingCollectionImg(false)
+        }
+    }
+
+    const handleToggleHomeCategory = async (cat) => {
+        const willBeHome = !cat.showOnHome
+        if (willBeHome) {
+            const currentHomeSlotsTaken = categories.filter(c => c.showOnHome && c._id !== cat._id).length
+            if (currentHomeSlotsTaken >= 4) {
+                toast.error('Home Screen is strictly limited to 4 categories. Please remove one category before assigning a new one.')
+                return
+            }
+        }
+
+        try {
+            const { data } = await api.patch(`/categories/${cat._id}/toggle-home`)
+            setCategories(prev => prev.map(c => c._id === data._id ? data : c))
+            toast.success(data.showOnHome ? `"${cat.name}" is now featured on the Home Screen.` : `"${cat.name}" moved to Collection Section only.`)
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to update Home Screen category assignment.')
+        }
+    }
+
+    const handleSaveCategory = async (e) => {
+        e.preventDefault()
+        if (!currentCategory.name.trim()) {
+            toast.error('Please enter a category name.')
+            return
+        }
+        if (!currentCategory.homeImage.trim()) {
+            toast.error('Please provide an image for the Home Screen section.')
+            return
+        }
+
+        // Strict client-side check for 4-slot limit
+        if (currentCategory.showOnHome) {
+            const otherHomeCount = categories.filter(c => c.showOnHome && c._id !== currentCategory._id).length
+            if (otherHomeCount >= 4) {
+                toast.error('Only 4 categories can be featured on the Home Screen. Please uncheck one category before adding another.')
+                return
+            }
+        }
+
+        try {
+            setIsSavingCategory(true)
+            const payload = {
+                ...currentCategory,
+                collectionImage: currentCategory.collectionImage.trim() || currentCategory.homeImage.trim()
+            }
+
+            if (editCategoryMode && currentCategory._id) {
+                const { data } = await api.put(`/categories/${currentCategory._id}`, payload)
+                setCategories(prev => prev.map(c => c._id === data._id ? data : c))
+                toast.success('Category updated successfully.')
+            } else {
+                const { data } = await api.post('/categories', payload)
+                setCategories(prev => [...prev, data])
+                toast.success('New category added successfully.')
+            }
+            setIsCategoryModalOpen(false)
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to save category.')
+        } finally {
+            setIsSavingCategory(false)
+        }
+    }
+
+    const handleDeleteCategory = async (cat) => {
+        if (window.confirm(`Are you sure you want to delete "${cat.name}" category? It will be removed from all collections and navigation.`)) {
+            try {
+                await api.delete(`/categories/${cat._id}`)
+                setCategories(prev => prev.filter(c => c._id !== cat._id))
+                toast.success(`Category "${cat.name}" deleted.`)
+            } catch (error) {
+                toast.error(error.response?.data?.message || 'Failed to delete category.')
+            }
+        }
+    }
 
     const renderDashboard = () => {
         // Prepare 6-month visualizer trajectory
@@ -1503,10 +1757,15 @@ const Admin = () => {
     )
 
     const renderPieceManager = () => {
+        const homeProductsCount = products.filter(p => p.showOnHome).length
         const query = pieceSearch.trim().toLowerCase()
         const cat = pieceCategory.toLowerCase()
         const filteredPieces = products.filter(p => {
-            const matchesCat = pieceCategory === 'All' || p.category?.toLowerCase() === cat
+            let matchesCat = false
+            if (pieceCategory === 'All') matchesCat = true
+            else if (pieceCategory === 'Home Showcase') matchesCat = !!p.showOnHome
+            else matchesCat = p.category?.toLowerCase() === cat
+
             const matchesQuery = !query ||
                 p.name?.toLowerCase().includes(query) ||
                 (p.sku && p.sku.toLowerCase().includes(query))
@@ -1518,10 +1777,19 @@ const Admin = () => {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-stone-200/70">
                     <div>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="font-mono text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Product Inventory</span>
                             <span className="text-stone-300">•</span>
                             <span className="text-xs text-stone-500 font-mono">{productTotal} products in catalog</span>
+                            <span className="text-stone-300">•</span>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                                homeProductsCount >= 8
+                                    ? 'bg-amber-50 text-amber-800 border border-amber-300'
+                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${homeProductsCount >= 8 ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
+                                Home Shop Showcase: {homeProductsCount} / 8 slots
+                            </span>
                         </div>
                         <h2 className="font-headline text-3xl md:text-4xl italic font-light text-primary tracking-tight">Product Inventory</h2>
                     </div>
@@ -1539,17 +1807,28 @@ const Admin = () => {
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                     {/* Category tabs */}
                     <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1">
-                        {['All', 'Necklaces', 'Rings', 'Earrings', 'Bracelets'].map(cat => (
+                        {['All', 'Home Showcase', ...(categories.length > 0 ? categories.map(c => c.name) : ['Necklaces', 'Rings', 'Earrings', 'Bracelets'])].map(cat => (
                             <button
                                 key={cat}
                                 onClick={() => setPieceCategory(cat)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-label uppercase tracking-wider font-semibold whitespace-nowrap transition-all ${
+                                className={`px-3 py-1.5 rounded-xl text-xs font-label uppercase tracking-wider font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                                     pieceCategory === cat
                                         ? 'bg-primary text-white shadow-sm'
+                                        : cat === 'Home Showcase'
+                                        ? 'bg-emerald-50/80 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
                                         : 'bg-white text-stone-600 border border-stone-200/80 hover:bg-stone-100'
                                 }`}
                             >
-                                {cat}
+                                {cat === 'Home Showcase' ? (
+                                    <>
+                                        <span>★ Home Showcase</span>
+                                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${pieceCategory === cat ? 'bg-white/20 text-white' : 'bg-emerald-200/60 text-emerald-900 font-bold'}`}>
+                                            {homeProductsCount}/8
+                                        </span>
+                                    </>
+                                ) : (
+                                    cat
+                                )}
                             </button>
                         ))}
                     </div>
@@ -1589,13 +1868,18 @@ const Admin = () => {
                                         />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                        <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                                             <span className="font-headline text-base italic text-stone-900 truncate">
                                                 {p.name}
                                             </span>
+                                            {p.showOnHome && (
+                                                <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold not-italic flex-shrink-0">
+                                                    ★ Home Shop
+                                                </span>
+                                            )}
                                             {(p.isHero || p.hero) && (
                                                 <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold not-italic flex-shrink-0">
-                                                    ★
+                                                    Hero
                                                 </span>
                                             )}
                                         </div>
@@ -1604,10 +1888,15 @@ const Admin = () => {
                                             <span>•</span>
                                             <span className="truncate">{p.sku || 'SOV-MOD'}</span>
                                         </div>
-                                        <div className="flex items-center gap-2 mt-1">
+                                        <div className="flex items-baseline gap-2 mt-1 flex-wrap">
                                             <span className="font-headline text-sm italic font-semibold text-primary">
                                                 ₹{p.price?.toLocaleString()}
                                             </span>
+                                            {p.mrp > p.price && (
+                                                <span className="text-[10px] font-mono text-stone-400 line-through">
+                                                    MRP: ₹{p.mrp?.toLocaleString()}
+                                                </span>
+                                            )}
                                             <span className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold ${
                                                 p.stock > 5
                                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -1620,7 +1909,18 @@ const Admin = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1 flex-shrink-0">
+                                <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <button
+                                        onClick={() => handleToggleHomeProduct(p)}
+                                        className={`px-2 py-1 rounded-lg text-[9px] font-mono font-bold transition-all ${
+                                            p.showOnHome
+                                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
+                                                : 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200'
+                                        }`}
+                                        title={p.showOnHome ? "Remove from Home Showcase" : "Add to Home Showcase"}
+                                    >
+                                        {p.showOnHome ? '★ In Home' : '+ Home'}
+                                    </button>
                                     <button
                                         onClick={() => handleEditProduct(p)}
                                         className="p-2 text-stone-500 hover:text-primary hover:bg-stone-100 rounded-lg transition-colors"
@@ -1642,13 +1942,14 @@ const Admin = () => {
 
                     {/* Desktop Table View */}
                     <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-left min-w-[760px]">
+                        <table className="w-full text-left min-w-[820px]">
                             <thead>
                                 <tr className="border-b border-stone-200/70 bg-stone-50/60 text-stone-400 font-mono text-[10px] uppercase tracking-wider">
                                     <th className="py-4 px-6 font-semibold">Product</th>
                                     <th className="py-4 px-6 font-semibold">SKU</th>
                                     <th className="py-4 px-6 font-semibold">Category</th>
-                                    <th className="py-4 px-6 text-right font-semibold">Price</th>
+                                    <th className="py-4 px-6 text-right font-semibold">Price & MRP</th>
+                                    <th className="py-4 px-6 text-center font-semibold">Home Showcase ({homeProductsCount}/8)</th>
                                     <th className="py-4 px-6 text-center font-semibold">Stock</th>
                                     <th className="py-4 px-6 text-right font-semibold">Actions</th>
                                 </tr>
@@ -1672,7 +1973,7 @@ const Admin = () => {
                                                         <span>{p.name}</span>
                                                         {(p.isHero || p.hero) && (
                                                             <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/80 font-bold not-italic">
-                                                                Featured
+                                                                Hero
                                                             </span>
                                                         )}
                                                     </div>
@@ -1688,8 +1989,33 @@ const Admin = () => {
                                                 {p.category}
                                             </span>
                                         </td>
-                                        <td className="py-3.5 px-6 text-right font-headline text-lg italic font-light text-primary">
-                                            ₹{p.price?.toLocaleString()}
+                                        <td className="py-3.5 px-6 text-right">
+                                            <div className="font-headline text-lg italic font-light text-primary">
+                                                ₹{p.price?.toLocaleString()}
+                                            </div>
+                                            {p.mrp > p.price ? (
+                                                <div className="text-[10px] font-mono text-stone-400 line-through">
+                                                    MRP: ₹{p.mrp?.toLocaleString()}
+                                                </div>
+                                            ) : p.mrp > 0 ? (
+                                                <div className="text-[10px] font-mono text-stone-300">
+                                                    MRP: ₹{p.mrp?.toLocaleString()}
+                                                </div>
+                                            ) : null}
+                                        </td>
+                                        <td className="py-3.5 px-6 text-center">
+                                            <button
+                                                onClick={() => handleToggleHomeProduct(p)}
+                                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-label font-bold uppercase tracking-wider transition-all shadow-2xs ${
+                                                    p.showOnHome
+                                                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                                                        : 'bg-stone-100 text-stone-500 border border-stone-200 hover:border-stone-300 hover:text-stone-800 hover:bg-stone-50'
+                                                }`}
+                                                title={p.showOnHome ? 'Click to remove from Home Showcase' : (homeProductsCount >= 8 ? 'Home showcase is full (max 8)' : 'Click to showcase on Home Screen Shop')}
+                                            >
+                                                <span className={`w-1.5 h-1.5 rounded-full ${p.showOnHome ? 'bg-emerald-500' : 'bg-stone-300'}`} />
+                                                {p.showOnHome ? '★ In Home Shop' : '+ Showcase'}
+                                            </button>
                                         </td>
                                         <td className="py-3.5 px-6 text-center">
                                             {p.stock > 5 ? (
@@ -2281,12 +2607,91 @@ const Admin = () => {
                             </button>
                         </div>
                         <form onSubmit={handleSaveProduct} className="space-y-6 sm:space-y-12">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-8">
-                                <input type="text" required value={currentProduct.name} onChange={(e) => setCurrentProduct({ ...currentProduct, name: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-3 font-headline text-2xl italic outline-none focus:border-primary" placeholder="Product Name..." />
-                                <select value={currentProduct.category} onChange={(e) => setCurrentProduct({ ...currentProduct, category: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-3 font-label text-[12px] uppercase font-black">
-                                    {['Necklaces', 'Rings', 'Earrings', 'Bracelets', 'Collections'].map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                </select>
-                                <input type="number" required value={currentProduct.price} onChange={(e) => setCurrentProduct({ ...currentProduct, price: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-3 font-headline text-2xl outline-none focus:border-primary" placeholder="Price (₹)..." />
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6">
+                                <div className="md:col-span-1">
+                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40 block mb-1">Product Name *</label>
+                                    <input type="text" required value={currentProduct.name} onChange={(e) => setCurrentProduct({ ...currentProduct, name: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 font-headline text-xl italic outline-none focus:border-primary" placeholder="Product Name..." />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40 block mb-1">Category *</label>
+                                    <select value={currentProduct.category} onChange={(e) => setCurrentProduct({ ...currentProduct, category: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2.5 font-label text-[12px] uppercase font-black">
+                                        {(categories.length > 0 ? categories.map(c => c.name) : ['Necklaces', 'Rings', 'Earrings', 'Bracelets', 'Collections']).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40 block mb-1">Selling Price (₹) *</label>
+                                    <input type="number" required min="0" value={currentProduct.price} onChange={(e) => setCurrentProduct({ ...currentProduct, price: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 font-headline text-xl outline-none focus:border-primary" placeholder="Selling Price..." />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Original MRP (₹)</label>
+                                        {Number(currentProduct.mrp) > Number(currentProduct.price) && Number(currentProduct.price) > 0 && (
+                                            <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                                                {Math.round(((Number(currentProduct.mrp) - Number(currentProduct.price)) / Number(currentProduct.mrp)) * 100)}% OFF
+                                            </span>
+                                        )}
+                                    </div>
+                                    <input type="number" min="0" value={currentProduct.mrp ?? ''} onChange={(e) => setCurrentProduct({ ...currentProduct, mrp: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 font-headline text-xl text-stone-600 outline-none focus:border-primary" placeholder="e.g. 8999" />
+                                </div>
+                            </div>
+
+                            {/* Home Screen Shop Showcase Setting (Max 8 Products) */}
+                            <div className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+                                currentProduct.showOnHome
+                                    ? 'bg-emerald-50/70 border-emerald-200'
+                                    : 'bg-stone-50 border-stone-200/80'
+                            }`}>
+                                <div className="flex items-start sm:items-center gap-3">
+                                    <input
+                                        type="checkbox"
+                                        id="modal-show-on-home"
+                                        checked={!!currentProduct.showOnHome}
+                                        disabled={!currentProduct.showOnHome && products.filter(p => p.showOnHome && p._id !== currentProduct._id).length >= 8}
+                                        onChange={(e) => {
+                                            const isChecking = e.target.checked
+                                            if (isChecking) {
+                                                const otherActive = products.filter(p => p.showOnHome && p._id !== currentProduct._id).length
+                                                if (otherActive >= 8) {
+                                                    toast.error('Only 8 products can be showcased on the Home Screen Shop. Please remove one first.')
+                                                    return
+                                                }
+                                            }
+                                            setCurrentProduct({ ...currentProduct, showOnHome: isChecking })
+                                        }}
+                                        className="w-5 h-5 accent-emerald-600 rounded mt-0.5 sm:mt-0 cursor-pointer disabled:cursor-not-allowed"
+                                    />
+                                    <label htmlFor="modal-show-on-home" className="cursor-pointer select-none">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-label text-xs uppercase font-bold text-stone-800 tracking-wider">
+                                                Showcase in Home Screen Shop
+                                            </span>
+                                            <span className="font-mono text-[10px] text-stone-500 font-semibold bg-white px-2 py-0.5 rounded border border-stone-200">
+                                                Max 8 products
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-stone-500 font-mono mt-1">
+                                            Featured in the "Shop the Collection" section on the Home Screen.
+                                        </p>
+                                    </label>
+                                </div>
+                                <div className="flex-shrink-0 self-start sm:self-center">
+                                    {currentProduct.showOnHome ? (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            Active ({products.filter(p => p.showOnHome && p._id !== currentProduct._id).length + 1} of 8 slots used)
+                                        </span>
+                                    ) : (
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold ${
+                                            products.filter(p => p.showOnHome && p._id !== currentProduct._id).length >= 8
+                                                ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                                                : 'bg-stone-200/70 text-stone-600'
+                                        }`}>
+                                            {products.filter(p => p.showOnHome && p._id !== currentProduct._id).length >= 8
+                                                ? 'Slots Full (8/8 used)'
+                                                : `${products.filter(p => p.showOnHome && p._id !== currentProduct._id).length} / 8 slots used`}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 md:gap-12 border-t border-black/5 pt-6 md:pt-10">
@@ -2315,7 +2720,7 @@ const Admin = () => {
                                     <input type="number" value={currentProduct.stock} onChange={(e) => setCurrentProduct({ ...currentProduct, stock: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm font-black outline-none focus:border-primary" />
                                 </div>
                                 <div className="flex items-end pb-2 gap-4">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Featured Product</label>
+                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Featured Hero</label>
                                     <input type="checkbox" checked={currentProduct.isHero} onChange={(e) => setCurrentProduct({ ...currentProduct, isHero: e.target.checked })} className="w-4 h-4 accent-primary" />
                                 </div>
                             </div>
@@ -2833,6 +3238,372 @@ const Admin = () => {
         )
     }
 
+    const renderCategories = () => {
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6 pb-16"
+            >
+                {/* Clean Top Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-black/8">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="font-mono text-[10px] uppercase tracking-widest text-stone-500 font-semibold">Store Management</span>
+                        </div>
+                        <h2 className="font-headline text-3xl sm:text-4xl italic font-light text-stone-900 tracking-tight">Categories</h2>
+                        <p className="font-sans text-xs text-stone-500 mt-1">
+                            Create categories and use the button below to easily toggle which 4 appear on the Home Screen.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div className="px-3.5 py-2 rounded-xl bg-stone-100 border border-stone-200/80 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-primary" />
+                            <span className="text-xs font-mono text-stone-700 font-bold">
+                                Home: {homeCategoriesCount} / 4
+                            </span>
+                        </div>
+                        <button
+                            onClick={handleOpenAddCategory}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Create Category</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Search & Filter Bar */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={() => setCategoryFilter('all')}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-sans font-bold transition-all cursor-pointer ${
+                                categoryFilter === 'all'
+                                    ? 'bg-primary text-white shadow-xs'
+                                    : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
+                            }`}
+                        >
+                            All ({categories.length})
+                        </button>
+                        <button
+                            onClick={() => setCategoryFilter('home')}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-sans font-bold transition-all cursor-pointer ${
+                                categoryFilter === 'home'
+                                    ? 'bg-primary text-white shadow-xs'
+                                    : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
+                            }`}
+                        >
+                            ★ Home Screen ({homeCategoriesCount})
+                        </button>
+                        <button
+                            onClick={() => setCategoryFilter('collection')}
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-sans font-bold transition-all cursor-pointer ${
+                                categoryFilter === 'collection'
+                                    ? 'bg-primary text-white shadow-xs'
+                                    : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
+                            }`}
+                        >
+                            Collection Archive ({Math.max(0, categories.length - homeCategoriesCount)})
+                        </button>
+                    </div>
+
+                    <div className="relative w-full sm:w-64">
+                        <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                            type="text"
+                            placeholder="Search categories..."
+                            value={categorySearch}
+                            onChange={(e) => setCategorySearch(e.target.value)}
+                            className="w-full bg-white border border-stone-200 rounded-xl pl-9 pr-7 py-2 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                        />
+                        {categorySearch && (
+                            <button onClick={() => setCategorySearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+                                <X className="w-3 h-3" />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Clean Categories List */}
+                <div className="bg-white rounded-2xl border border-stone-200/80 shadow-xs divide-y divide-stone-100 overflow-hidden">
+                    {filteredCategories.map((cat) => {
+                        return (
+                            <div
+                                key={cat._id}
+                                className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-stone-50/60 transition-colors"
+                            >
+                                {/* Left: Image & Info */}
+                                <div className="flex items-center gap-4 min-w-0">
+                                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-stone-100 border border-stone-200 shrink-0">
+                                        <img
+                                            src={getOptimizedImage(cat.homeImage || cat.collectionImage, 150)}
+                                            alt={cat.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-headline text-xl sm:text-2xl italic text-stone-900 truncate">
+                                                {cat.name}
+                                            </h3>
+                                            {cat.showOnHome && (
+                                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono font-bold shrink-0">
+                                                    ★ On Home Screen
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-stone-500 font-sans">
+                                            {cat.tagline && (
+                                                <span className="font-medium text-stone-700">{cat.tagline}</span>
+                                            )}
+                                            {cat.tagline && cat.count && <span>•</span>}
+                                            {cat.count && (
+                                                <span className="font-mono text-[11px] text-stone-400">{cat.count}</span>
+                                            )}
+                                            <span className="hidden md:inline text-stone-300">•</span>
+                                            <Link
+                                                to={`/shop/${cat.slug || cat.name.toLowerCase()}`}
+                                                target="_blank"
+                                                className="text-primary hover:underline font-mono text-[11px] hidden md:inline-flex items-center gap-1"
+                                            >
+                                                <span>/shop/{cat.slug || cat.name.toLowerCase()}</span>
+                                                <ExternalLink className="w-2.5 h-2.5" />
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right: Quick Actions */}
+                                <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-center shrink-0">
+                                    {/* The Single Simple Button Requested by User */}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleToggleHomeCategory(cat)}
+                                        className={`px-4 py-2 rounded-xl text-xs font-sans font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                                            cat.showOnHome
+                                                ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-rose-600 hover:border-rose-600 shadow-2xs group'
+                                                : (homeCategoriesCount >= 4
+                                                    ? 'bg-stone-50 text-stone-400 border-stone-200 hover:border-amber-300 hover:text-amber-700'
+                                                    : 'bg-white text-stone-800 border-stone-300 hover:border-primary hover:bg-stone-50')
+                                        }`}
+                                        title={cat.showOnHome ? 'Click to remove from Home Screen' : 'Click to show on Home Screen'}
+                                    >
+                                        {cat.showOnHome ? (
+                                            <>
+                                                <Check className="w-3.5 h-3.5 group-hover:hidden" />
+                                                <X className="w-3.5 h-3.5 hidden group-hover:block" />
+                                                <span className="group-hover:hidden">Shown on Home</span>
+                                                <span className="hidden group-hover:inline">Remove from Home</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Plus className="w-3.5 h-3.5 text-stone-400" />
+                                                <span>Show on Home</span>
+                                            </>
+                                        )}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => handleOpenEditCategory(cat)}
+                                        className="p-2 text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                                        title="Edit Category"
+                                    >
+                                        <Edit3 className="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDeleteCategory(cat)}
+                                        className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                        title="Delete Category"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+
+                {filteredCategories.length === 0 && (
+                    <div className="bg-white rounded-2xl border border-stone-200/70 p-12 text-center space-y-3">
+                        <Layers className="w-10 h-10 text-stone-300 mx-auto" />
+                        <h3 className="font-headline text-xl italic text-stone-700">No categories found</h3>
+                        <p className="text-xs text-stone-400 font-sans max-w-sm mx-auto">
+                            {categorySearch ? 'No categories match your search.' : 'Create your first category to get started.'}
+                        </p>
+                        <button
+                            onClick={handleOpenAddCategory}
+                            className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all cursor-pointer"
+                        >
+                            <Plus className="w-4 h-4" />
+                            <span>Create Category</span>
+                        </button>
+                    </div>
+                )}
+            </motion.div>
+        )
+    }
+
+    const renderCategoryModal = () => {
+        const otherHomeSlotsOccupied = categories.filter(c => c.showOnHome && c._id !== currentCategory._id).length
+        const isHomeSlotsMaxed = otherHomeSlotsOccupied >= 4
+
+        return (
+            <AnimatePresence>
+                {isCategoryModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCategoryModalOpen(false)} className="absolute inset-0 bg-black/50 backdrop-blur-xs" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 15 }} className="relative w-full max-w-lg bg-[#fffcf7] rounded-2xl shadow-xl border border-stone-200 p-6 sm:p-8 overflow-y-auto max-h-[90vh] no-scrollbar">
+                            <div className="flex items-center justify-between pb-4 border-b border-black/8">
+                                <div>
+                                    <h2 className="font-headline text-2xl italic text-stone-900">
+                                        {editCategoryMode ? `Edit Category: ${currentCategory.name}` : 'Create Category'}
+                                    </h2>
+                                    <p className="text-[11px] text-stone-400 font-sans mt-0.5">
+                                        Fill in the category name and image.
+                                    </p>
+                                </div>
+                                <button onClick={() => setIsCategoryModalOpen(false)} className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-colors cursor-pointer">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSaveCategory} className="space-y-4 pt-4">
+                                {/* Category Name */}
+                                <div className="space-y-1.5">
+                                    <label className="font-mono text-[10px] uppercase tracking-wider text-stone-600 font-bold">Category Name *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="e.g. Rings, Necklaces, Anklets"
+                                        value={currentCategory.name}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                            const autoSlug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+                                            setCurrentCategory(prev => ({
+                                                ...prev,
+                                                name: val,
+                                                slug: prev.slug ? prev.slug : autoSlug
+                                            }))
+                                        }}
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-sm font-sans text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                    />
+                                </div>
+
+                                {/* Image Upload & Preview */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="font-mono text-[10px] uppercase tracking-wider text-stone-600 font-bold">Category Image *</label>
+                                        <label className="px-3 py-1 bg-stone-900 text-white rounded-lg text-[10px] font-sans font-bold cursor-pointer hover:bg-stone-800 transition-all flex items-center gap-1 shadow-2xs">
+                                            <ImagePlus className="w-3.5 h-3.5" />
+                                            <span>{uploadingHomeImg ? 'Uploading...' : 'Upload Image'}</span>
+                                            <input type="file" accept="image/*" disabled={uploadingHomeImg} onChange={handleCategoryHomeImageUpload} className="hidden" />
+                                        </label>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Image URL or upload a file above"
+                                        value={currentCategory.homeImage}
+                                        onChange={(e) => setCurrentCategory({ ...currentCategory, homeImage: e.target.value })}
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-mono text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                    />
+                                    {currentCategory.homeImage && (
+                                        <div className="aspect-[16/9] rounded-xl overflow-hidden bg-stone-100 border border-stone-200 relative">
+                                            <img src={getOptimizedImage(currentCategory.homeImage, 400)} alt="Preview" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Tagline & Count */}
+                                <div className="grid grid-cols-2 gap-3 pt-1">
+                                    <div className="space-y-1">
+                                        <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Tagline (Optional)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Collection Alpha"
+                                            value={currentCategory.tagline}
+                                            onChange={(e) => setCurrentCategory({ ...currentCategory, tagline: e.target.value })}
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-sans text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Pieces (Optional)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. 12 Pieces"
+                                            value={currentCategory.count}
+                                            onChange={(e) => setCurrentCategory({ ...currentCategory, count: e.target.value })}
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-sans text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Simple Checkbox to Showcase on Home Screen */}
+                                <div className="p-3.5 rounded-xl border border-stone-200 bg-white">
+                                    <label className="flex items-start gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            id="categoryShowOnHome"
+                                            disabled={isHomeSlotsMaxed && !currentCategory.showOnHome}
+                                            checked={Boolean(currentCategory.showOnHome)}
+                                            onChange={(e) => {
+                                                if (e.target.checked && isHomeSlotsMaxed) {
+                                                    toast.error('Only 4 categories can be shown on the Home Screen. Please remove one first.')
+                                                    return
+                                                }
+                                                setCurrentCategory({ ...currentCategory, showOnHome: e.target.checked })
+                                            }}
+                                            className="w-4 h-4 mt-0.5 rounded text-primary focus:ring-primary border-stone-300 cursor-pointer"
+                                        />
+                                        <div>
+                                            <span className="text-xs font-sans font-bold text-stone-900 block">
+                                                Showcase on Home Screen (Max 4)
+                                            </span>
+                                            <span className="text-[11px] text-stone-500 font-sans block mt-0.5">
+                                                {currentCategory.showOnHome
+                                                    ? 'This category will appear in the 4-card grid on the Home Screen.'
+                                                    : (isHomeSlotsMaxed
+                                                        ? 'All 4 Home Screen slots are full. You can still save it for the Collection section.'
+                                                        : 'Unchecked categories appear in the Collection section.'
+                                                    )}
+                                            </span>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex justify-end gap-2.5 pt-4 border-t border-black/8">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCategoryModalOpen(false)}
+                                        className="px-5 py-2.5 rounded-xl border border-stone-200 text-xs font-sans font-bold text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSavingCategory}
+                                        className="px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer"
+                                    >
+                                        {isSavingCategory ? 'Saving...' : (editCategoryMode ? 'Update Category' : 'Save Category')}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+        )
+    }
+
     const renderReelModal = () => (
         <AnimatePresence>
             {isReelModalOpen && (
@@ -3045,6 +3816,7 @@ const Admin = () => {
     const tabs = [
         { id: 'dashboard', name: 'Overview', icon: LayoutDashboard },
         { id: 'products', name: 'Products', icon: Package, count: stats.totalProducts },
+        { id: 'categories', name: 'Categories', icon: Layers, count: categories.length },
         { id: 'orders', name: 'Orders', icon: ShoppingBag, count: orders.length },
         { id: 'reels', name: 'Reels', icon: Film, count: reels.length },
         { id: 'abandoned', name: 'Abandoned Carts', icon: ShoppingCart },
@@ -3056,6 +3828,7 @@ const Admin = () => {
     return (
         <div className="flex flex-col lg:flex-row bg-[#fffcf7] min-h-screen selection:bg-primary-container text-stone-900 pt-0 lg:pt-0 overflow-x-hidden w-full max-w-full">
             {renderInventoryModal()}
+            {renderCategoryModal()}
             {renderOrderModal()}
             {renderCustomerModal()}
             {renderPromoModal()}
@@ -3201,6 +3974,7 @@ const Admin = () => {
                         <AnimatePresence mode="wait">
                             {activeTab === 'dashboard' && renderDashboard()}
                             {activeTab === 'products' && renderPieceManager()}
+                            {activeTab === 'categories' && renderCategories()}
                             {activeTab === 'orders' && renderOrders()}
                             {activeTab === 'reels' && renderReelsManager()}
                             {activeTab === 'abandoned' && renderAbandonedCarts()}

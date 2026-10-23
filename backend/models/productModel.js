@@ -19,6 +19,8 @@ const productSchema = mongoose.Schema({
   name: { type: String, required: true },
   category: { type: String, required: true },
   price: { type: Number, required: true },
+  mrp: { type: Number, default: 0 },
+  showOnHome: { type: Boolean, default: false },
   details: { type: String, required: true },
   material: { type: String, required: true, default: 'Stainless Steel' },
   plating: { type: String, default: 'Gold 18K PVD Plating' },

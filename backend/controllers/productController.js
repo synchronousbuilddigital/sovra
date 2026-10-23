@@ -36,23 +36,43 @@ const generateSKU = (category, productCount = 0) => {
  *       200:
  *         description: A list of products
  */
+// Helper to safely escape user input for MongoDB regular expressions (ReDoS prevention)
+const escapeRegex = (text) => {
+  if (typeof text !== 'string') return '';
+  return text.slice(0, 100).replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+};
+
 const getProducts = async (req, res) => {
   try {
+    // If no products have showOnHome flagged yet, initialize the first 8 so admin immediately sees which 8 are showcased
+    const currentHomeCount = await Product.countDocuments({ showOnHome: true });
+    if (currentHomeCount === 0) {
+      const top8 = await Product.find().sort({ createdAt: -1 }).limit(8);
+      if (top8.length > 0) {
+        await Product.updateMany(
+          { _id: { $in: top8.map(p => p._id) } },
+          { $set: { showOnHome: true } }
+        );
+      }
+    }
+
     const isAll = req.query.pageSize === 'all' || req.query.pageSize === '0' || Number(req.query.pageSize) >= 1000;
     const pageSize = isAll ? 0 : (Number(req.query.pageSize) || 10);
     const page = Number(req.query.pageNumber) || 1;
 
-    const keyword = req.query.keyword
+    const sanitizedKeyword = req.query.keyword ? escapeRegex(req.query.keyword.trim()) : '';
+    const keyword = sanitizedKeyword
       ? {
         name: {
-          $regex: req.query.keyword,
+          $regex: sanitizedKeyword,
           $options: 'i',
         },
       }
       : {};
 
-    const category = req.query.category && req.query.category !== 'all'
-      ? { category: { $regex: req.query.category, $options: 'i' } }
+    const sanitizedCategory = req.query.category && req.query.category !== 'all' ? escapeRegex(req.query.category.trim()) : '';
+    const category = sanitizedCategory
+      ? { category: { $regex: `^${sanitizedCategory}$`, $options: 'i' } }
       : {};
 
     const minPrice = Number(req.query.minPrice);
@@ -65,6 +85,9 @@ const getProducts = async (req, res) => {
     }
 
     const query = { ...keyword, ...category, ...priceFilter };
+    if (req.query.showOnHome !== undefined) {
+      query.showOnHome = req.query.showOnHome === 'true';
+    }
 
     // Sorting logic
     let sortOptions = {};
@@ -93,6 +116,35 @@ const getProducts = async (req, res) => {
       pages: pageSize > 0 ? Math.ceil(count / pageSize) : 1,
       total: count
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// @desc    Get products featured on the Home Screen shop showcase (Max 8)
+// @route   GET /api/products/home
+// @access  Public
+const getHomeProducts = async (req, res) => {
+  try {
+    let products = await Product.find({ showOnHome: true }).limit(8);
+    // If fewer than 8 products have showOnHome: true, backfill from latest products to ensure exactly 8 are showcased
+    if (products.length < 8) {
+      const existingIds = products.map(p => p._id);
+      const remainingNeeded = 8 - products.length;
+      const backfill = await Product.find({ _id: { $nin: existingIds } })
+        .sort({ shuffleOrder: 1, createdAt: -1 })
+        .limit(remainingNeeded);
+      
+      // Persist the backfilled products as showOnHome: true so they stay synchronized with Admin panel
+      if (backfill.length > 0) {
+        await Product.updateMany(
+          { _id: { $in: backfill.map(p => p._id) } },
+          { $set: { showOnHome: true } }
+        );
+      }
+      products = [...products, ...backfill];
+    }
+    res.json(products);
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
@@ -155,7 +207,16 @@ const getProductById = async (req, res) => {
  */
 const createProduct = async (req, res) => {
   try {
-    const { name, price, details, img, images, category, stock, material, plating, stone, length, weight, features, hero } = req.body;
+    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, hero } = req.body;
+
+    if (showOnHome) {
+      const homeCount = await Product.countDocuments({ showOnHome: true });
+      if (homeCount >= 8) {
+        return res.status(400).json({
+          message: 'Only 8 products can be showcased on the Home Screen. Please remove one before adding another.'
+        });
+      }
+    }
 
     const sku = generateSKU(category);
 
@@ -163,6 +224,8 @@ const createProduct = async (req, res) => {
       sku,
       name,
       price,
+      mrp: mrp ? Number(mrp) : 0,
+      showOnHome: Boolean(showOnHome),
       details,
       img,
       images: images || [],
@@ -189,13 +252,24 @@ const createProduct = async (req, res) => {
 // @access  Private/Admin
 const updateProduct = async (req, res) => {
   try {
-    const { name, price, details, img, images, category, stock, material, plating, stone, length, weight, features, hero } = req.body;
+    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, hero } = req.body;
 
     const product = await Product.findById(req.params.id);
 
     if (product) {
+      if (showOnHome && !product.showOnHome) {
+        const homeCount = await Product.countDocuments({ showOnHome: true, _id: { $ne: product._id } });
+        if (homeCount >= 8) {
+          return res.status(400).json({
+            message: 'Only 8 products can be showcased on the Home Screen. Please remove one before adding another.'
+          });
+        }
+      }
+
       product.name = name || product.name;
       product.price = price !== undefined ? price : product.price;
+      if (mrp !== undefined) product.mrp = Number(mrp);
+      if (showOnHome !== undefined) product.showOnHome = Boolean(showOnHome);
       product.details = details || product.details;
       product.img = img || product.img;
       product.images = images || product.images;
@@ -301,13 +375,45 @@ const createProductReview = async (req, res) => {
   }
 };
 
+// @desc    Toggle whether product is showcased on Home Screen
+// @route   PATCH /api/products/:id/toggle-home
+// @access  Private/Admin
+const toggleHomeProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    const willShowOnHome = req.body && typeof req.body.showOnHome === 'boolean'
+      ? req.body.showOnHome
+      : !product.showOnHome;
+
+    if (willShowOnHome) {
+      const homeCount = await Product.countDocuments({ showOnHome: true, _id: { $ne: product._id } });
+      if (homeCount >= 8) {
+        return res.status(400).json({
+          message: 'Only 8 products can be showcased on the Home Screen. Please remove one before adding another.'
+        });
+      }
+    }
+
+    product.showOnHome = willShowOnHome;
+    const updatedProduct = await product.save();
+    res.json(updatedProduct);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to toggle product home showcase status', error: error.message });
+  }
+};
 
 module.exports = {
   getProducts,
+  getHomeProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
   createProductReview,
+  toggleHomeProduct,
 };
 

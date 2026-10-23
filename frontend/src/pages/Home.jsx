@@ -121,12 +121,12 @@ const Home = () => {
         let isMounted = true
         const fetchShopProducts = async () => {
             try {
-                const { data } = await api.get('/products?pageSize=12')
+                const { data } = await api.get('/products/home')
                 const list = Array.isArray(data) ? data : (data.products || [])
                 if (isMounted && list && list.length > 0) {
-                    setShopProducts(list)
+                    setShopProducts(list.slice(0, 8))
                     try {
-                        sessionStorage.setItem('sovra_home_products', JSON.stringify(list))
+                        sessionStorage.setItem('sovra_home_products', JSON.stringify(list.slice(0, 8)))
                     } catch {
                         // ignore quota
                     }
@@ -154,7 +154,7 @@ const Home = () => {
         return () => observer.disconnect();
     }, []);
 
-    const categoriesList = [
+    const DEFAULT_CATEGORIES_LIST = [
         {
             id: 'rings',
             name: 'Rings',
@@ -188,6 +188,32 @@ const Home = () => {
             image: "/bracelet_hero.png"
         }
     ]
+
+    const [categoriesList, setCategoriesList] = useState(DEFAULT_CATEGORIES_LIST)
+
+    useEffect(() => {
+        let isMounted = true
+        const fetchHomeCategories = async () => {
+            try {
+                const { data } = await api.get('/categories/home')
+                if (data && data.length > 0 && isMounted) {
+                    const formatted = data.map((cat, idx) => ({
+                        id: cat._id || cat.slug || idx,
+                        name: cat.name,
+                        tagline: cat.tagline || cat.subtitle || 'Signature Collection',
+                        count: cat.count || 'Fine Jewelry',
+                        link: `/shop/${cat.slug || cat.name.toLowerCase()}`,
+                        image: cat.homeImage || DEFAULT_CATEGORIES_LIST[idx % 4]?.image
+                    }))
+                    setCategoriesList(formatted)
+                }
+            } catch (err) {
+                // Silently maintain DEFAULT_CATEGORIES_LIST
+            }
+        }
+        fetchHomeCategories()
+        return () => { isMounted = false }
+    }, [])
 
 
 
@@ -272,10 +298,15 @@ const Home = () => {
 
                                         {/* Real Price and Details from Shop Page */}
                                         <div className="space-y-0.5 sm:space-y-1">
-                                            <div className="flex items-baseline">
+                                            <div className="flex items-baseline gap-1.5 flex-wrap">
                                                 <span className="font-label text-xs sm:text-base font-bold text-primary">
                                                     {formatPrice(product.price)}
                                                 </span>
+                                                {product.mrp > product.price && (
+                                                    <span className="text-[10px] sm:text-xs font-mono text-secondary/50 line-through">
+                                                        {formatPrice(product.mrp)}
+                                                    </span>
+                                                )}
                                             </div>
                                             <h4 className="text-[11px] sm:text-xs font-medium text-primary/90 truncate group-hover/card:text-primary transition-colors">
                                                 {product.name}
@@ -488,11 +519,16 @@ const Home = () => {
                                                 </Link>
                                             </div>
 
-                                            {/* Price */}
-                                            <div className="pt-0.5">
+                                            {/* Price & MRP */}
+                                            <div className="pt-0.5 flex items-baseline gap-2">
                                                 <span className="font-sans text-xs sm:text-sm font-semibold text-[#111110]">
                                                     {formatPrice(product.price)}
                                                 </span>
+                                                {product.mrp && product.mrp > product.price && (
+                                                    <span className="font-sans text-[10px] sm:text-xs text-stone-400 line-through">
+                                                        {formatPrice(product.mrp)}
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {/* Category & Material: clean unified line without collisions */}

@@ -1,1 +1,3 @@
 {"level":"error","message":"Expected property name or '}' in JSON at position 1 (line 1 column 2) - /api/users/google-login - POST - 127.0.0.1","service":"sovra-api","timestamp":"2026-10-22 11:37:36"}
+{"level":"error","message":"Cannot read properties of undefined (reading 'map') - /api/products/69d3b01f5ae9ac6e70b3f498 - PUT - 127.0.0.1","service":"sovra-api","timestamp":"2026-10-23 13:35:33"}
+{"level":"error","message":"Cannot read properties of undefined (reading 'map') - /api/products/69d3b01f5ae9ac6e70b3f498 - PUT - 127.0.0.1","service":"sovra-api","timestamp":"2026-10-23 13:35:37"}

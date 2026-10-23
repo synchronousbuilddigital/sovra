@@ -87,8 +87,7 @@ const googleLogin = async (req, res) => {
     // Check if user is a designated administrator from environment config or store owner
     const adminEmails = [
       (process.env.ADMIN_EMAIL || '').toLowerCase().trim(),
-      'sovrajewellery@gmail.com',
-      'sorvrajewellery@gmail.com'
+      'sovrajewellery@gmail.com'
     ].filter(Boolean);
     const isDesignatedAdmin = adminEmails.includes(cleanEmail);
 
@@ -800,7 +799,8 @@ const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: 'User with this email does not exist' });
+      // Prevent account enumeration: return uniform success response
+      return res.json({ message: 'If an account exists with this email, a verification code has been dispatched.' });
     }
 
     // Cooldown on password reset requests (60 seconds)

@@ -229,9 +229,9 @@ const updateOrderToPaid = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Security: Only the order owner or an admin can update payment status
-    if (order.user.toString() !== req.user._id.toString() && !req.user.isAdmin) {
-      return res.status(403).json({ message: 'Not authorized to settle payment for this order.' });
+    // Security: Only an administrator can manually settle payment status without gateway webhook verification
+    if (!req.user || !req.user.isAdmin) {
+      return res.status(403).json({ message: 'Access denied: Manual payment settlement requires administrator authorization.' });
     }
 
     const { id, status } = req.body;

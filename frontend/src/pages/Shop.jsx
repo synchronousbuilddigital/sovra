@@ -325,9 +325,16 @@ const Shop = () => {
 
                                                     <div className="flex items-center justify-center gap-2">
                                                         <div className="w-3 sm:w-6 h-[1px] bg-[#111110]/10 transition-all group-hover:w-8 duration-500" />
-                                                        <span className="font-sans text-xs sm:text-sm font-semibold text-[#111110]">
-                                                            {formatPrice(product.price)}
-                                                        </span>
+                                                        <div className="flex items-baseline gap-1.5">
+                                                            <span className="font-sans text-xs sm:text-sm font-semibold text-[#111110]">
+                                                                {formatPrice(product.price)}
+                                                            </span>
+                                                            {product.mrp && product.mrp > product.price && (
+                                                                <span className="font-sans text-[10px] sm:text-xs text-stone-400 line-through">
+                                                                    {formatPrice(product.mrp)}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <div className="w-3 sm:w-6 h-[1px] bg-[#111110]/10 transition-all group-hover:w-8 duration-500" />
                                                     </div>
 

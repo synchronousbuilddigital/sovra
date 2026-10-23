@@ -4,6 +4,8 @@ const createProductSchema = z.object({
   body: z.object({
     name: z.string().min(3).max(100),
     price: z.number().positive(),
+    mrp: z.number().nonnegative().optional(),
+    showOnHome: z.boolean().optional(),
     details: z.string().min(10),
     category: z.string().min(3),
     img: z.string().url().optional().or(z.string().min(1)),
@@ -16,6 +18,7 @@ const createProductSchema = z.object({
     weight: z.string().optional(),
     features: z.array(z.string()).optional(),
     hero: z.boolean().optional(),
+    sku: z.string().optional(),
   }),
 });
 

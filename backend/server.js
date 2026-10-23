@@ -33,7 +33,7 @@ app.use((req, res, next) => {
   if (origin && (allowedOrigins.includes(origin) || isVercelDomain)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-csrf-token, X-Requested-With, Accept');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
@@ -103,6 +103,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const promoRoutes = require('./routes/promoRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const reelRoutes = require('./routes/reelRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 
 
 app.use('/api/products', productRoutes);
@@ -115,6 +116,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/promos', promoRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/reels', reelRoutes);
+app.use('/api/categories', categoryRoutes);
 
 
 const PORT = process.env.PORT || 5000;

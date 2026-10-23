@@ -20,6 +20,10 @@ const generateSKU = (category, name) => {
 };
 
 const importData = async () => {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('⛔ FATAL: Database seeder cannot be executed in production environment.');
+        process.exit(1);
+    }
     try {
         // Clear all existing data
         await User.deleteMany();
@@ -68,6 +72,10 @@ const importData = async () => {
 };
 
 const destroyData = async () => {
+    if (process.env.NODE_ENV === 'production') {
+        console.error('⛔ FATAL: Database destroy cannot be executed in production environment.');
+        process.exit(1);
+    }
     try {
         await User.deleteMany();
         await Product.deleteMany();

@@ -1,11 +1,13 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion as Motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Sparkles, Gem, Disc } from 'lucide-react'
+import api from '../utils/api'
 
-const collections = [
+const DEFAULT_COLLECTIONS = [
     {
         id: 'necklaces',
+        slug: 'necklaces',
         title: 'Celestial Necklaces',
         subtitle: 'The Archive I',
         desc: 'Handcrafted silhouettes inspired by the deep-blue night sky. Each piece is a testament to eternal elegance and refined craftsmanship.',
@@ -14,6 +16,7 @@ const collections = [
     },
     {
         id: 'bracelets',
+        slug: 'bracelets',
         title: 'Ether Bracelets',
         subtitle: 'The Archive II',
         desc: 'Fluid curves of 18k gold and high-clarity gemstones. Designed to follow the natural movement of the spirit.',
@@ -22,6 +25,7 @@ const collections = [
     },
     {
         id: 'rings',
+        slug: 'rings',
         title: 'Heritage Rings',
         subtitle: 'The Archive III',
         desc: 'Modern tokens of individual stories. Forged in the heart of London using centuries-old techniques met with contemporary vision.',
@@ -30,6 +34,7 @@ const collections = [
     },
     {
         id: 'earrings',
+        slug: 'earrings',
         title: 'Stellar Earrings',
         subtitle: 'The Archive IV',
         desc: 'Subtle signatures of brilliance. Sculpted light to frame the face with an unmatched radiance.',
@@ -39,6 +44,33 @@ const collections = [
 ]
 
 const Collections = () => {
+    const [collections, setCollections] = useState(DEFAULT_COLLECTIONS)
+
+    useEffect(() => {
+        let isMounted = true
+        const fetchCategories = async () => {
+            try {
+                const { data } = await api.get('/categories')
+                if (data && data.length > 0 && isMounted) {
+                    const formatted = data.map((cat, idx) => ({
+                        id: cat._id || cat.slug || idx,
+                        slug: cat.slug || cat.name.toLowerCase(),
+                        title: cat.title || `Exclusive ${cat.name}`,
+                        subtitle: cat.subtitle || `The Archive ${idx + 1}`,
+                        desc: cat.desc || `Handcrafted silhouettes and timeless design in our signature ${cat.name} archive.`,
+                        image: cat.collectionImage || cat.homeImage || DEFAULT_COLLECTIONS[idx % 4]?.image,
+                        count: 'Archive Series'
+                    }))
+                    setCollections(formatted)
+                }
+            } catch (err) {
+                // Silently fallback to DEFAULT_COLLECTIONS
+            }
+        }
+        fetchCategories()
+        return () => { isMounted = false }
+    }, [])
+
     return (
         <div className="pt-20 sm:pt-24 md:pt-28 pb-20 md:pb-28 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
             <main className="max-w-[1500px] mx-auto px-6 sm:px-10 md:px-14 lg:px-20">
@@ -55,7 +87,7 @@ const Collections = () => {
                         >
                             {/* Image Side */}
                             <div className="relative w-full md:w-1/2 group overflow-hidden bg-[#f5f0e8] rounded-xl sm:rounded-2xl border border-[#111110]/8 shadow-[0_4px_24px_rgba(0,0,0,0.03)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.08)] transition-all duration-700">
-                                <Link to={`/shop/${item.id}`} className="block overflow-hidden aspect-[4/5] max-h-[480px] lg:max-h-[520px] w-full">
+                                <Link to={`/shop/${item.slug || item.id}`} className="block overflow-hidden aspect-[4/5] max-h-[480px] lg:max-h-[520px] w-full">
                                     <Motion.img
                                         whileHover={{ scale: 1.04 }}
                                         transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
@@ -101,7 +133,7 @@ const Collections = () => {
 
                                 <div className="pt-2 sm:pt-3">
                                     <Link
-                                        to={`/shop/${item.id}`}
+                                        to={`/shop/${item.slug || item.id}`}
                                         className="group inline-flex items-center gap-3 px-6 sm:px-7 py-3 sm:py-3.5 bg-[#111110] hover:bg-black text-[#f5f0e8] text-[10px] sm:text-[11px] tracking-[0.25em] uppercase font-sans font-medium rounded-md transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5"
                                     >
                                         <span>Explore Collection</span>

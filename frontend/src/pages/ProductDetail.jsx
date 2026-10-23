@@ -268,6 +268,11 @@ const ProductDetail = () => {
                                 <span className="font-sans text-xl sm:text-3xl font-bold text-[#111110] tracking-tight">
                                     {formatPrice(product.price)}
                                 </span>
+                                {product.mrp && product.mrp > product.price && (
+                                    <span className="font-sans text-sm sm:text-base text-stone-400 line-through font-normal">
+                                        {formatPrice(product.mrp)}
+                                    </span>
+                                )}
                                 <span className="font-sans text-[10px] sm:text-[11px] text-[#78736a] uppercase tracking-wider font-medium">
                                     • Taxes Included
                                 </span>
