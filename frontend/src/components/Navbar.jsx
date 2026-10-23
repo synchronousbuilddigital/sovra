@@ -34,7 +34,7 @@ const Navbar = () => {
         { name: 'Shop', path: '/shop' },
         { name: 'Reels', path: '/reels' },
         { name: 'Magazine', path: '/magazine' },
-        { name: 'Heritage', path: '/story' }
+        { name: 'About Us', path: '/about' }
     ]
 
     const handleSearch = (e) => {

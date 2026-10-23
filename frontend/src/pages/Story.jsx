@@ -1,243 +1,379 @@
-import React, { useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import {
+    Sparkles,
+    Droplets,
+    ShieldCheck,
+    Tag,
+    Heart,
+    MapPin,
+    Truck,
+    CheckCircle2,
+    Mail,
+    Phone,
+    ArrowRight
+} from 'lucide-react'
+import api from '../utils/api'
+import { formatPrice } from '../utils/currency'
+import { getOptimizedImage } from '../utils/imageUtils'
+
+const defaultFeaturedLineups = [
+    {
+        _id: '69d3b01f5ae9ac6e70b3f498',
+        name: 'Goated Pearl Necklace',
+        category: 'NECKLACES',
+        price: 22000,
+        img: 'https://res.cloudinary.com/dylkhqjgm/image/upload/v1775543841/sovra_products/xowkj5ltuiorbmdnq60d.webp'
+    },
+    {
+        _id: '69d3b01f5ae9ac6e70b3f4b7',
+        name: 'Echo Pearl Twist',
+        category: 'EARRINGS',
+        price: 7500,
+        img: 'https://res.cloudinary.com/dylkhqjgm/image/upload/v1775535556/sovra_products/maienvisloxgndpbsnd5.webp'
+    },
+    {
+        _id: '69d3b01f5ae9ac6e70b3f49e',
+        name: 'Bonded bracelet',
+        category: 'BRACELETS',
+        price: 17500,
+        img: 'https://res.cloudinary.com/dylkhqjgm/image/upload/v1775543187/sovra_products/wrybxmdqseigfgeogp69.webp'
+    },
+    {
+        _id: '69d3b01f5ae9ac6e70b3f4a9',
+        name: 'Bloomy moon Ring',
+        category: 'RINGS',
+        price: 8500,
+        img: 'https://res.cloudinary.com/dylkhqjgm/image/upload/v1775541345/sovra_products/mtycl2kupgcd07glk7sc.webp'
+    }
+]
 
 const Story = () => {
+    const [lineups, setLineups] = useState(() => {
+        try {
+            const cached = sessionStorage.getItem('sovra_about_featured')
+            if (cached) {
+                const parsed = JSON.parse(cached)
+                if (Array.isArray(parsed) && parsed.length >= 4) {
+                    return parsed.slice(0, 4)
+                }
+            }
+        } catch (e) {
+            // ignore
+        }
+        return defaultFeaturedLineups
+    })
+
     useEffect(() => {
         window.scrollTo(0, 0)
+        let isMounted = true
+
+        const fetchLineups = async () => {
+            try {
+                const { data } = await api.get('/products?pageSize=4')
+                const list = Array.isArray(data) ? data : (data.products || [])
+                if (isMounted && list && list.length >= 4) {
+                    const sliced = list.slice(0, 4)
+                    setLineups(sliced)
+                    try {
+                        sessionStorage.setItem('sovra_about_featured', JSON.stringify(sliced))
+                    } catch (e) {
+                        // ignore
+                    }
+                }
+            } catch (err) {
+                // Silently fallback to default curated lineup
+            }
+        }
+
+        fetchLineups()
+        return () => { isMounted = false }
     }, [])
 
     return (
-        <div className="bg-surface text-on-surface antialiased overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
-            <main>
-                {/* Hero Section - The Legacy */}
-                <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
-                    <div className="absolute inset-0 z-0">
-                        <img
-                            alt="Crafting process"
-                            className="w-full h-full object-cover filter brightness-[0.7] contrast-[1.1]"
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAzBEPON0VvXFr2osNYft9QkA83WUikiuNKL7Vjo1aUliuf486yp9Uey1s7TVQNQvwL9ptGqppp_K78wZeBvclegCwhMU1I6Vcdw48JQfResUQJevmWf3rA5y-2e3MywXx1Yp4GlYrRW_1cONdZgcabUtnVdWXpcwzZ1kJMahh5W2hswYJQWKoOwmG77jBHkrzdC4B8kRLqnKNEzn_kgIhToCcgYns7XvJMzk9sncQNtWnRN4JAV-G4YWPkOT2W6I8j0TpNoAUdci7"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-surface/40"></div>
-                    </div>
-                    <div className="relative z-10 text-center px-4">
-                        <motion.p
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="font-sans uppercase tracking-[0.6em] text-xs mb-8 text-on-primary font-bold opacity-80"
-                        >
-                            Established 1924
-                        </motion.p>
-                        <motion.h1
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 1.5, ease: "easeOut" }}
-                            className="font-headline text-[clamp(3.5rem,12vw,10rem)] leading-none -tracking-[0.03em] text-on-primary italic font-light"
-                        >
-                            The Sovra Legacy
-                        </motion.h1>
-                    </div>
-
-                    {/* Scroll Indicator */}
+        <div className="pt-16 sm:pt-20 md:pt-24 pb-20 bg-[#fffcf7] dark:bg-[#121211] min-h-screen selection:bg-primary/10 text-[#111110] dark:text-[#eae9de]">
+            <main className="max-w-[1400px] mx-auto px-5 sm:px-8 md:px-12">
+                {/* Top Header Block */}
+                <header className="text-center max-w-4xl mx-auto flex flex-col items-center pt-2 md:pt-4">
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.4 }}
-                        transition={{ delay: 2 }}
-                        className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-6"
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex justify-center -mb-2 sm:-mb-3"
                     >
-                        <span className="font-label text-[9px] uppercase tracking-[0.4em] text-on-primary/60 font-bold">The Heritage</span>
-                        <div className="w-px h-24 bg-gradient-to-b from-primary/60 to-transparent"></div>
-                    </motion.div>
-                </section>
-
-                {/* The Philosophy - The Ethereal Curator */}
-                <section className="bg-surface py-32 px-6 md:px-24 overflow-hidden">
-                    <div className="max-w-7xl mx-auto grid grid-cols-12 gap-10">
-                        <motion.div
-                            initial={{ opacity: 0, y: 40 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            className="col-span-12 lg:col-span-8 lg:col-start-3 text-center space-y-12"
-                        >
-                            <h2 className="font-headline text-5xl md:text-7xl mb-8 text-on-surface leading-tight italic font-light">
-                                The Ethereal Curator: <br />Where ancient technique meets modern vision.
-                            </h2>
-                            <div className="font-body text-xl md:text-2xl leading-relaxed space-y-10 text-secondary font-light italic">
-                                <p>We do not merely create jewellery; we curate moments of light. At the heart of Sovra lies the concept of the "Ethereal Curator"—a philosophy that views every gemstone not as a product, but as a celestial fragment waiting to be released through the hands of a master.</p>
-                                <p>Our vision is born from the intersection of ancestral craftsmanship and contemporary clarity. We believe that true luxury is quiet, felt through the weight of hand-forged gold and the precision of a cut that honors the stone's natural soul.</p>
-                            </div>
-                        </motion.div>
-                    </div>
-                </section>
-
-                {/* Heritage & Generations - Timeline */}
-                <section className="bg-surface-container-low py-32 overflow-hidden border-y border-outline-variant/10">
-                    <div className="max-w-[1720px] mx-auto px-6 md:px-24 flex flex-col lg:flex-row items-center gap-16 md:gap-24">
-                        <motion.div
-                            initial={{ opacity: 0, x: -50 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            className="w-full lg:w-1/2 relative"
-                        >
-                            <div className="absolute -top-16 -left-16 w-64 h-64 bg-primary/5 -z-10 rounded-full blur-3xl"></div>
+                        <div className="h-14 sm:h-16 md:h-20 overflow-hidden flex items-center justify-center">
                             <img
-                                alt="SOVRA London"
-                                className="w-full aspect-[4/5] object-cover grayscale brightness-90 shadow-2xl transition-all duration-[3s] hover:grayscale-0"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUWQHZ982rZ6JgLQwdyd1woQhDp8OnmFrrktrGOVVhpAE_ePKgT_voBpiMTMKBM1Xgq4ApKuQr9lSUFaxQry6zGnPBd5h9KB28PK_wbx7ohuw6K566qHIgVt26NrjaKCgtSOyg2vIW7Hi89kCfAZ6C9CG_UEwZWlorJIHDKvVd7YplmNOdyyU7iSZo9DrOdbyWIVxLg_ps6gMuuAHkhOGjE-e8gxejdxPxAmRmnh9gto97inL_P_2pEzEZCzNBa3rKJuZmIbUx99xI"
+                                src="/logo.jpg"
+                                alt="SOVRA Brand Logo"
+                                className="h-28 sm:h-32 md:h-36 w-auto max-w-none object-contain mix-blend-multiply dark:mix-blend-normal dark:bg-[#fffcf7] dark:p-1.5 dark:rounded-xl"
                             />
-                            <motion.div
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: 0.5 }}
-                                className="absolute bottom-12 -right-12 p-10 bg-white/90 backdrop-blur-xl max-w-sm hidden md:block shadow-lux border border-outline-variant/5"
-                            >
-                                <p className="font-headline text-[1.1rem] italic leading-relaxed text-on-surface">"In the heart of Udaipur, our story began with a single hammer and a vision of perfection."</p>
-                                <div className="mt-4 w-12 h-px bg-primary"></div>
-                            </motion.div>
-                        </motion.div>
-
-                        <div className="w-full lg:w-1/2 space-y-12">
-                            <div className="space-y-6">
-                                <span className="font-label uppercase tracking-[0.4em] text-[10px] text-primary font-bold">Generations of Excellence</span>
-                                <h2 className="font-headline text-6xl text-on-surface font-light italic">Udaipur, 2026</h2>
-                            </div>
-
-                            <div className="space-y-10 border-l border-outline-variant/20 pl-12 relative">
-                                {[
-                                    { year: '1924', title: 'The Founding', desc: 'Lucien Sovra opens his first SOVRA, blending classical artisan techniques with experimental aesthetics.', active: true },
-                                    { year: '1958', title: 'The Expansion', desc: 'Under Marcelle Sovra, the brand becomes a synonym for "Modern Baroque," captivating the elite of the city.', active: false },
-                                    { year: '2024', title: 'The New Era', desc: 'Today, led by the third generation, we continue to push the boundaries of conscious luxury and digital artistry.', active: false }
-                                ].map((item, idx) => (
-                                    <motion.div
-                                        key={item.year}
-                                        initial={{ opacity: 0, x: 20 }}
-                                        whileInView={{ opacity: 1, x: 0 }}
-                                        viewport={{ once: true }}
-                                        transition={{ delay: idx * 0.2 }}
-                                        className="relative"
-                                    >
-                                        <div className={`absolute -left-[53px] top-1.5 w-4 h-4 shadow-sm border border-white ${item.active ? 'bg-primary' : 'bg-outline-variant/30'}`}></div>
-                                        <h3 className="font-headline text-3xl mb-4 italic font-light">{item.title}</h3>
-                                        <p className="font-body text-lg text-secondary leading-relaxed font-light italic">{item.desc}</p>
-                                    </motion.div>
-                                ))}
-                            </div>
                         </div>
-                    </div>
-                </section>
+                    </motion.div>
 
-                {/* Artisanal Craftsmanship (The SOVRA Experience) */}
-                <section className="bg-surface py-32 px-6 md:px-24">
-                    <div className="max-w-[1720px] mx-auto">
-                        <div className="flex flex-col md:flex-row justify-between items-end mb-24 gap-12 text-center md:text-left">
-                            <h2 className="font-headline text-6xl md:text-8xl leading-none italic font-light">The SOVRA Experience</h2>
-                            <p className="max-w-md font-body text-xl text-secondary font-light italic leading-relaxed opacity-70">
-                                Every piece is hand-forged in our private sanctuary, where time is the most valuable material.
+                    <motion.h1
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.05 }}
+                        className="font-headline text-3xl sm:text-4xl md:text-5xl font-bold tracking-[0.08em] uppercase text-[#111110] dark:text-[#eae9de]"
+                    >
+                        About Us
+                    </motion.h1>
+
+                    <motion.p
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="font-body text-sm sm:text-base text-[#656464] dark:text-[#babab0] max-w-2xl mx-auto mt-2 leading-relaxed font-light"
+                    >
+                        Adorn Your Story — Crafting Long-Lasting, Waterproof & Skin-Safe Jewellery For Everyday Elegance.
+                    </motion.p>
+                </header>
+
+                {/* Subtle Divider */}
+                <div className="w-full max-w-5xl mx-auto h-px bg-[#111110]/8 dark:bg-[#eae9de]/10 my-8 md:my-10" />
+
+                {/* Split Section: Corporate/Brand Profile (Left) & Featured Suite (Right) */}
+                <section className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center mb-20 md:mb-28">
+                    {/* Left Column: Brand Story & Profile */}
+                    <div className="lg:col-span-6 space-y-6">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold bg-[#f6f4ec] dark:bg-[#1f1f1d] text-[#6e5b44] dark:text-[#ead0b3] border border-[#6e5b44]/20">
+                            <Sparkles size={12} />
+                            <span>Brand Profile</span>
+                        </div>
+
+                        <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#111110] dark:text-[#eae9de] leading-[1.15]">
+                            Timeless Jewellery for{' '}
+                            <span className="text-[#6e5b44] dark:text-[#ead0b3]">
+                                Modern Living & Daily Wear.
+                            </span>
+                        </h2>
+
+                        <div className="space-y-4 font-body text-sm sm:text-base text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                            <p>
+                                <strong className="text-[#111110] dark:text-[#eae9de] font-semibold">SOVRA®</strong> is an Indian demi-fine jewellery brand founded in Udaipur, Rajasthan. We specialize in 18K gold-plated, anti-tarnish, waterproof, and hypoallergenic everyday jewellery. Established with a commitment to quality and honest pricing, we make long-lasting jewellery accessible to jewellery lovers across India.
+                            </p>
+                            <p>
+                                With our studio and quality team based in Udaipur, SOVRA® has designed pieces you never have to take off — whether you are showering, working out, or celebrating special moments — without fading, rusting, or turning your skin green.
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-                            {[
-                                { title: 'The Precision', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBp0KqqkSBWYfglRf4jHIxJos2FwrQovp84vIkruLxmKFO30xGw_tuMROykyTebNeXW_1tk1kAOnxTQXsOmgD7pFl2vhFsp-Vg7QKhiYPCvgj2_pOmLx8vmByGzFwO2DUKQLrTBp4DUOe3jp2XlAK9u17j8Ef7qA9kANaYZPvplGdbsWMN_gQHXcTESNC2TLkFySUSOYIwj0xrYE4c71CSI46FtvWkRA_nonpIT4TIiN1VECEhO39TUAPxNwi_DhRK0KoVXbH76N9Se' },
-                                { title: 'The Fire', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDEjALVWm4p5jouHDcrYQPdkHC6XVGpjcCStcm2psVHc0rDwrU9FBQCxwpfQNIyLovKQd8BruI3RAJKIrv4jiCv6TxKJZhJivZUgpw2fbfakw1o-FbrEteR1Sgf3ggW1BLw9Q-ZJJFsQOGCSvH6o4b7M_KBNr8jkuuR2k50vpLRRQF-H3fON_AfBzVnKGmWjKNQh6EfqDRnwhYWpsCk_f3CSfayOMSfFR5uoRjoPh0QenW9qtGV7AtouLWj5bXgSt73OcjFQwqu1JO3', offset: true },
-                                { title: 'The Soul', img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBmIlTM8FoDtoXjLUEiVJlTIK94UOo0zZzE7tjv6kKSRe3FBISr2Z7Sk42R0v6NyTfAqUdollJ6DXvd7l1CB_okKT8LZxPaBJ_YRRMjTgSjL1JEAo28aGmzzboo1ZkhonX3q40q_duYUCU71Kp0OflEoErUU1oreV7hD1ThoCazACpeJ28kZOw4-mybRuTsLx5KJB24Ob7W3l3xk2QPRK4k8Jv5c7j3zGWnXnK8Og1I3Hs--H-JeQh7tLpz5lpPCGKtBHBAJ-ueJKNm' }
-                            ].map((card, idx) => (
-                                <motion.div
-                                    key={card.title}
-                                    initial={{ opacity: 0, y: 30 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: idx * 0.2 }}
-                                    className={`group relative overflow-hidden h-[700px] shadow-sm ${card.offset ? 'md:-translate-y-16' : ''}`}
-                                >
-                                    <img
-                                        alt={card.title}
-                                        className="w-full h-full object-cover transition-transform duration-[3s] group-hover:scale-105"
-                                        src={card.img}
-                                    />
-                                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-all duration-1000 flex flex-col justify-center items-center text-center p-8 backdrop-blur-[2px]">
-                                        <p className="font-headline text-3xl text-on-primary italic font-light">{card.title}</p>
-                                        <div className="w-16 h-px bg-on-primary/60 mt-6"></div>
-                                    </div>
-                                </motion.div>
-                            ))}
+                        {/* Badges Row */}
+                        <div className="flex flex-wrap items-center gap-2.5 pt-2">
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-body font-medium bg-white dark:bg-[#181816] text-[#4a4947] dark:text-[#d4d3cc] border border-[#111110]/8 dark:border-[#eae9de]/10 shadow-sm">
+                                <MapPin size={13} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                                <span>Udaipur HQ (India)</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-body font-medium bg-white dark:bg-[#181816] text-[#4a4947] dark:text-[#d4d3cc] border border-[#111110]/8 dark:border-[#eae9de]/10 shadow-sm">
+                                <Truck size={13} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                                <span>Pan India Delivery</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-body font-medium bg-white dark:bg-[#181816] text-[#4a4947] dark:text-[#d4d3cc] border border-[#111110]/8 dark:border-[#eae9de]/10 shadow-sm">
+                                <CheckCircle2 size={13} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                                <span>18K Real Gold Plated</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-body font-medium bg-white dark:bg-[#181816] text-[#4a4947] dark:text-[#d4d3cc] border border-[#111110]/8 dark:border-[#eae9de]/10 shadow-sm">
+                                <Droplets size={13} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                                <span>100% Anti-Tarnish</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Encapsulated 2x2 Showcase Card (Matching Reference Layout) */}
+                    <div className="lg:col-span-6">
+                        <div className="bg-white dark:bg-[#181816] rounded-3xl p-5 sm:p-6 border border-[#111110]/8 dark:border-[#eae9de]/10 shadow-[0_10px_40px_rgba(0,0,0,0.04)]">
+                            {/* Card Header Bar */}
+                            <div className="flex items-center justify-between pb-3.5 border-b border-[#111110]/6 dark:border-[#eae9de]/8">
+                                <div className="flex items-center gap-2 text-xs font-headline tracking-wider uppercase font-bold text-[#111110] dark:text-[#eae9de]">
+                                    <span className="w-2 h-2 rounded-full bg-[#6e5b44] dark:text-[#ead0b3] bg-[#6e5b44]"></span>
+                                    <span>Featured Jewellery Suite</span>
+                                </div>
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#f6f4ec] dark:bg-[#252522] text-[#6e5b44] dark:text-[#ead0b3] border border-[#6e5b44]/20">
+                                    4 Featured Lineups
+                                </span>
+                            </div>
+
+                            {/* 2x2 Products Grid */}
+                            <div className="grid grid-cols-2 gap-3.5 my-4">
+                                {lineups.map((item) => (
+                                    <Link
+                                        key={item._id || item.name}
+                                        to={`/product/${item._id}`}
+                                        className="bg-[#faf8f2] dark:bg-[#1f1f1d] rounded-2xl p-3 border border-[#111110]/5 dark:border-[#eae9de]/5 hover:border-[#6e5b44]/30 dark:hover:border-[#ead0b3]/30 transition-all group flex flex-col justify-between"
+                                    >
+                                        <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-[#f0eee6] dark:bg-[#262624] mb-2.5 flex items-center justify-center">
+                                            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/85 text-white text-[8px] font-bold tracking-widest uppercase z-10">
+                                                {item.category || 'JEWELLERY'}
+                                            </span>
+                                            <img
+                                                src={getOptimizedImage(item.img, 450)}
+                                                alt={item.name}
+                                                loading="eager"
+                                                decoding="async"
+                                                onError={(e) => {
+                                                    e.currentTarget.onerror = null
+                                                    e.currentTarget.src = '/necklace_hero.png'
+                                                }}
+                                                className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-headline text-xs sm:text-sm font-semibold text-[#111110] dark:text-[#eae9de] line-clamp-1 group-hover:text-[#6e5b44] dark:group-hover:text-[#ead0b3] transition-colors">
+                                                {item.name}
+                                            </h4>
+                                            <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-[#111110]/5 dark:border-[#eae9de]/5">
+                                                <span className="text-xs font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                                    {formatPrice(item.price)}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-[#111110] dark:text-[#eae9de] group-hover:text-[#6e5b44] dark:group-hover:text-[#ead0b3] transition-colors flex items-center gap-0.5">
+                                                    View →
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+
+                            {/* Card Bottom Bar */}
+                            <div className="bg-[#f6f4ec] dark:bg-[#252522] rounded-xl px-4 py-2.5 flex items-center justify-between text-[11px] font-body text-[#656464] dark:text-[#babab0]">
+                                <span className="flex items-center gap-1.5 font-medium">
+                                    <Sparkles size={13} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                                    <span>Quality Certified 18K PVD</span>
+                                </span>
+                                <span className="font-bold text-[#111110] dark:text-[#eae9de]">
+                                    Official SOVRA®
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </section>
 
-                {/* Conscious Luxury - Tonal Statement */}
-                <section className="bg-on-surface text-surface py-32 px-12 text-center">
-                    <div className="max-w-4xl mx-auto space-y-10">
-                        <motion.span
-                            initial={{ opacity: 0 }}
-                            whileInView={{ opacity: 0.6 }}
-                            className="font-label uppercase tracking-[0.5em] text-[10px] font-bold"
-                        >
-                            Ethical Vision
-                        </motion.span>
-                        <motion.h2
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            className="font-headline text-5xl md:text-7xl italic font-light leading-tight"
-                        >
-                            Conscious Luxury
-                        </motion.h2>
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            whileInView={{ opacity: 0.8 }}
-                            className="font-body text-xl md:text-2xl leading-relaxed italic font-light opacity-80"
-                        >
-                            We believe that beauty cannot exist without integrity. Every diamond and gemstone in a Sovra piece is sourced through strictly audited, conflict-free channels. Our gold is recycled and refined within our own workshop to ensure its journey is as pure as its final form.
-                        </motion.p>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            whileInView={{ opacity: 1 }}
-                            className="pt-10"
-                        >
-                            <Link to="/ethics" className="inline-block border-b border-primary/40 pb-2 font-label uppercase tracking-[0.5em] text-xs font-bold transition-all hover:text-primary hover:border-primary">
-                                Our Transparency Report
-                            </Link>
-                        </motion.div>
+                {/* What Makes Us Different (4 Clean Cards) */}
+                <section className="mb-20 md:mb-24">
+                    <div className="text-center max-w-2xl mx-auto mb-10">
+                        <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3] block mb-2">
+                            — Why Customers Choose Us
+                        </span>
+                        <h3 className="font-headline text-2xl md:text-3xl font-bold tracking-tight text-[#111110] dark:text-[#eae9de]">
+                            Crafted For Everyday Confidence
+                        </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#181816] border border-[#111110]/6 dark:border-[#eae9de]/8 shadow-sm space-y-2.5">
+                            <div className="w-10 h-10 rounded-xl bg-[#6e5b44]/10 dark:bg-[#ead0b3]/10 flex items-center justify-center text-[#6e5b44] dark:text-[#ead0b3]">
+                                <Droplets size={20} strokeWidth={1.75} />
+                            </div>
+                            <h4 className="font-headline text-lg font-semibold text-[#111110] dark:text-[#eae9de]">
+                                Waterproof & Sweat-Proof
+                            </h4>
+                            <p className="font-body text-xs md:text-sm text-[#656464] dark:text-[#babab0] leading-relaxed">
+                                Our 18K gold layer is vacuum-bonded to stainless steel. It won&apos;t fade, rust, or tarnish when exposed to water, sweat, or perfumes.
+                            </p>
+                        </div>
+
+                        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#181816] border border-[#111110]/6 dark:border-[#eae9de]/8 shadow-sm space-y-2.5">
+                            <div className="w-10 h-10 rounded-xl bg-[#6e5b44]/10 dark:bg-[#ead0b3]/10 flex items-center justify-center text-[#6e5b44] dark:text-[#ead0b3]">
+                                <ShieldCheck size={20} strokeWidth={1.75} />
+                            </div>
+                            <h4 className="font-headline text-lg font-semibold text-[#111110] dark:text-[#eae9de]">
+                                Zero Green Skin
+                            </h4>
+                            <p className="font-body text-xs md:text-sm text-[#656464] dark:text-[#babab0] leading-relaxed">
+                                100% nickel-free and hypoallergenic. Perfect for sensitive skin — no irritation, no rashes, and no green discoloration ever.
+                            </p>
+                        </div>
+
+                        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#181816] border border-[#111110]/6 dark:border-[#eae9de]/8 shadow-sm space-y-2.5">
+                            <div className="w-10 h-10 rounded-xl bg-[#6e5b44]/10 dark:bg-[#ead0b3]/10 flex items-center justify-center text-[#6e5b44] dark:text-[#ead0b3]">
+                                <Tag size={20} strokeWidth={1.75} />
+                            </div>
+                            <h4 className="font-headline text-lg font-semibold text-[#111110] dark:text-[#eae9de]">
+                                Fair Online Pricing
+                            </h4>
+                            <p className="font-body text-xs md:text-sm text-[#656464] dark:text-[#babab0] leading-relaxed">
+                                We cut out high retail showroom rents and middleman commissions to give you genuine demi-fine luxury at honest, accessible prices.
+                            </p>
+                        </div>
+
+                        <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#181816] border border-[#111110]/6 dark:border-[#eae9de]/8 shadow-sm space-y-2.5">
+                            <div className="w-10 h-10 rounded-xl bg-[#6e5b44]/10 dark:bg-[#ead0b3]/10 flex items-center justify-center text-[#6e5b44] dark:text-[#ead0b3]">
+                                <Heart size={20} strokeWidth={1.75} />
+                            </div>
+                            <h4 className="font-headline text-lg font-semibold text-[#111110] dark:text-[#eae9de]">
+                                Hand-Checked in Udaipur
+                            </h4>
+                            <p className="font-body text-xs md:text-sm text-[#656464] dark:text-[#babab0] leading-relaxed">
+                                Every single piece undergoes an individual quality check and careful packaging at our Udaipur atelier before it leaves for your home.
+                            </p>
+                        </div>
                     </div>
                 </section>
 
-                {/* The Visionaries - Directing Grace */}
-                <section className="bg-surface py-32 px-6 md:px-24">
-                    <div className="max-w-[1720px] mx-auto flex flex-col lg:flex-row gap-20 items-center">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            whileInView={{ opacity: 1, scale: 1 }}
-                            viewport={{ once: true }}
-                            className="w-full lg:w-2/5 shadow-2xl relative"
-                        >
-                            <img
-                                alt="Creative Director"
-                                className="w-full aspect-[3/4] object-cover grayscale brightness-105 contrast-[1.05]"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAMxwul1oMpHpZEbw9y4nc26qZd8kIIqwmMCG1m0YRii4o8Nv8FnblR4g7cK-gUhUEWmYX0_K5k46b82shrC_KF3yVrxgv6KTHeFJUE5hvhzkR-wvBFS6RydUhynwllkYnu7wNCLjuioq8nYfFaC1W6LH12LqR13JnRodcbFZ1z-nHZ_mk47ArusBuJ6jVqy0n98otEgCsM-lvnbl3WsLGXSGd3iQCjL5O_6-LTnXtCii69FvjYXAn2UWE1bTzWFW5RggA9eZKFeD0s"
-                            />
-                            <div className="absolute inset-0 border-[20px] border-white/10 pointer-events-none"></div>
-                        </motion.div>
+                {/* Studio & Contact Card */}
+                <section className="bg-white dark:bg-[#181816] rounded-3xl p-6 sm:p-10 border border-[#111110]/8 dark:border-[#eae9de]/10 shadow-[0_4px_30px_rgba(0,0,0,0.03)] mb-14">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                        <div className="lg:col-span-5 space-y-2">
+                            <span className="font-label text-[10px] uppercase tracking-widest font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — The Atelier
+                            </span>
+                            <h3 className="font-headline text-2xl sm:text-3xl font-bold text-[#111110] dark:text-[#eae9de]">
+                                Our Studio & Team
+                            </h3>
+                            <p className="font-body text-xs md:text-sm text-[#656464] dark:text-[#babab0] leading-relaxed">
+                                Feel free to reach out with any questions about our designs, sizing, or your orders.
+                            </p>
+                        </div>
 
-                        <motion.div
-                            initial={{ opacity: 0, x: 30 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            className="w-full lg:w-3/5 space-y-12"
-                        >
-                            <div className="space-y-4">
-                                <h2 className="font-headline text-7xl text-primary font-light italic">sir</h2>
-                                <p className="font-label uppercase tracking-[0.4em] text-[10px] text-outline font-bold">Creative Director & Lead Curator</p>
+                        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                            <div className="p-4 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5">
+                                <div className="flex items-center gap-2 mb-1.5 text-[#6e5b44] dark:text-[#ead0b3]">
+                                    <MapPin size={15} />
+                                    <span className="font-label text-[9px] uppercase tracking-widest font-bold">Studio</span>
+                                </div>
+                                <p className="font-body text-xs text-[#111110] dark:text-[#eae9de] leading-snug">
+                                    23, Pulla Beside Platinum Square RK Circle, Udaipur-313001
+                                </p>
                             </div>
-                            <div className="font-headline text-3xl md:text-4xl leading-relaxed italic text-secondary font-light max-w-2xl border-l-[3px] border-primary/20 pl-12 py-4">
-                                "Jewellery is the most intimate form of art. It rests against the skin, absorbs the warmth of the wearer, and carries their story through time. My role is simply to ensure that story is told with the utmost grace."
-                            </div>
-                            <Link to="/shop" className="inline-block bg-primary text-on-primary px-16 py-6 font-label uppercase tracking-[0.4em] text-xs font-bold shadow-lux hover:bg-primary-dim transition-all duration-700">
-                                Discover the Collections
-                            </Link>
-                        </motion.div>
+
+                            <a
+                                href="mailto:support@sovra.in"
+                                className="p-4 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5 hover:border-[#6e5b44]/30 transition-colors group"
+                            >
+                                <div className="flex items-center gap-2 mb-1.5 text-[#6e5b44] dark:text-[#ead0b3]">
+                                    <Mail size={15} />
+                                    <span className="font-label text-[9px] uppercase tracking-widest font-bold">Email</span>
+                                </div>
+                                <p className="font-body text-xs font-semibold text-[#111110] dark:text-[#eae9de] group-hover:text-[#6e5b44] dark:group-hover:text-[#ead0b3] transition-colors truncate">
+                                    support@sovra.in
+                                </p>
+                            </a>
+
+                            <a
+                                href="tel:9571746435"
+                                className="p-4 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5 hover:border-[#6e5b44]/30 transition-colors group"
+                            >
+                                <div className="flex items-center gap-2 mb-1.5 text-[#6e5b44] dark:text-[#ead0b3]">
+                                    <Phone size={15} />
+                                    <span className="font-label text-[9px] uppercase tracking-widest font-bold">Phone</span>
+                                </div>
+                                <p className="font-body text-xs font-semibold text-[#111110] dark:text-[#eae9de] group-hover:text-[#6e5b44] dark:group-hover:text-[#ead0b3] transition-colors">
+                                    9571746435
+                                </p>
+                            </a>
+                        </div>
                     </div>
                 </section>
+
+                {/* Bottom CTA */}
+                <div className="text-center">
+                    <Link
+                        to="/shop"
+                        className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-full bg-[#111110] dark:bg-[#eae9de] text-[#fffcf7] dark:text-[#111110] text-xs font-headline uppercase tracking-widest font-bold hover:opacity-90 transition-opacity shadow-sm"
+                    >
+                        <span>Explore Our Jewellery Collection</span>
+                        <ArrowRight size={14} />
+                    </Link>
+                </div>
             </main>
         </div>
     )

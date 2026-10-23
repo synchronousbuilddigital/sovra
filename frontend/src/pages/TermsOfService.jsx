@@ -1,213 +1,317 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { FileText } from 'lucide-react'
+import {
+    FileText,
+    UserCheck,
+    Tag,
+    CreditCard,
+    Shield,
+    Scale,
+    Gavel,
+    RefreshCw,
+    Mail,
+    Globe,
+    Calendar,
+    AlertCircle
+} from 'lucide-react'
 
 const TermsOfService = () => {
-    const sections = [
-        {
-            id: 1,
-            h: "SECTION 1 - ONLINE WEBSITE/STORE TERMS",
-            p: [
-                "By agreeing to these Terms of Service, you represent that you are at least the age of majority in your state or province of residence, or that you are the age of majority in your state or province of residence and you have given us your consent to allow any of your minor dependents to use this site.",
-                "You may not use our products for any illegal or unauthorized purpose nor may you, in the use of the Service, violate any laws in your jurisdiction (including but not limited to copyright laws).",
-                "You must not transmit any worms or viruses or any code of a destructive nature.",
-                "A breach or violation of any of the Terms will result in an immediate termination of your Services."
-            ]
-        },
-        {
-            id: 2,
-            h: "SECTION 2 - GENERAL CONDITIONS",
-            p: [
-                "We reserve the right to refuse service to anyone for any reason at any time.",
-                "You understand that your content (not including credit card information), may be transferred unencrypted and involve (a) transmissions over various networks; and (b) changes to conform and adapt to technical requirements of connecting networks or devices. Credit card information is always encrypted during transfer over networks.",
-                "You agree not to reproduce, duplicate, copy, sell, resell or exploit any portion of the Service, use of the Service, or access to the Service or any contact on the website through which the service is provided, without express written permission by us.",
-                "The headings used in this agreement are included for convenience only and will not limit or otherwise affect these Terms."
-            ]
-        },
-        {
-            id: 3,
-            h: "SECTION 3 - ACCURACY, COMPLETENESS AND TIMELINESS OF INFORMATION",
-            p: [
-                "We are not responsible if information made available on this site is not accurate, complete or current. The material on this site is provided for general information only and should not be relied upon or used as the sole basis for making decisions without consulting primary, more accurate, more complete or more timely sources of information.",
-                "Any reliance on the material on this site is at your own risk.",
-                "This site may contain certain historical information. Historical information, necessarily, is not current and is provided for your reference only. We reserve the right to modify the contents of this site at any time, but we have no obligation to update any information on our site. You agree that it is your responsibility to monitor changes to our site."
-            ]
-        },
-        {
-            id: 4,
-            h: "SECTION 4 - MODIFICATIONS TO THE SERVICE AND PRICES",
-            p: [
-                "Prices for our products are subject to change without notice.",
-                "We reserve the right at any time to modify or discontinue the Service (or any part or content thereof) without notice at any time.",
-                "We shall not be liable to you or to any third-party for any modification, price change, suspension or discontinuance of the Service."
-            ]
-        },
-        {
-            id: 5,
-            h: "SECTION 5 - PRODUCTS OR SERVICES (if applicable)",
-            p: [
-                "Certain products or services may be available exclusively online through the website. These products or services may have limited quantities and are subject to return or exchange only according to our Return Policy.",
-                "We have made every effort to display as accurately as possible the colors and images of our products that appear at the store. We cannot guarantee that your computer monitor's display of any color will be accurate.",
-                "We reserve the right, but are not obligated, to limit the sales of our products or Services to any person, geographic region or jurisdiction. We may exercise this right on a case-by-case basis. We reserve the right to limit the quantities of any products or services that we offer. All descriptions of products or product pricing are subject to change at anytime without notice, at the sole discretion of us. We reserve the right to discontinue any product at any time.",
-                "We do not warrant that the quality of any products, services, information, or other material purchased or obtained by you will meet your expectations, or that any errors in the Service will be corrected."
-            ]
-        },
-        {
-            id: 6,
-            h: "SECTION 6 - ACCURACY OF BILLING AND ACCOUNT INFORMATION",
-            p: [
-                "We reserve the right to refuse any order you place with us. We may, in our sole discretion, limit or cancel quantities purchased per person, per household or per order. These restrictions may include orders placed by or under the same customer account, the same credit card, and/or orders that use the same billing and/or shipping address. In the event that we make a change to or cancel an order, we may attempt to notify you by contacting the e‑mail and/or billing address/phone number provided at the time the order was made.",
-                "You agree to provide current, complete and accurate purchase and account information for all purchases made at our store. You agree to promptly update your account and other information, including your email address and credit card numbers and expiration dates, so that we can complete your transactions and contact you as needed."
-            ]
-        },
-        {
-            id: 7,
-            h: "SECTION 7 - OPTIONAL TOOLS",
-            p: [
-                "We may provide you with access to third-party tools over which we neither monitor nor have any control nor input.",
-                "You acknowledge and agree that we provide access to such tools ”as is” and “as available” without any warranties, representations or conditions of any kind and without any endorsement. We shall have no liability whatsoever arising from or relating to your use of optional third-party tools.",
-                "Any use by you of optional tools offered through the site is entirely at your own risk and discretion and you should ensure that you are familiar with and approve of the terms on which tools are provided by the relevant third-party provider(s)."
-            ]
-        },
-        {
-            id: 8,
-            h: "SECTION 8 - THIRD-PARTY LINKS",
-            p: [
-                "Certain content, products and services available via our Service may include materials from third-parties.",
-                "Third-party links on this site may direct you to third-party websites that are not affiliated with us. We are not responsible for examining or evaluating the content or accuracy and we do not warrant and will not have any liability or responsibility for any third-party materials or websites, or for any other materials, products, or services of third-parties.",
-                "We are not liable for any harm or damages related to the purchase or use of goods, services, resources, content, or any other transactions made in connection with any third-party websites. Please review carefully the third-party's policies and practices."
-            ]
-        },
-        {
-            id: 9,
-            h: "SECTION 9 - USER COMMENTS, FEEDBACK AND OTHER SUBMISSIONS",
-            p: [
-                "If, at our request, you send certain specific submissions (for example contest entries) or without a request from us you send creative ideas, suggestions, proposals, plans, or other materials, you agree that we may, at any time, without restriction, edit, copy, publish, distribute, translate and otherwise use in any medium any comments that you forward to us.",
-                "We may, but have no obligation to, monitor, edit or remove content that we determine in our sole discretion are unlawful, offensive, threatening, libellous, defamatory, pornographic, obscene or otherwise objectionable or violates any party’s intellectual property.",
-                "You agree that your comments will not violate any right of any third-party, including copyright, trademark, privacy, personality or other personal or proprietary right."
-            ]
-        },
-        {
-            id: 10,
-            h: "SECTION 10 - PERSONAL INFORMATION",
-            p: [
-                "Your submission of personal information through the store is governed by our Privacy Policy."
-            ]
-        },
-        {
-            id: 11,
-            h: "SECTION 11 - ERRORS, INACCURACIES AND OMISSIONS",
-            p: [
-                "Occasionally there may be information on our site or in the Service that contains typographical errors, inaccuracies or omissions that may relate to product descriptions, pricing, promotions, offers, product shipping charges, transit times and availability. We reserve the right to correct any errors, inaccuracies or omissions, and to change or update information or cancel orders if any information in the Service or on any related website is inaccurate at any time without prior notice."
-            ]
-        },
-        {
-            id: 12,
-            h: "SECTION 12 - PROHIBITED USES",
-            p: [
-                "In addition to other prohibitions as set forth in the Terms of Service, you are prohibited from using the site or its content: (a) for any unlawful purpose; (b) to solicit others to perform or participate in any unlawful acts; (c) to violate any international, federal, provincial or state regulations, rules, laws, or local ordinances; (d) to infringe upon or violate our intellectual property rights; (e) to harass, abuse, insult, harm, defame, slander, disparage, intimidate, or discriminate based on gender, sexual orientation, religion, ethnicity, race, age, national origin, or disability; (f) to submit false or misleading information..."
-            ]
-        },
-        {
-            id: 13,
-            h: "SECTION 13 - DISCLAIMER OF WARRANTIES; LIMITATION OF LIABILITY",
-            p: [
-                "We do not guarantee, represent or warrant that your use of our service will be uninterrupted, timely, secure or error-free.",
-                "You expressly agree that your use of, or inability to use, the service is at your sole risk. The service and all products and services delivered to you through the service are (except as expressly stated by us) provided 'as is' and 'as available' for your use.",
-                "In no case shall Sovra Jewelry, our directors, officers, employees, affiliates, agents, contractors, interns, suppliers, service providers or licensors be liable for any injury, loss, claim, or any direct, indirect, incidental, punitive, special, or consequential damages of any kind."
-            ]
-        },
-        {
-            id: 14,
-            h: "SECTION 14 - INDEMNIFICATION",
-            p: [
-                "You agree to indemnify, defend and hold harmless Sovra Jewelry and our parent, subsidiaries, affiliates, partners, officers, directors, agents, contractors, licensors, service providers, subcontractors, suppliers, interns and employees, harmless from any claim or demand."
-            ]
-        },
-        {
-            id: 18,
-            h: "SECTION 18 - GOVERNING LAW",
-            p: [
-                "These Terms of Service and any separate agreements whereby we provide you Services shall be governed by and construed in accordance with the laws of India."
-            ]
-        },
-        {
-            id: 20,
-            h: "SECTION 20 - CONTACT INFORMATION",
-            p: [
-                "Questions about the Terms of Service should be sent to us at sorvrajewellery@gmail.com or by mail at: 23, Pulla Beside Platinum Square, RK Circle, Udaipur-313001"
-            ]
-        },
-        {
-            id: 21,
-            h: "SECTION 21 – AGREEMENT TO RECEIVE COMMUNICATION",
-            p: [
-                "By accepting these Terms of Service, you consent to receive communications from us through various channels, including in-app messages, SMS (Short Message Service), RCS (Rich Communication Services), emails, promotional and marketing calls, and newsletters."
-            ]
-        }
-    ]
-
     return (
-        <div className="pt-32 pb-24 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
-            <main className="max-w-[1200px] mx-auto px-6 md:px-12">
-                <header className="mb-20 text-center">
+        <div className="pt-28 md:pt-36 pb-24 bg-[#fffcf7] dark:bg-[#121211] min-h-screen selection:bg-primary/10">
+            <main className="max-w-[1100px] mx-auto px-5 sm:px-8 md:px-12">
+                {/* Header */}
+                <header className="mb-14 md:mb-20 text-center">
+                    <motion.p
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="font-headline tracking-[0.3em] uppercase text-xs md:text-sm text-[#6e5b44] dark:text-[#ead0b3] font-bold mb-3"
+                    >
+                        SOVRA
+                    </motion.p>
                     <motion.h1
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="font-headline text-5xl md:text-6xl text-[#111110] font-light tracking-tight mb-4"
+                        transition={{ delay: 0.05 }}
+                        className="font-headline text-4xl sm:text-5xl md:text-6xl text-[#111110] dark:text-[#eae9de] font-light tracking-tight mb-6"
                     >
-                        Maison Governance
+                        Terms of Service
                     </motion.h1>
-                    <div className="max-w-3xl mx-auto space-y-6">
-                        <p className="font-body text-md text-[#656464] opacity-80 italic font-light leading-relaxed">
-                            This website is operated by Mirran Collections. Throughout the site, the terms “we”, “us” and “our” refer to SOVRA Jewellery. SOVRA Jewellery offers this website, including all information, tools and services available from this site to you, the user, conditioned upon your acceptance of all terms, conditions, policies and notices stated here.
-                        </p>
-                        <p className="font-body text-sm text-[#656464] opacity-70 leading-relaxed italic">
-                            By visiting our website and/ or purchasing something from us, you engage in our “Service” and agree to be bound by the following terms and conditions (“Terms of Service”, “Terms”), including those additional terms and conditions and policies referenced herein and/or available by hyperlink.
-                        </p>
-                    </div>
+
+                    {/* Metadata Badges */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.1 }}
+                        className="inline-flex flex-wrap items-center justify-center gap-3 md:gap-6 bg-[#f6f4ec] dark:bg-[#1a1a18] border border-[#111110]/8 dark:border-[#eae9de]/10 px-5 py-2.5 rounded-full text-xs font-body text-[#656464] dark:text-[#babab0]"
+                    >
+                        <span className="flex items-center gap-1.5 font-medium">
+                            <Calendar size={13} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <span>Effective Date: <strong className="text-[#111110] dark:text-[#eae9de] font-semibold">April 2025</strong></span>
+                        </span>
+                        <span className="hidden sm:inline text-[#111110]/20 dark:text-[#eae9de]/20">•</span>
+                        <span className="flex items-center gap-1.5 font-medium">
+                            <Globe size={13} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <span>Applies to: <strong className="text-[#111110] dark:text-[#eae9de] font-semibold">sovra.in</strong></span>
+                        </span>
+                    </motion.div>
                 </header>
 
-                <div className="bg-white p-10 md:p-16 shadow-sm border border-[#111110]/5 relative overflow-hidden">
-                    <div className="space-y-16 relative z-10">
-                        <div className="space-y-4">
-                            <h2 className="font-headline text-3xl md:text-4xl text-[#111110] font-light tracking-tight flex items-center gap-4">
-                                <FileText className="text-primary" size={32} />
-                                Terms of Service
-                            </h2>
-                            <p className="font-sans text-[9px] tracking-[0.3em] uppercase text-primary font-black opacity-60">Complete Legal Agreement</p>
-                        </div>
+                {/* Content Container */}
+                <div className="bg-white dark:bg-[#181816] rounded-2xl p-6 sm:p-10 md:p-16 shadow-[0_4px_30px_rgba(0,0,0,0.03)] border border-[#111110]/6 dark:border-[#eae9de]/8 relative overflow-hidden space-y-12 md:space-y-16">
+                    {/* Background Decorative Icon */}
+                    <div className="absolute top-0 right-0 p-8 md:p-12 opacity-[0.02] dark:opacity-[0.03] select-none pointer-events-none">
+                        <FileText size={420} />
+                    </div>
 
-                        <div className="grid grid-cols-1 gap-12">
-                            {sections.map((section) => (
-                                <div key={section.id} className="space-y-4 border-b border-[#111110]/5 pb-12 last:border-0">
-                                    <h3 className="font-headline text-lg tracking-wider text-[#111110] uppercase opacity-90">{section.h}</h3>
-                                    <div className="space-y-4">
-                                        {section.p.map((para, idx) => (
-                                            <p key={idx} className="font-body text-md text-[#656464] leading-relaxed max-w-4xl opacity-90">
-                                                {para}
-                                            </p>
-                                        ))}
-                                    </div>
+                    {/* Section: Agreement */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Agreement
+                            </span>
+                        </div>
+                        <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight mb-4">
+                            By using our website, you agree to these terms
+                        </h2>
+                        <div className="bg-[#faf8f2] dark:bg-[#1f1f1d] border-l-4 border-[#6e5b44] dark:border-[#ead0b3] p-5 md:p-6 rounded-r-xl space-y-3">
+                            <p className="font-body text-sm md:text-base text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                Welcome to Sovra. These Terms of Service (&ldquo;Terms&rdquo;) govern your use of our website at <strong className="text-[#111110] dark:text-[#eae9de] font-semibold">sovra.in</strong> and any purchases made through it. Please read these Terms carefully. By accessing our website or placing an order, you confirm that you have read, understood and agree to be bound by these Terms.
+                            </p>
+                            <p className="font-body text-xs md:text-sm text-[#8c6b45] dark:text-[#e4be96] font-medium pt-1 italic">
+                                If you do not agree to these Terms, please do not use our website.
+                            </p>
+                        </div>
+                    </section>
+
+                    {/* Section: Eligibility */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Eligibility
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <UserCheck size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Who can shop with us
+                            </h2>
+                        </div>
+                        <div className="space-y-3">
+                            {[
+                                "You must be at least 18 years of age to place an order on Sovra.",
+                                "By placing an order, you confirm that the information you provide is accurate and complete.",
+                                "Sovra reserves the right to refuse service to anyone at its sole discretion."
+                            ].map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-start gap-3.5 p-4 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5"
+                                >
+                                    <span className="w-2 h-2 rounded-full bg-[#6e5b44] dark:bg-[#ead0b3] mt-2 flex-shrink-0" />
+                                    <p className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                        {item}
+                                    </p>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </section>
 
-                    <div className="absolute top-0 right-0 p-12 opacity-[0.02] select-none pointer-events-none">
-                        <FileText size={400} />
-                    </div>
+                    {/* Section: Products & Pricing */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Products & Pricing
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <Tag size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Product information and prices
+                            </h2>
+                        </div>
+                        <div className="space-y-3">
+                            {[
+                                "We make every effort to display product images, descriptions and details as accurately as possible. Slight variations in colour may occur due to screen settings.",
+                                "All prices on sovra.in are listed in Indian Rupees (INR) and are inclusive of applicable taxes unless stated otherwise.",
+                                "Sovra reserves the right to change prices at any time without prior notice. The price applicable to your order is the price displayed at the time of checkout.",
+                                "In the event of a pricing error, we reserve the right to cancel the affected order and issue a full refund."
+                            ].map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-start gap-3.5 p-4 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5"
+                                >
+                                    <span className="w-2 h-2 rounded-full bg-[#6e5b44] dark:bg-[#ead0b3] mt-2 flex-shrink-0" />
+                                    <p className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                        {item}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Section: Orders & Payments */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Orders & Payments
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <CreditCard size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Placing and paying for an order
+                            </h2>
+                        </div>
+                        <div className="space-y-3">
+                            {[
+                                "Placing an item in your cart does not guarantee availability. Orders are confirmed only upon successful payment.",
+                                "We accept payments through the methods displayed at checkout, including cards, UPI and net banking.",
+                                "All transactions are processed through secure, third-party payment gateways. Sovra does not store any payment credentials.",
+                                "You will receive an order confirmation on your registered email address once payment is successfully processed.",
+                                "Sovra reserves the right to cancel any order in the event of suspected fraud, incorrect pricing or stock unavailability. A full refund will be issued in such cases."
+                            ].map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-start gap-3.5 p-4 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5"
+                                >
+                                    <span className="w-2 h-2 rounded-full bg-[#6e5b44] dark:bg-[#ead0b3] mt-2 flex-shrink-0" />
+                                    <p className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                        {item}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Section: Intellectual Property */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Intellectual Property
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <Shield size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Our content belongs to us
+                            </h2>
+                        </div>
+                        <p className="font-body text-sm md:text-base text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed max-w-4xl">
+                            All content on <strong className="text-[#111110] dark:text-[#eae9de] font-semibold">sovra.in</strong> — including product images, copy, logos, graphics and the website design — is the intellectual property of Sovra and is protected by applicable copyright and trademark laws. You may not reproduce, distribute or use any content from this website without our prior written permission.
+                        </p>
+                    </section>
+
+                    {/* Section: Limitation of Liability */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Limitation of Liability
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <Scale size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Our responsibility to you
+                            </h2>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="p-4 md:p-5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5">
+                                <p className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                    To the maximum extent permitted by applicable law, Sovra shall not be liable for any indirect, incidental or consequential damages arising from your use of our website or products. Our total liability for any claim shall not exceed the value of the order in question.
+                                </p>
+                            </div>
+                            <div className="p-4 md:p-5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5">
+                                <p className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                    We are not responsible for delays or failures caused by events outside our control, including natural disasters, courier disruptions or payment gateway outages.
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Section: Governing Law */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Governing Law
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <Gavel size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Jurisdiction
+                            </h2>
+                        </div>
+                        <p className="font-body text-sm md:text-base text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed max-w-4xl">
+                            These Terms are governed by the laws of India. Any disputes arising from these Terms or your use of the website shall be subject to the exclusive jurisdiction of the courts in India.
+                        </p>
+                    </section>
+
+                    {/* Section: Changes to Terms */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Changes to Terms
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <RefreshCw size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                We may update these terms
+                            </h2>
+                        </div>
+                        <p className="font-body text-sm md:text-base text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed max-w-4xl">
+                            Sovra reserves the right to update or modify these Terms at any time. Changes will be posted on this page with a revised effective date. Continued use of the website after any changes constitutes your acceptance of the revised Terms.
+                        </p>
+                    </section>
+
+                    {/* Section: Contact */}
+                    <section className="relative z-10">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Contact
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <Mail size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Questions about these Terms?
+                            </h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
+                            <a
+                                href="mailto:support@sovra.in"
+                                className="p-4 md:p-5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5 hover:border-[#6e5b44]/30 dark:hover:border-[#ead0b3]/30 transition-colors group"
+                            >
+                                <span className="font-label text-[10px] uppercase tracking-widest text-[#6e5b44] dark:text-[#ead0b3] font-bold block mb-1">
+                                    Email
+                                </span>
+                                <span className="font-body text-sm font-semibold text-[#111110] dark:text-[#eae9de] group-hover:text-[#6e5b44] transition-colors">
+                                    support@sovra.in
+                                </span>
+                            </a>
+                            <a
+                                href="https://sovra.in"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-4 md:p-5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5 hover:border-[#6e5b44]/30 dark:hover:border-[#ead0b3]/30 transition-colors group"
+                            >
+                                <span className="font-label text-[10px] uppercase tracking-widest text-[#6e5b44] dark:text-[#ead0b3] font-bold block mb-1">
+                                    Website
+                                </span>
+                                <span className="font-body text-sm font-semibold text-[#111110] dark:text-[#eae9de] group-hover:text-[#6e5b44] transition-colors">
+                                    sovra.in
+                                </span>
+                            </a>
+                            <div className="p-4 md:p-5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5">
+                                <span className="font-label text-[10px] uppercase tracking-widest text-[#6e5b44] dark:text-[#ead0b3] font-bold block mb-1">
+                                    Response Time
+                                </span>
+                                <span className="font-body text-sm font-semibold text-[#111110] dark:text-[#eae9de]">
+                                    Within 48 business hours
+                                </span>
+                            </div>
+                        </div>
+                    </section>
                 </div>
-
-                <footer className="mt-20 pt-12 border-t border-[#111110]/5 text-center">
-                    <p className="font-body text-sm text-[#656464] italic">Last updated: April 2026</p>
-                    <div className="mt-12 flex flex-col items-center gap-4">
-                        <p className="font-body text-lg text-[#111110]/80">Questions regarding these protocols?</p>
-                        <a href="mailto:sorvrajewellery@gmail.com" className="font-sans text-sm uppercase tracking-[0.3em] font-black text-primary hover:opacity-70 transition-opacity">
-                            sorvrajewellery@gmail.com
-                        </a>
-                    </div>
-                </footer>
             </main>
         </div>
     )

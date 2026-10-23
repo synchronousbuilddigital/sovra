@@ -481,7 +481,7 @@ const Home = () => {
                                             <div className="h-9 md:h-auto flex items-start">
                                                 <Link 
                                                     to={`/product/${product._id || product.id}`} 
-                                                    className="font-headline text-[13px] sm:text-base md:text-lg italic text-[#111110] group-hover:text-[#111110]/75 transition-colors line-clamp-2 leading-snug block"
+                                                    className="font-sans text-xs sm:text-sm md:text-base font-medium text-[#111110] group-hover:text-primary transition-colors line-clamp-2 leading-snug block"
                                                     title={product.name}
                                                 >
                                                     {product.name}

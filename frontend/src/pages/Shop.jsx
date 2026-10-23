@@ -319,7 +319,7 @@ const Shop = () => {
                                                     <span className="font-sans text-[7px] sm:text-[8px] tracking-[0.2em] uppercase text-[#7a7670] block font-medium opacity-70 truncate">
                                                         {product.category || 'Collective'} • {product.weight || '18K Gold'}
                                                     </span>
-                                                    <h2 className="font-premium text-sm sm:text-base md:text-lg lg:text-xl text-[#111110] font-light italic leading-tight group-hover:opacity-60 transition-opacity truncate">
+                                                    <h2 className="font-sans text-xs sm:text-sm md:text-base font-medium text-[#111110] leading-snug group-hover:text-primary transition-colors truncate">
                                                         {product.name}
                                                     </h2>
 

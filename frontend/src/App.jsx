@@ -49,6 +49,8 @@ const Contact = lazyRetry(() => import('./pages/Contact'))
 const FAQ = lazyRetry(() => import('./pages/FAQ'))
 const Policies = lazyRetry(() => import('./pages/Policies'))
 const PrivacyPolicy = lazyRetry(() => import('./pages/PrivacyPolicy'))
+const ShippingPolicy = lazyRetry(() => import('./pages/ShippingPolicy'))
+const ReturnsPolicy = lazyRetry(() => import('./pages/ReturnsPolicy'))
 const TermsOfService = lazyRetry(() => import('./pages/TermsOfService'))
 const SizeGuide = lazyRetry(() => import('./pages/SizeGuide'))
 const NotFound = lazyRetry(() => import('./pages/NotFound'))
@@ -96,6 +98,8 @@ const AppBody = () => {
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/bag" element={<Bag />} />
             <Route path="/story" element={<Story />} />
+            <Route path="/about" element={<Story />} />
+            <Route path="/about-us" element={<Story />} />
 
             <Route path="/ethics" element={<Ethics />} />
 
@@ -106,11 +110,14 @@ const AppBody = () => {
 
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/contact-information" element={<Contact />} />
             <Route path="/policies" element={<Policies />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/shipping-policy" element={<Policies />} />
-            <Route path="/returns-policy" element={<Policies />} />
+            <Route path="/shipping-policy" element={<ShippingPolicy />} />
+            <Route path="/returns-policy" element={<ReturnsPolicy />} />
+            <Route path="/return-exchange-policy" element={<ReturnsPolicy />} />
+            <Route path="/refund-policy" element={<ReturnsPolicy />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/size-guide" element={<SizeGuide />} />
 

@@ -1,142 +1,331 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Shield, Eye, Database, Share2, MousePointer2, UserCheck, Clock, RefreshCcw, Mail } from 'lucide-react'
+import {
+    Shield,
+    Database,
+    Eye,
+    Cookie,
+    Share2,
+    Lock,
+    UserCheck,
+    Mail,
+    Globe,
+    Clock,
+    Sparkles,
+    Calendar
+} from 'lucide-react'
 
 const PrivacyPolicy = () => {
-    const sections = [
-        {
-            id: 1,
-            icon: MousePointer2,
-            h: "PERSONAL INFORMATION WE COLLECT",
-            p: [
-                "When you visit the Site, we automatically collect certain information about your device, including information about your web browser, IP address, time zone, and some of the cookies that are installed on your device. Additionally, as you browse the Site, we collect information about the individual web pages or products that you view, what websites or search terms referred you to the Site, and information about how you interact with the Site. We refer to this automatically-collected information as “Device Information”.",
-                "We collect Device Information using technologies: “Cookies” are data files that are placed on your device, “Log files” track actions occurring on the Site, and “Web beacons”, “tags”, and “pixels” are electronic files used to record information about how you browse the Site.",
-                "Additionally, when you make a purchase or attempt to make a purchase through the Website, we collect certain information from you, including your name, billing address, shipping address, payment information (including credit card numbers), email address, and phone number. But we do not store your credit card and other payment details with us. We refer to this information as “Order Information”."
-            ]
-        },
-        {
-            id: 2,
-            icon: Eye,
-            h: "HOW DO WE USE YOUR PERSONAL INFORMATION?",
-            p: [
-                "We use the Order Information that we collect generally to fulfil any orders placed through the Site (including processing your payment information, arranging for shipping, and providing you with invoices and/or order confirmations).",
-                "Additionally, we use this Order Information to: Communicate with you; Screen our orders for potential risk or fraud; and provide you with information or advertising relating to our products or services.",
-                "We use the Device Information that we collect to help us screen for potential risk and fraud, and more generally to improve and optimize our Site."
-            ]
-        },
-        {
-            id: 3,
-            icon: Share2,
-            h: "SHARING YOUR PERSONAL INFORMATION",
-            p: [
-                "We share your Personal Information with third parties to help us use your Personal Information, as described above. For example, we use Google Analytics to help us understand how our customers use the Site.",
-                "Finally, we may also share your Personal Information to comply with applicable laws and regulations, to respond to a subpoena, search warrant or other lawful request for information we receive, or to otherwise protect our rights."
-            ]
-        },
-        {
-            id: 4,
-            icon: UserCheck,
-            h: "YOUR RIGHTS",
-            p: [
-                "Prior to the creation of account and sharing your information, you have an option to not provide the same. However, in such a scenario, we reserve the right, at our sole discretion, to not provide any goods or services.",
-                "If you are a European resident, you have the right to access personal information we hold about you and to ask that your personal information be corrected, updated, or deleted.",
-                "In case you want to review your personal information or want your personal data corrected/deleted, please email to sorvrajewellery@gmail.com with subject “Review/Changes of my Personal Data”. We will make necessary changes within 60 days of receipt."
-            ]
-        },
-        {
-            id: 5,
-            icon: Clock,
-            h: "DATA RETENTION",
-            p: [
-                "When you place an order through the Site, we will maintain your Order Information for our records unless and until you ask us to delete this information."
-            ]
-        },
-        {
-            id: 6,
-            icon: RefreshCcw,
-            h: "CHANGES",
-            p: [
-                "We may update this privacy policy from time to time in order to reflect, for example, changes to our practices or for other operational, legal or regulatory reasons."
-            ]
-        },
-        {
-            id: 7,
-            icon: Database,
-            h: "AGREEMENT TO RECEIVE COMMUNICATION",
-            p: [
-                "By accepting these Terms of Service, you consent to receive communications from us through various channels, including in-app messages, SMS, RCS, emails, promotional and marketing calls, and newsletters."
-            ]
-        },
-        {
-            id: 8,
-            icon: Mail,
-            h: "CONTACT US",
-            p: [
-                "For more information about our privacy practices, if you have questions, or if you would like to make a complaint, please contact us by e‑mail at sorvrajewellery@gmail.com or by mail at: 23, Pulla Beside Platinum Square, RK Circle, Udaipur-313001"
-            ]
-        }
-    ]
-
     return (
-        <div className="pt-32 pb-24 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
-            <main className="max-w-[1200px] mx-auto px-6 md:px-12">
-                <header className="mb-20 text-center">
+        <div className="pt-28 md:pt-36 pb-24 bg-[#fffcf7] dark:bg-[#121211] min-h-screen selection:bg-primary/10">
+            <main className="max-w-[1100px] mx-auto px-5 sm:px-8 md:px-12">
+                {/* Header */}
+                <header className="mb-14 md:mb-20 text-center">
+                    <motion.p
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="font-headline tracking-[0.3em] uppercase text-xs md:text-sm text-[#6e5b44] dark:text-[#ead0b3] font-bold mb-3"
+                    >
+                        SOVRA
+                    </motion.p>
                     <motion.h1
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="font-headline text-5xl md:text-6xl text-[#111110] font-light tracking-tight mb-4"
+                        transition={{ delay: 0.05 }}
+                        className="font-headline text-4xl sm:text-5xl md:text-6xl text-[#111110] dark:text-[#eae9de] font-light tracking-tight mb-6"
                     >
-                        Privacy Manifesto
+                        Privacy Policy
                     </motion.h1>
-                    <div className="max-w-3xl mx-auto">
-                        <p className="font-body text-md text-[#656464] opacity-80 italic font-light leading-relaxed">
-                            This Privacy Policy describes how your personal information is collected, used, and shared when you visit or make a purchase from SOVRA (the “Site”).
-                        </p>
-                    </div>
+
+                    {/* Metadata Badges */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.1 }}
+                        className="inline-flex flex-wrap items-center justify-center gap-3 md:gap-6 bg-[#f6f4ec] dark:bg-[#1a1a18] border border-[#111110]/8 dark:border-[#eae9de]/10 px-5 py-2.5 rounded-full text-xs font-body text-[#656464] dark:text-[#babab0]"
+                    >
+                        <span className="flex items-center gap-1.5 font-medium">
+                            <Calendar size={13} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <span>Effective Date: <strong className="text-[#111110] dark:text-[#eae9de] font-semibold">April 2025</strong></span>
+                        </span>
+                        <span className="hidden sm:inline text-[#111110]/20 dark:text-[#eae9de]/20">•</span>
+                        <span className="flex items-center gap-1.5 font-medium">
+                            <Globe size={13} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <span>Applies to: <strong className="text-[#111110] dark:text-[#eae9de] font-semibold">sovra.in</strong></span>
+                        </span>
+                    </motion.div>
                 </header>
 
-                <div className="bg-white p-10 md:p-16 shadow-sm border border-[#111110]/5 relative overflow-hidden">
-                    <div className="space-y-16 relative z-10">
-                        <div className="space-y-4">
-                            <h2 className="font-headline text-3xl md:text-4xl text-[#111110] font-light tracking-tight flex items-center gap-4">
-                                <Shield className="text-primary" size={32} />
-                                Privacy Policy
-                            </h2>
-                            <p className="font-sans text-[9px] tracking-[0.3em] uppercase text-primary font-black opacity-60">Data Sovereignty Protocol</p>
-                        </div>
+                {/* Content Container */}
+                <div className="bg-white dark:bg-[#181816] rounded-2xl p-6 sm:p-10 md:p-16 shadow-[0_4px_30px_rgba(0,0,0,0.03)] border border-[#111110]/6 dark:border-[#eae9de]/8 relative overflow-hidden space-y-12 md:space-y-16">
+                    {/* Background Decorative Shield */}
+                    <div className="absolute top-0 right-0 p-8 md:p-12 opacity-[0.02] dark:opacity-[0.03] select-none pointer-events-none">
+                        <Shield size={420} />
+                    </div>
 
-                        <div className="grid grid-cols-1 gap-14">
-                            {sections.map((section) => (
-                                <div key={section.id} className="space-y-6">
-                                    <div className="flex items-center gap-3">
-                                        <section.icon className="text-primary/40" size={18} />
-                                        <h3 className="font-headline text-lg tracking-wider text-[#111110] uppercase opacity-90">{section.h}</h3>
-                                    </div>
-                                    <div className="space-y-4 border-l-2 border-primary/5 pl-8">
-                                        {section.p.map((para, idx) => (
-                                            <p key={idx} className="font-body text-md text-[#656464] leading-relaxed max-w-4xl opacity-90">
-                                                {para}
-                                            </p>
-                                        ))}
-                                    </div>
+                    {/* Section: Introduction */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Introduction
+                            </span>
+                        </div>
+                        <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight mb-4">
+                            Your privacy matters to us
+                        </h2>
+                        <div className="bg-[#faf8f2] dark:bg-[#1f1f1d] border-l-4 border-[#6e5b44] dark:border-[#ead0b3] p-5 md:p-6 rounded-r-xl">
+                            <p className="font-body text-sm md:text-base text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                Sovra (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) is committed to protecting your personal information. This Privacy Policy explains what data we collect when you visit <strong className="text-[#111110] dark:text-[#eae9de] font-semibold">sovra.in</strong>, how we use it, and your rights as a customer. By using our website or placing an order, you agree to the practices described in this policy.
+                            </p>
+                        </div>
+                    </section>
+
+                    {/* Section: Information We Collect */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Information We Collect
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <Database size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                What we gather when you shop
+                            </h2>
+                        </div>
+                        <p className="font-body text-sm md:text-base text-[#656464] dark:text-[#babab0] mb-6">
+                            We collect the following information to process and fulfil your orders:
+                        </p>
+                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                            {[
+                                "Full name and contact number",
+                                "Email address",
+                                "Delivery address and PIN code",
+                                "Payment details — processed securely by our payment gateway partners; we do not store card or UPI credentials",
+                                "Order history and transaction records",
+                                "Browsing and click behaviour on our website (via cookies)",
+                                "Device information and IP address for security and fraud prevention"
+                            ].map((item, idx) => (
+                                <li
+                                    key={idx}
+                                    className={`flex items-start gap-3 p-3.5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5 ${idx === 3 ? 'md:col-span-2' : ''}`}
+                                >
+                                    <span className="w-2 h-2 rounded-full bg-[#6e5b44] dark:bg-[#ead0b3] mt-2 flex-shrink-0" />
+                                    <span className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                        {item}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+
+                    {/* Section: How We Use Your Information */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — How We Use Your Information
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <Eye size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Why we need your data
+                            </h2>
+                        </div>
+                        <div className="space-y-3">
+                            {[
+                                "To confirm, process and deliver your orders",
+                                "To send order confirmations, dispatch notifications and tracking updates",
+                                "To respond to your queries, complaints or exchange requests",
+                                "To improve our website, product range and overall shopping experience",
+                                "To send promotional offers and new arrival updates — only if you have opted in (you may opt out at any time)",
+                                "To prevent fraud and ensure platform security",
+                                "To comply with applicable legal and regulatory requirements"
+                            ].map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-start gap-3 p-3.5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5"
+                                >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#6e5b44] dark:bg-[#ead0b3] mt-2 flex-shrink-0" />
+                                    <p className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                        {item}
+                                    </p>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </section>
 
-                    <div className="absolute top-0 right-0 p-12 opacity-[0.02] select-none pointer-events-none">
-                        <Shield size={400} />
-                    </div>
+                    {/* Section: Cookies */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Cookies
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <Cookie size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                How we use cookies
+                            </h2>
+                        </div>
+                        <p className="font-body text-sm md:text-base text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed max-w-4xl">
+                            Our website uses cookies to remember your preferences, keep items in your cart and understand how you interact with our pages. You can manage or disable cookies through your browser settings. Disabling cookies may affect some features of the website.
+                        </p>
+                    </section>
+
+                    {/* Section: Data Sharing */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Data Sharing
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <Share2 size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Who we share your data with
+                            </h2>
+                        </div>
+                        <p className="font-body text-sm md:text-base text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed mb-5 max-w-4xl">
+                            We do not sell, rent or trade your personal information to third parties for marketing purposes. We share your data only where necessary with:
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            {[
+                                { title: "Courier & logistics partners", desc: "To deliver your order seamlessly" },
+                                { title: "Payment gateway providers", desc: "To process your payment securely" },
+                                { title: "Technology service providers", desc: "Who help run our website and operations, bound by confidentiality obligations" },
+                                { title: "Legal authorities", desc: "Where required by law or court order" }
+                            ].map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className="p-4 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5"
+                                >
+                                    <h3 className="font-headline text-sm md:text-base font-semibold text-[#111110] dark:text-[#eae9de] mb-1">
+                                        • {item.title}
+                                    </h3>
+                                    <p className="font-body text-xs md:text-sm text-[#656464] dark:text-[#babab0] leading-relaxed">
+                                        {item.desc}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Section: Data Security */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Data Security
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <Lock size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                How we protect your information
+                            </h2>
+                        </div>
+                        <p className="font-body text-sm md:text-base text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed max-w-4xl">
+                            We use industry-standard SSL encryption on our website and work only with payment partners who comply with PCI-DSS standards. While we take reasonable precautions, no method of internet transmission is 100% secure. We encourage you to contact us immediately if you notice any unauthorised activity on your account.
+                        </p>
+                    </section>
+
+                    {/* Section: Your Rights */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Your Rights
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <UserCheck size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                What you can ask us to do
+                            </h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                            {[
+                                "Access a copy of the personal data we hold about you",
+                                "Request correction of any inaccurate or incomplete information",
+                                "Request deletion of your data, subject to any legal obligations we may have",
+                                "Withdraw your consent to marketing communications at any time"
+                            ].map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-start gap-3 p-3.5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5"
+                                >
+                                    <span className="w-2 h-2 rounded-full bg-[#6e5b44] dark:bg-[#ead0b3] mt-2 flex-shrink-0" />
+                                    <span className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed">
+                                        {item}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#6e5b44]/20 dark:border-[#ead0b3]/20 p-4 md:p-5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <p className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc]">
+                                To exercise any of these rights, email us at{' '}
+                                <a href="mailto:support@sovra.in" className="font-semibold text-[#6e5b44] dark:text-[#ead0b3] hover:underline">
+                                    support@sovra.in
+                                </a>
+                                . We will respond within <strong>7 business days</strong>.
+                            </p>
+                        </div>
+                    </section>
+
+                    {/* Section: Contact */}
+                    <section className="relative z-10">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Contact
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <Mail size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Questions about this policy?
+                            </h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
+                            <a
+                                href="mailto:support@sovra.in"
+                                className="p-4 md:p-5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5 hover:border-[#6e5b44]/30 dark:hover:border-[#ead0b3]/30 transition-colors group"
+                            >
+                                <span className="font-label text-[10px] uppercase tracking-widest text-[#6e5b44] dark:text-[#ead0b3] font-bold block mb-1">
+                                    Email
+                                </span>
+                                <span className="font-body text-sm font-semibold text-[#111110] dark:text-[#eae9de] group-hover:text-[#6e5b44] transition-colors">
+                                    support@sovra.in
+                                </span>
+                            </a>
+                            <a
+                                href="https://sovra.in"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-4 md:p-5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5 hover:border-[#6e5b44]/30 dark:hover:border-[#ead0b3]/30 transition-colors group"
+                            >
+                                <span className="font-label text-[10px] uppercase tracking-widest text-[#6e5b44] dark:text-[#ead0b3] font-bold block mb-1">
+                                    Website
+                                </span>
+                                <span className="font-body text-sm font-semibold text-[#111110] dark:text-[#eae9de] group-hover:text-[#6e5b44] transition-colors">
+                                    sovra.in
+                                </span>
+                            </a>
+                            <div className="p-4 md:p-5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border border-[#111110]/5 dark:border-[#eae9de]/5">
+                                <span className="font-label text-[10px] uppercase tracking-widest text-[#6e5b44] dark:text-[#ead0b3] font-bold block mb-1">
+                                    Response Time
+                                </span>
+                                <span className="font-body text-sm font-semibold text-[#111110] dark:text-[#eae9de]">
+                                    Within 48 business hours
+                                </span>
+                            </div>
+                        </div>
+                    </section>
                 </div>
 
-                <footer className="mt-20 pt-12 border-t border-[#111110]/5 text-center">
-                    <p className="font-body text-sm text-[#656464] italic">Last updated: April 2026</p>
-                    <div className="mt-12 flex flex-col items-center gap-4">
-                        <p className="font-body text-lg text-[#111110]/80">Need to exercise your data rights?</p>
-                        <a href="mailto:sorvrajewellery@gmail.com" className="font-sans text-sm uppercase tracking-[0.3em] font-black text-primary hover:opacity-70 transition-opacity">
-                            sorvrajewellery@gmail.com
-                        </a>
-                    </div>
+                {/* Footer Note */}
+                <footer className="mt-12 text-center text-xs font-body text-[#656464] dark:text-[#babab0] opacity-80 max-w-2xl mx-auto space-y-2">
+                    <p>
+                        We may update this Privacy Policy from time to time. Any changes will be published on this page with a revised effective date.
+                    </p>
                 </footer>
             </main>
         </div>

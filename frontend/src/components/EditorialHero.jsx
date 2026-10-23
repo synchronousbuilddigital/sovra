@@ -64,24 +64,20 @@ const EditorialHero = () => {
                                 key={`mob-cat-${item.id}`}
                                 type="button"
                                 onClick={() => handleTabClick(item)}
-                                className={`flex flex-col items-center gap-1 transition-all ${
-                                    isActive ? 'scale-105' : 'opacity-65 hover:opacity-100'
-                                }`}
+                                className={`flex flex-col items-center gap-1 transition-all ${isActive ? 'scale-105' : 'opacity-65 hover:opacity-100'
+                                    }`}
                             >
-                                <div className={`w-11 h-11 rounded-full border-2 overflow-hidden bg-white transition-all ${
-                                    isActive ? 'border-[#111110] shadow-sm ring-2 ring-[#111110]/15' : 'border-[#111110]/15'
-                                }`}>
+                                <div className={`w-11 h-11 rounded-full border-2 overflow-hidden bg-white transition-all ${isActive ? 'border-[#111110] shadow-sm ring-2 ring-[#111110]/15' : 'border-[#111110]/15'
+                                    }`}>
                                     <img
                                         src={getOptimizedImage(item.image, 100)}
                                         alt={item.name}
-                                        className={`w-full h-full object-cover transition-all ${
-                                            isActive ? 'grayscale-0' : 'grayscale-[0.4]'
-                                        }`}
+                                        className={`w-full h-full object-cover transition-all ${isActive ? 'grayscale-0' : 'grayscale-[0.4]'
+                                            }`}
                                     />
                                 </div>
-                                <span className={`text-[8.5px] font-mono tracking-wider uppercase transition-colors ${
-                                    isActive ? 'text-[#111110] font-bold' : 'text-[#7a7670]'
-                                }`}>
+                                <span className={`text-[8.5px] font-mono tracking-wider uppercase transition-colors ${isActive ? 'text-[#111110] font-bold' : 'text-[#7a7670]'
+                                    }`}>
                                     {item.name}
                                 </span>
                             </button>

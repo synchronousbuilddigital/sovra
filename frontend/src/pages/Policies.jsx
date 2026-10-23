@@ -12,34 +12,38 @@ const Policies = () => {
 
     const content = {
         shipping: {
-            title: "Archival Dispatch Protocol",
-            subtitle: "Global Logistics & Handling",
+            title: "Shipping Policy",
+            subtitle: "Pan India Delivery • 4–6 Working Days",
             sections: [
                 {
-                    h: "Processing Timeline",
-                    p: "Every masterpiece undergoes a final artisanal audit before dispatch. Orders are typically processed within 24-48 hours. During limited capsule launches, please allow up to 72 hours for archival preparation."
+                    h: "Pan India Coverage",
+                    p: "At Sovra, we deliver to all states and union territories across India. Every order is packed with care and dispatched through trusted courier partners to ensure your jewellery reaches you safely and on time."
                 },
                 {
-                    h: "Celestial Delivery Tracking",
-                    p: "Upon dispatch, you will receive a secure tracking signature via email. All shipments are insured and require a signature upon arrival to ensure vault-to-vault security."
+                    h: "Delivery Timeframe & Processing",
+                    p: "Orders are verified, quality checked and packed within 1–2 business days. Once dispatched, your order arrives within 4–6 working days. Tracking details are shared via email or WhatsApp."
                 },
                 {
-                    h: "Global Reach",
-                    p: "We offer complimentary express shipping on all acquisitions over ₹10,000. International duties and taxes are calculated at checkout for a seamless acquisition experience."
+                    h: "Shipping Charges & Tracking",
+                    p: "Shipping charges, if applicable, are displayed clearly at checkout. We periodically offer free shipping promotions. Monitor your shipment via the link provided, or contact support@sovra.in."
                 }
             ]
         },
         returns: {
-            title: "Curation Reversal",
-            subtitle: "Exchanges & Redemptions",
+            title: "Return & Exchange Policy",
+            subtitle: "Exchange Only • Unboxing Video Mandatory",
             sections: [
                 {
-                    h: "The 14-Day Window",
-                    p: "If a masterpiece does not perfectly align with your essence, you may initiate a return within 14 days of receipt. The item must remain in its original, unworn state with all archival packaging intact."
+                    h: "Exchange Only Policy",
+                    p: "At Sovra, every piece is inspected before dispatch. In the rare event your order arrives defective or damaged, we provide a product exchange. Sovra does not offer refunds under any circumstances."
                 },
                 {
-                    h: "Pierced Masterpieces",
-                    p: "Please note that earrings (for hygiene protocols) are exempt from our standard return policy unless a structural anomaly exists."
+                    h: "Mandatory Unboxing Video",
+                    p: "You must record a clear, uncut continuous video while opening your package. This unboxing video is strictly required to process any exchange request."
+                },
+                {
+                    h: "48-Hour Request Window & Process",
+                    p: "Raise your exchange request within 48 hours of delivery at support@sovra.in with your order number and unboxing video. Once approved, reverse pickup is arranged at no cost to you."
                 }
             ]
         }
@@ -114,7 +118,7 @@ const Policies = () => {
 
                 <div className="mt-48 text-center bg-primary/5 p-16 border border-primary/10">
                     <p className="font-body text-lg italic text-[#111110]/60 mb-4 font-light">Questions regarding these protocols?</p>
-                    <p className="font-sans text-[11px] uppercase tracking-widest font-black text-[#111110]">Direct Inquiries: sorvrajewellery@gmail.com</p>
+                    <p className="font-sans text-[11px] uppercase tracking-widest font-black text-[#111110]">Direct Inquiries: support@sovra.in</p>
                 </div>
             </main>
         </div>

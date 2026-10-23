@@ -79,7 +79,7 @@ const ProductDetail = () => {
                 length: "46 cm",
                 weight: "6g",
                 features: ["Sweatproof", "Anti Tarnish", "Water proof", "Hypoallergenic"],
-                images: ["https://images.unsplash.com/photo-1515562141207-7a88fb0ce33e?q=80&w=2070&auto=format&fit=crop"],
+                images: ["https://images.unsplash.com/photo-1599643477877-530eb83abc8e?q=80&w=2070&auto=format&fit=crop"],
                 reviews: []
             })
         } finally {
@@ -608,7 +608,7 @@ const ProductDetail = () => {
                                     <div className="p-3 sm:p-6 md:p-8 flex flex-col flex-1 text-center justify-center items-center gap-1.5 sm:gap-3">
                                         <span className="text-[7.5px] sm:text-[8px] uppercase tracking-[0.3em] font-black opacity-40">{p.category}</span>
                                         <Link to={`/product/${p._id}`}>
-                                            <h3 className="font-premium text-sm sm:text-lg md:text-xl italic text-[#111110] group-hover:text-primary transition-colors duration-300 line-clamp-1">{p.name}</h3>
+                                            <h3 className="font-sans text-xs sm:text-sm md:text-base font-medium text-[#111110] group-hover:text-primary transition-colors duration-300 line-clamp-1">{p.name}</h3>
                                         </Link>
                                         <span className="font-sans font-bold text-xs sm:text-sm text-[#111110]">{formatPrice(p.price)}</span>
                                     </div>

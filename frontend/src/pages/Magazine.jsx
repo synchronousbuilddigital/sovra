@@ -39,7 +39,7 @@ const Magazine = () => {
             category: "Discovery",
             title: "Celestial Alignments: The Inspiration Behind Nova Heart",
             subtitle: "Mapping the stars to the stones.",
-            image: "https://images.unsplash.com/photo-1515562141207-7a88fb0ce33e?q=80&w=2070&auto=format&fit=crop",
+            image: "https://images.unsplash.com/photo-1599643477877-530eb83abc8e?q=80&w=2070&auto=format&fit=crop",
             date: "March 2026",
             readTime: "5 min read",
             size: "medium"
@@ -67,49 +67,49 @@ const Magazine = () => {
     ]
 
     return (
-        <div className="pt-32 pb-24 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
-            <main className="max-w-[1920px] mx-auto px-12 md:px-24">
+        <div className="pt-16 sm:pt-20 md:pt-24 pb-16 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
+            <main className="max-w-[1920px] mx-auto px-6 sm:px-12 md:px-24">
                 
                 {/* Magazine Header: Vogue-esque Editorial Feel */}
-                <header className="mb-24 flex flex-col items-center text-center">
+                <header className="mb-12 md:mb-16 flex flex-col items-center text-center">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         whileInView={{ opacity: 1, scale: 1 }}
-                        className="w-16 h-16 mb-8 border border-primary/20 rounded-full flex items-center justify-center italic font-premium text-primary/40 text-2xl"
+                        className="w-12 h-12 mb-4 border border-primary/20 rounded-full flex items-center justify-center italic font-premium text-primary/40 text-xl"
                     >
                         S
                     </motion.div>
                     <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-6 mb-8"
+                        className="flex items-center gap-4 mb-4"
                     >
-                        <div className="w-12 h-[1px] bg-primary/20" />
-                        <span className="font-sans text-[11px] tracking-[0.5em] uppercase text-[#7a7670] font-black italic">
+                        <div className="w-8 sm:w-12 h-[1px] bg-primary/20" />
+                        <span className="font-sans text-[10px] sm:text-[11px] tracking-[0.4em] uppercase text-[#7a7670] font-black italic">
                             The Sovereignty of Style
                         </span>
-                        <div className="w-12 h-[1px] bg-primary/20" />
+                        <div className="w-8 sm:w-12 h-[1px] bg-primary/20" />
                     </motion.div>
                     <motion.h1 
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-                        className="font-premium text-7xl md:text-[10rem] text-[#111110] leading-[0.8] mb-12 italic font-light lowercase tracking-tighter"
+                        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                        className="font-premium text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-[#111110] leading-[0.85] mb-5 italic font-light lowercase tracking-tighter"
                     >
                         Magaz<span className="not-italic font-normal">ine.</span>
                     </motion.h1>
                     <motion.p 
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                        className="max-w-2xl font-body text-lg leading-relaxed text-[#656464] font-light italic"
+                        transition={{ delay: 0.3 }}
+                        className="max-w-2xl font-body text-sm sm:text-base md:text-lg leading-relaxed text-[#656464] font-light italic"
                     >
                         A digital journal exploring the intersections of heritage jewellery, contemporary art, and the soul of artisan craftsmanship.
                     </motion.p>
                 </header>
 
                 {/* FEATURED STORY (Vogue Layout) */}
-                <section className="mb-40 grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+                <section className="mb-20 md:mb-28 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
                     <motion.div 
                         initial={{ opacity: 0, x: -30 }}
                         whileInView={{ opacity: 1, x: 0 }}
@@ -120,6 +120,10 @@ const Magazine = () => {
                             <img 
                                 src={articles[0].image} 
                                 alt={articles[0].title}
+                                onError={(e) => {
+                                    e.currentTarget.onerror = null
+                                    e.currentTarget.src = '/necklace_hero.png'
+                                }}
                                 className="w-full h-full object-cover grayscale-[0.3] hover:grayscale-0 transition-all duration-[2.5s] group-hover:scale-105"
                             />
                         </div>
@@ -155,7 +159,7 @@ const Magazine = () => {
                 </section>
 
                 {/* MAGAZINE GRID */}
-                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-32 gap-x-12 mb-40">
+                <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 md:gap-y-24 gap-x-12 mb-24 md:mb-32">
                     {articles.slice(1).map((article, idx) => (
                         <motion.article 
                             key={article.id}
@@ -168,6 +172,10 @@ const Magazine = () => {
                                 <img 
                                     src={article.image} 
                                     alt={article.title}
+                                    onError={(e) => {
+                                        e.currentTarget.onerror = null
+                                        e.currentTarget.src = '/necklace_hero.png'
+                                    }}
                                     className="w-full h-full object-cover transition-all duration-[2s] group-hover:scale-110 grayscale-[0.2] group-hover:grayscale-0"
                                 />
                                 <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-all duration-1000 flex items-center justify-center translate-y-10 group-hover:translate-y-0">
