@@ -85,7 +85,7 @@ const AppBody = () => {
     <>
       <ScrollToTop />
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
-      <Navbar />
+      {!location.pathname.startsWith('/admin') && <Navbar />}
       <main className="min-h-screen">
         <Suspense fallback={<PageLoader />}>
           <Routes>

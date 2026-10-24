@@ -55,8 +55,8 @@ const Navbar = () => {
         }
     }
 
-    // Do not mount storefront floating navbar on mobile within the admin panel
-    if (isMobile && location.pathname.startsWith('/admin')) {
+    // Do not mount storefront floating navbar within the admin panel
+    if (location.pathname.startsWith('/admin')) {
         return null
     }
 

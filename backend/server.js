@@ -59,8 +59,13 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Body parser
-app.use(express.json({ limit: '10kb' }));
+// Body parser with raw body capture for cryptographic webhook verification
+app.use(express.json({
+  limit: '50kb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Data sanitization against NoSQL injection
 app.use(mongoSanitize());
@@ -96,6 +101,7 @@ app.get('/', (req, res) => {
 const productRoutes = require('./routes/productRoutes');
 const userRoutes = require('./routes/userRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const materialRoutes = require('./routes/materialRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
@@ -109,6 +115,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/payment', paymentRoutes);
 
 app.use('/api/materials', materialRoutes);
 app.use('/api/analytics', analyticsRoutes);

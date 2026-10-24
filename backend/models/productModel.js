@@ -28,7 +28,7 @@ const productSchema = mongoose.Schema({
   length: { type: String, default: '46 cm' },
   weight: { type: String, default: '6g' },
   features: [{ type: String }],
-  stock: { type: Number, required: true, default: 0 },
+  stock: { type: Number, required: true, default: 0, min: [0, 'Stock cannot be negative'] },
   img: { type: String, required: true },
   images: { type: [String], default: [] },
   hero: { type: Boolean, default: false },

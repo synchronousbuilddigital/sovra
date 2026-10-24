@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import api from '../utils/api';
 import { formatPrice } from '../utils/currency';
+import { loadRazorpayScript } from '../utils/razorpay';
 
 
 const OrderDetail = () => {
@@ -11,6 +12,7 @@ const OrderDetail = () => {
     const navigate = useNavigate();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [paying, setPaying] = useState(false);
     const [showReturnForm, setShowReturnForm] = useState(false);
     const [returnReason, setReturnReason] = useState('');
     const [submittingReturn, setSubmittingReturn] = useState(false);
@@ -18,6 +20,62 @@ const OrderDetail = () => {
     useEffect(() => {
         fetchOrder();
     }, [id]);
+
+    const handlePayNow = async () => {
+        try {
+            setPaying(true);
+            const isLoaded = await loadRazorpayScript();
+            if (!isLoaded) {
+                toast.error('Razorpay SDK could not be loaded. Please check your internet connection.');
+                return;
+            }
+
+            const { data: rzpOrder } = await api.post(`/payment/create-order/${order._id}`);
+
+            const options = {
+                key: rzpOrder.keyId,
+                amount: rzpOrder.amount,
+                currency: rzpOrder.currency || 'INR',
+                name: 'House of SOVRA',
+                description: `Acquisition Payment #${order._id.slice(-6).toUpperCase()}`,
+                order_id: rzpOrder.razorpayOrderId,
+                handler: async function (response) {
+                    try {
+                        const verifyRes = await api.post('/payment/verify', {
+                            orderId: order._id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        });
+                        setOrder(verifyRes.data.order || { ...order, isPaid: true, status: 'Processing' });
+                        toast.success('Payment verified & captured successfully!');
+                    } catch (verifyErr) {
+                        console.error('Payment verification error:', verifyErr);
+                        toast.error(verifyErr.response?.data?.message || 'Payment signature verification failed.');
+                    }
+                },
+                prefill: {
+                    name: order.shippingAddress?.fullName || '',
+                    email: order.user?.email || '',
+                    contact: order.shippingAddress?.phone || ''
+                },
+                theme: {
+                    color: '#6e5b44'
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                toast.error(`Payment failed: ${response.error?.description || 'Transaction declined'}`);
+            });
+            rzp.open();
+        } catch (err) {
+            console.error('Failed to initiate payment:', err);
+            toast.error(err.response?.data?.message || 'Failed to initialize payment gateway.');
+        } finally {
+            setPaying(false);
+        }
+    };
 
     const fetchOrder = async () => {
         try {
@@ -60,8 +118,8 @@ const OrderDetail = () => {
     };
 
 
-    if (loading) return <div className="pt-40 text-center font-headline text-2xl italic opacity-30">Consulting the Ledger...</div>;
-    if (!order) return <div className="pt-40 text-center">Order not found in House Sovra records.</div>;
+    if (loading) return <div className="pt-40 text-center font-plex text-2xl opacity-40">Consulting the Ledger...</div>;
+    if (!order) return <div className="pt-40 text-center font-plex">Order not found in House Sovra records.</div>;
 
     const statusSteps = [
         { label: 'Pending', icon: 'pending_actions' },
@@ -73,13 +131,13 @@ const OrderDetail = () => {
     const currentStepIndex = statusSteps.findIndex(s => s.label === order.status);
 
     return (
-        <div className="pt-32 pb-24 px-6 md:px-12 max-w-[1440px] mx-auto font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen">
+        <div className="account-panel font-plex pt-32 pb-24 px-6 md:px-12 max-w-[1440px] mx-auto selection:bg-primary-container selection:text-on-primary-container min-h-screen" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
             <header className="mb-16 flex flex-col md:flex-row justify-between items-end gap-8">
                 <div>
                     <Link to="/account" className="font-label text-[9px] uppercase tracking-widest text-primary/60 hover:text-primary mb-6 inline-flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm">arrow_back</span> Return to Vault
                     </Link>
-                    <h1 className="font-headline text-5xl md:text-6xl italic font-light tracking-tight mb-4">Curation Detail</h1>
+                    <h1 className="font-plex text-4xl md:text-5xl font-light tracking-tight mb-4">Curation Detail</h1>
                     <p className="font-label text-[10px] uppercase tracking-[0.3em] text-secondary font-black opacity-40">Identification: {order._id}</p>
                 </div>
                 <div className="text-right flex flex-col items-end gap-4">
@@ -98,7 +156,7 @@ const OrderDetail = () => {
 
             {/* Tracking Timeline */}
             <section className="mb-20 bg-surface-container-low p-12 shadow-sm border border-black/5">
-                <h2 className="font-headline text-2xl italic mb-12 border-b border-black/5 pb-4">Artisanal Progress</h2>
+                <h2 className="font-plex text-2xl mb-12 border-b border-black/5 pb-4">Artisanal Progress</h2>
                 <div className="flex flex-col md:flex-row justify-between relative gap-12">
                     {/* Connecting Line (Desktop) */}
                     <div className="hidden md:block absolute top-[22px] left-0 w-full h-[1px] bg-black/5 -z-10"></div>
@@ -126,7 +184,7 @@ const OrderDetail = () => {
                     <div className="mt-12 pt-12 border-t border-black/5 flex flex-col md:flex-row justify-between items-center gap-8">
                         <div>
                             <p className="font-label text-[10px] uppercase tracking-[0.4em] font-black opacity-40 mb-2">Registry Logistics</p>
-                            <h3 className="font-headline text-3xl italic">{order.carrier}: {order.trackingNumber}</h3>
+                            <h3 className="font-plex text-2xl">{order.carrier}: {order.trackingNumber}</h3>
                         </div>
                         <a 
                             href={`https://www.google.com/search?q=${order.carrier}+${order.trackingNumber}`} 
@@ -145,7 +203,7 @@ const OrderDetail = () => {
                 {/* Items & Shipping */}
                 <div className="lg:col-span-8 space-y-16">
                     <div>
-                        <h2 className="font-headline text-3xl italic mb-10 border-b border-black/5 pb-6">Curated Pieces</h2>
+                        <h2 className="font-plex text-2xl mb-10 border-b border-black/5 pb-6">Curated Pieces</h2>
                         <div className="space-y-10">
                             {order.orderItems.map((item) => (
                                 <div key={item.product} className="flex flex-col md:flex-row gap-8 items-center group">
@@ -153,12 +211,12 @@ const OrderDetail = () => {
                                         <img src={item.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" alt={item.name} />
                                     </div>
                                     <div className="flex-1 space-y-2">
-                                        <h3 className="font-headline text-2xl italic">{item.name}</h3>
+                                        <h3 className="font-plex text-xl font-normal">{item.name}</h3>
                                         <p className="text-[10px] uppercase tracking-widest opacity-40 font-bold">Ref: {item.product}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-body text-lg italic opacity-80">{formatPrice(item.price)} × {item.qty}</p>
-                                        <p className="font-headline text-2xl font-light text-primary">{formatPrice(item.price * item.qty)}</p>
+                                        <p className="font-body text-base opacity-80">{formatPrice(item.price)} × {item.qty}</p>
+                                        <p className="font-plex text-2xl font-light text-primary">{formatPrice(item.price * item.qty)}</p>
                                     </div>
 
                                 </div>
@@ -190,19 +248,35 @@ const OrderDetail = () => {
                 {/* Financial Summary Overlay */}
                 <div className="lg:col-span-4">
                     <div className="bg-primary text-on-primary p-12 shadow-lux space-y-12 sticky top-40">
-                        <h2 className="font-headline text-3xl italic tracking-tight opacity-90">Order Value</h2>
+                        <h2 className="font-plex text-2xl tracking-tight opacity-90">Order Value</h2>
                         <div className="space-y-6">
                             <div className="flex justify-between text-[11px] uppercase tracking-[0.2em] font-bold opacity-60"><span>Curation Subtotal</span><span>{formatPrice(order.totalPrice)}</span></div>
                             <div className="flex justify-between text-[11px] uppercase tracking-[0.2em] font-bold opacity-60"><span>White-Glove Shipping</span><span>{formatPrice(0)}</span></div>
                             <div className="pt-8 border-t border-white/10">
                                 <div className="flex justify-between items-baseline mb-4">
-                                    <span className="font-headline text-2xl italic font-light opacity-80">Total</span>
-                                    <span className="font-headline text-5xl font-light">{formatPrice(order.totalPrice)}</span>
+                                    <span className="font-plex text-xl font-light opacity-80">Total</span>
+                                    <span className="font-plex text-4xl sm:text-5xl font-light">{formatPrice(order.totalPrice)}</span>
                                 </div>
                                 <p className="text-[9px] uppercase tracking-widest opacity-40 animate-pulse">Ref: Transaction Verified</p>
                             </div>
                         </div>
 
+                        {/* Complete Payment Button for Unpaid Orders */}
+                        {(!order.isPaid && order.status !== 'Cancelled') && (
+                            <div className="pt-8">
+                                <button
+                                    onClick={handlePayNow}
+                                    disabled={paying}
+                                    className="w-full py-4 bg-white text-primary font-label text-[10px] uppercase tracking-[0.25em] font-black hover:bg-[#faf7f2] transition-all duration-300 shadow-md flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-50"
+                                >
+                                    <span className="material-symbols-outlined text-sm">lock</span>
+                                    <span>{paying ? 'Connecting to Vault...' : 'Settle Payment with Razorpay'}</span>
+                                </button>
+                                <p className="font-body text-xs italic opacity-50 mt-3 leading-relaxed text-center">
+                                    Instant automated verification & order priority confirmation via Razorpay.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Action Buttons */}
                         {(order.status === 'Pending' || order.status === 'Processing') && (
@@ -266,7 +340,7 @@ const OrderDetail = () => {
                         {order.returnRequest?.isRequested && (
                             <div className="pt-10 text-center bg-white/5 p-8 border border-white/10">
                                 <span className="font-label text-[8px] uppercase tracking-[0.4em] text-white/40 block mb-4">Provenance Status</span>
-                                <h3 className="font-headline text-2xl italic text-white mb-2">Return {order.returnRequest.status}</h3>
+                                <h3 className="font-plex text-2xl text-white mb-2">Return {order.returnRequest.status}</h3>
                                 <p className="font-body text-xs italic text-white/60">Requested on {new Date(order.returnRequest.requestedAt).toLocaleDateString()}</p>
                                 {order.returnRequest.status === 'Pending' && (
                                     <div className="mt-8 pt-6 border-t border-white/5">
@@ -283,7 +357,7 @@ const OrderDetail = () => {
                         
                         {order.status === 'Cancelled' && (
                            <div className="pt-10 text-center">
-                               <p className="font-headline text-2xl italic text-white/40 mb-2">Acquisition Voided</p>
+                               <p className="font-plex text-2xl text-white/40 mb-2">Acquisition Voided</p>
                                <p className="font-label text-[9px] uppercase tracking-widest text-white/20 mb-6">This order has been officially cancelled.</p>
                                {order.statusUpdateReason && (
                                    <div className="p-6 bg-white/5 border border-white/10 italic text-[11px] opacity-60 text-left">

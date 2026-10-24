@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 /* Design Tokens & Theme Configuration */
 @import "tailwindcss";
 
@@ -62,6 +63,8 @@
   --font-editorial: 'Playfair Display', serif;
   --font-premium: 'Cormorant Garamond', serif;
   --font-sans: 'DM Sans', sans-serif;
+  --font-admin: 'IBM Plex Serif', serif;
+  --font-plex: 'IBM Plex Serif', Georgia, serif;
 
   /* Editorial Palette */
   --cream: #f5f0e8;
@@ -143,6 +146,10 @@
 
 @utility font-premium {
   font-family: var(--font-premium);
+}
+
+@utility font-plex {
+  font-family: var(--font-plex, 'IBM Plex Serif', Georgia, serif);
 }
 
 @layer utilities {
@@ -253,3 +260,37 @@
     100% { transform: translateX(100%); }
   }
 }
+
+/* ========================================================
+   Admin & Account Panel - Complete IBM Plex Serif Typography System
+   ======================================================== */
+.admin-panel,
+.admin-panel *,
+.admin-panel *::before,
+.admin-panel *::after,
+.account-panel,
+.account-panel *,
+.account-panel *::before,
+.account-panel *::after {
+  font-family: 'IBM Plex Serif', Georgia, serif !important;
+}
+
+.admin-panel :is(.font-headline, .font-editorial, .font-premium, .font-serif, .font-sans, .font-body, .font-label, .font-mono, h1, h2, h3, h4, h5, h6, p, span, a, button, input, select, textarea, th, td, div, label),
+.account-panel :is(.font-headline, .font-editorial, .font-premium, .font-serif, .font-sans, .font-body, .font-label, .font-mono, h1, h2, h3, h4, h5, h6, p, span, a, button, input, select, textarea, th, td, div, label) {
+  font-family: 'IBM Plex Serif', Georgia, serif !important;
+}
+
+/* Ensure upright clean styling (no slanted/cursive italics) */
+.admin-panel .italic,
+.admin-panel [class*="italic"],
+.account-panel .italic,
+.account-panel [class*="italic"] {
+  font-style: normal !important;
+}
+
+/* Material symbol icons must retain their icon glyph font */
+.admin-panel .material-symbols-outlined,
+.account-panel .material-symbols-outlined {
+  font-family: 'Material Symbols Outlined' !important;
+}
+

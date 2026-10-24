@@ -296,8 +296,8 @@ const Account = () => {
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                             <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-emerald-700">Client Vault Active</span>
                         </div>
-                        <h1 className="font-headline text-3xl md:text-4xl italic text-[#111110] font-light">
-                            Welcome Back, <span className="not-italic font-normal">{userInfo.name?.split(' ')[0]}</span>
+                        <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">
+                            Welcome Back, <span className="font-normal">{userInfo.name?.split(' ')[0]}</span>
                         </h1>
                         <p className="font-sans text-xs text-[#7a7670] mt-1">Review your recent orders, curated wishlist, delivery addresses, and personal profile</p>
                     </div>
@@ -331,7 +331,7 @@ const Account = () => {
                                 </div>
                                 <div>
                                     <p className="font-sans text-[9px] sm:text-[10px] uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[#7a7670] font-bold mb-0.5 sm:mb-1 truncate">{stat.label}</p>
-                                    <h3 className="font-headline text-lg sm:text-2xl md:text-3xl italic font-light text-[#111110] tracking-tight mb-1 sm:mb-2">{stat.value}</h3>
+                                    <h3 className="font-plex text-lg sm:text-2xl md:text-3xl font-light text-[#111110] tracking-tight mb-1 sm:mb-2">{stat.value}</h3>
                                     <p className="font-sans text-[10px] sm:text-[11px] text-[#7a7670]/80 font-medium border-t border-[#111110]/5 pt-1.5 sm:pt-2 flex items-center justify-between">
                                         <span className="truncate">{stat.subtext}</span>
                                     </p>
@@ -345,7 +345,7 @@ const Account = () => {
                 <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)]">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6 pb-4 border-b border-[#111110]/5">
                         <div>
-                            <h2 className="font-headline text-2xl italic text-[#111110]">Recent Purchases</h2>
+                            <h2 className="font-plex text-2xl text-[#111110]">Recent Purchases</h2>
                             <p className="font-sans text-xs text-[#7a7670]">Latest acquisitions from the SOVRA atelier</p>
                         </div>
                         <button
@@ -375,7 +375,7 @@ const Account = () => {
                     ) : myOrders.length === 0 ? (
                         <div className="py-16 text-center border border-dashed border-[#111110]/10 rounded-2xl bg-[#fffcf7]/60">
                             <ShoppingBag className="w-10 h-10 text-stone-300 mx-auto mb-3" />
-                            <h3 className="font-headline text-xl italic text-stone-700 mb-1">No Orders Recorded Yet</h3>
+                            <h3 className="font-plex text-xl text-stone-700 mb-1">No Orders Recorded Yet</h3>
                             <p className="font-sans text-xs text-stone-400 mb-5 max-w-sm mx-auto">Explore our exclusive collections and start curating your personal archive today.</p>
                             <Link
                                 to="/shop"
@@ -407,7 +407,7 @@ const Account = () => {
                                                 <span className="text-stone-300">•</span>
                                                 <span className="font-sans text-[11px] text-stone-500">{new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                             </div>
-                                            <h4 className="font-headline text-base text-stone-900 group-hover:text-primary transition-colors">
+                                            <h4 className="font-plex text-base text-stone-900 group-hover:text-primary transition-colors">
                                                 {order.orderItems?.[0]?.name}
                                                 {order.orderItems?.length > 1 && (
                                                     <span className="font-sans text-xs text-stone-500 font-normal ml-1">+{order.orderItems.length - 1} more</span>
@@ -417,7 +417,7 @@ const Account = () => {
                                     </div>
                                     <div className="flex items-center gap-4 self-end sm:self-center">
                                         <div className="text-right">
-                                            <p className="font-headline text-lg italic text-stone-900 font-light">{formatPrice(order.totalPrice)}</p>
+                                            <p className="font-plex text-lg text-stone-900 font-light">{formatPrice(order.totalPrice)}</p>
                                             <span className={`inline-block font-sans text-[9px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full border ${
                                                 order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                                 order.status === 'Shipped' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -442,7 +442,7 @@ const Account = () => {
                         <div>
                             <div className="flex justify-between items-center pb-4 mb-6 border-b border-[#111110]/5">
                                 <div>
-                                    <h3 className="font-headline text-2xl italic text-[#111110]">Profile Snapshot</h3>
+                                    <h3 className="font-plex text-2xl text-[#111110]">Profile Snapshot</h3>
                                     <p className="font-sans text-xs text-[#7a7670]">Personal information & preferences</p>
                                 </div>
                                 <button
@@ -495,7 +495,7 @@ const Account = () => {
                         <div>
                             <div className="flex justify-between items-center pb-4 mb-6 border-b border-[#111110]/5">
                                 <div>
-                                    <h3 className="font-headline text-2xl italic text-[#111110]">Curated Wishlist</h3>
+                                    <h3 className="font-plex text-2xl text-[#111110]">Curated Wishlist</h3>
                                     <p className="font-sans text-xs text-[#7a7670]">Saved pieces in your private vault</p>
                                 </div>
                                 <span className="font-sans text-xs font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
@@ -557,7 +557,7 @@ const Account = () => {
                         <div className="flex items-center gap-2.5 mb-1">
                             <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-primary">Orders Archive</span>
                         </div>
-                        <h1 className="font-headline text-3xl md:text-4xl italic text-[#111110] font-light">My Order History</h1>
+                        <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">My Order History</h1>
                         <p className="font-sans text-xs text-[#7a7670] mt-1">Track and review all purchases, logistical status, invoices, and returns</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -628,7 +628,7 @@ const Account = () => {
                 ) : filteredOrders.length === 0 ? (
                     <div className="bg-white py-20 px-6 rounded-2xl border border-dashed border-stone-200 text-center">
                         <ShoppingBag className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-                        <h3 className="font-headline text-2xl italic text-stone-800 mb-2">No Matching Orders</h3>
+                        <h3 className="font-plex text-2xl text-stone-800 mb-2">No Matching Orders</h3>
                         <p className="font-sans text-xs text-stone-500 max-w-md mx-auto mb-6">
                             {orderSearch || orderStatusFilter !== 'All'
                                 ? 'No orders found matching your search and filter criteria.'
@@ -675,7 +675,7 @@ const Account = () => {
                                         <div className="h-6 w-px bg-stone-200 hidden sm:block" />
                                         <div>
                                             <span className="text-stone-400 block text-[9px] uppercase tracking-wider font-bold">Total Amount</span>
-                                            <span className="font-headline text-stone-900 font-bold italic">{formatPrice(order.totalPrice)}</span>
+                                            <span className="font-plex text-stone-900 font-bold">{formatPrice(order.totalPrice)}</span>
                                         </div>
                                     </div>
 
@@ -701,7 +701,7 @@ const Account = () => {
                                                         <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-headline text-base text-stone-900">{item.name}</h4>
+                                                        <h4 className="font-plex text-base text-stone-900">{item.name}</h4>
                                                         <p className="font-sans text-xs text-stone-500">
                                                             Qty: <span className="font-bold text-stone-700">{item.qty || 1}</span> • Price: <span className="font-mono text-stone-700">{formatPrice(item.price)}</span>
                                                         </p>
@@ -779,7 +779,7 @@ const Account = () => {
                         <div className="flex items-center gap-2.5 mb-1">
                             <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-primary">Logistics Vault</span>
                         </div>
-                        <h1 className="font-headline text-3xl md:text-4xl italic text-[#111110] font-light">Saved Addresses</h1>
+                        <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">Saved Addresses</h1>
                         <p className="font-sans text-xs text-[#7a7670] mt-1">Manage delivery destinations for swift and discreet courier fulfillment</p>
                     </div>
                     {!showAddressForm && (
@@ -802,7 +802,7 @@ const Account = () => {
                     >
                         <div className="flex justify-between items-center pb-4 mb-6 border-b border-stone-100">
                             <div>
-                                <h3 className="font-headline text-2xl italic text-[#111110]">{editingAddress ? 'Edit Address' : 'New Delivery Address'}</h3>
+                                <h3 className="font-plex text-2xl text-[#111110]">{editingAddress ? 'Edit Address' : 'New Delivery Address'}</h3>
                                 <p className="font-sans text-xs text-stone-500">Enter accurate shipping information for secure delivery</p>
                             </div>
                             <button
@@ -920,7 +920,7 @@ const Account = () => {
                 ) : addresses.length === 0 && !showAddressForm ? (
                     <div className="bg-white py-20 px-6 rounded-2xl border border-dashed border-stone-200 text-center">
                         <MapPin className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-                        <h3 className="font-headline text-2xl italic text-stone-800 mb-2">No Saved Addresses</h3>
+                        <h3 className="font-plex text-2xl text-stone-800 mb-2">No Saved Addresses</h3>
                         <p className="font-sans text-xs text-stone-500 max-w-md mx-auto mb-6">Save delivery destinations to expedite future checkouts and enjoy priority courier service.</p>
                         <button
                             onClick={() => setShowAddressForm(true)}
@@ -1009,7 +1009,7 @@ const Account = () => {
                         <div className="flex items-center gap-2.5 mb-1">
                             <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-rose-600">Curated Atelier</span>
                         </div>
-                        <h1 className="font-headline text-3xl md:text-4xl italic text-[#111110] font-light">My Wishlist</h1>
+                        <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">My Wishlist</h1>
                         <p className="font-sans text-xs text-[#7a7670] mt-1">Handpicked jewelry pieces saved in your personal archive</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1022,7 +1022,7 @@ const Account = () => {
                 {wishlist.length === 0 ? (
                     <div className="bg-white py-24 px-6 rounded-2xl border border-dashed border-stone-200 text-center">
                         <Heart className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-                        <h3 className="font-headline text-2xl italic text-stone-800 mb-2">Your Wishlist is Empty</h3>
+                        <h3 className="font-plex text-2xl text-stone-800 mb-2">Your Wishlist is Empty</h3>
                         <p className="font-sans text-xs text-stone-500 max-w-md mx-auto mb-6">
                             Tap the heart icon on any jewelry design while exploring to save your favorites here.
                         </p>
@@ -1063,11 +1063,11 @@ const Account = () => {
                                         </span>
                                         <h4
                                             onClick={() => navigate(`/product/${item._id}`)}
-                                            className="font-headline text-base text-stone-900 group-hover:text-primary transition-colors cursor-pointer truncate"
+                                            className="font-plex text-base text-stone-900 group-hover:text-primary transition-colors cursor-pointer truncate"
                                         >
                                             {item.name}
                                         </h4>
-                                        <p className="font-headline text-lg italic text-stone-900 font-light mt-1">
+                                        <p className="font-plex text-lg text-stone-900 font-light mt-1">
                                             {formatPrice(item.price || 0)}
                                         </p>
                                     </div>
@@ -1103,7 +1103,7 @@ const Account = () => {
                     <div className="flex items-center gap-2.5 mb-1">
                         <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-primary">Member Identity</span>
                     </div>
-                    <h1 className="font-headline text-3xl md:text-4xl italic text-[#111110] font-light">Personal Details</h1>
+                    <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">Personal Details</h1>
                     <p className="font-sans text-xs text-[#7a7670] mt-1">Update your client records, communication preferences, and shopping profile</p>
                 </div>
 
@@ -1191,7 +1191,7 @@ const Account = () => {
                     <div className="flex items-center gap-2.5 mb-1">
                         <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-primary">Security & Access</span>
                     </div>
-                    <h1 className="font-headline text-3xl md:text-4xl italic text-[#111110] font-light">Change Password</h1>
+                    <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">Change Password</h1>
                     <p className="font-sans text-xs text-[#7a7670] mt-1">Manage authentication credentials and keep your account secured</p>
                 </div>
 
@@ -1256,7 +1256,7 @@ const Account = () => {
     }
 
     return (
-        <div className="flex flex-col lg:flex-row bg-[#fffcf7] min-h-screen selection:bg-primary-container text-stone-900 pt-16 sm:pt-20 lg:pt-0">
+        <div className="account-panel font-plex flex flex-col lg:flex-row bg-[#fffcf7] min-h-screen selection:bg-primary-container text-stone-900 pt-16 sm:pt-20 lg:pt-0" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
             {/* Mobile / Tablet Top Navigation Bar */}
             <div className="lg:hidden sticky top-[54px] sm:top-[60px] lg:top-0 z-30 bg-[#fffcf7]/95 backdrop-blur-xl border-b border-[#111110]/8 px-3.5 sm:px-6 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-300">
                 <div className="flex items-center justify-between mb-2.5 px-0.5">
@@ -1325,11 +1325,11 @@ const Account = () => {
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary/70 font-semibold">SOVRA CLIENT PORTAL</span>
                     </div>
-                    <h1 className="font-headline text-3xl italic font-light text-primary tracking-tight">My Account</h1>
+                    <h1 className="font-plex text-3xl font-light text-primary tracking-tight">My Account</h1>
 
                     {/* Member Profile Card Widget */}
                     <div className="mt-4 p-3 bg-stone-50/80 rounded-2xl border border-stone-200/60 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary text-white font-headline text-lg italic flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <div className="w-10 h-10 rounded-xl bg-primary text-white font-plex text-lg font-medium flex items-center justify-center flex-shrink-0 shadow-sm">
                             {userInitial}
                         </div>
                         <div className="overflow-hidden">
@@ -1455,7 +1455,7 @@ const Account = () => {
                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                                         <span className="font-mono text-[9px] uppercase tracking-widest text-primary/70 font-semibold">RETURN INITIATION</span>
                                     </div>
-                                    <h2 className="font-headline text-3xl italic text-[#111110]">Request Return</h2>
+                                    <h2 className="font-plex text-3xl text-[#111110]">Request Return</h2>
                                     <p className="font-mono text-xs text-stone-500 mt-1">Order #{selectedReturnOrder?._id.slice(-8).toUpperCase()}</p>
                                 </div>
                                 <button

@@ -31,7 +31,8 @@ const ProductDetail = () => {
     const isWishlisted = wishlist.some(item => (item._id || item) === id);
     const cartItem = cart.find(item => (item.product?._id || item.product) === id);
     const currentInCart = cartItem ? cartItem.qty : 0;
-    const availableToAdd = product ? Math.max(0, product.stock - currentInCart) : 0;
+    const isOutOfStock = !product || Number(product.stock) <= 0;
+    const availableToAdd = product && !isOutOfStock ? Math.max(0, Number(product.stock) - currentInCart) : 0;
 
     useEffect(() => {
         window.scrollTo(0, 0)
@@ -172,15 +173,15 @@ const ProductDetail = () => {
 
     if (!product) return (
         <div className="pt-64 text-center bg-[#fffcf7] min-h-screen px-12">
-            <h2 className="font-premium text-4xl italic mb-8">Piece not found in the collection.</h2>
-            <Link to="/shop" className="font-sans text-[10px] tracking-widest uppercase border-b border-[#111110] pb-2 font-black">Return to Gallery</Link>
+            <h2 className="font-plex text-3xl sm:text-4xl font-normal text-[#111110] mb-8">Piece not found in the collection.</h2>
+            <Link to="/shop" className="font-sans text-[10px] tracking-widest uppercase border-b border-[#111110] pb-2 font-bold">Return to Gallery</Link>
         </div>
     )
 
     const displayImages = Array.from(new Set([product.img || product.image, ...(product.images || [])].filter(Boolean)));
 
     return (
-        <div className="pt-16 sm:pt-20 md:pt-28 pb-12 md:pb-20 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
+        <div className="product-page pt-16 sm:pt-20 md:pt-28 pb-12 md:pb-20 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
             {product && (
                 <Helmet>
                     <title>{`${product.name} | SOVRA SOVRA`}</title>
@@ -196,7 +197,7 @@ const ProductDetail = () => {
             <main className="max-w-[1600px] mx-auto px-3.5 sm:px-6 md:px-10 lg:px-12">
 
                 {/* Editorial Top Navigation */}
-                <Link to="/shop" className="inline-flex items-center gap-2 sm:gap-3 font-sans text-[8.5px] sm:text-[9px] tracking-[0.3em] sm:tracking-[0.35em] uppercase text-[#7a7670] mb-3 sm:mb-5 md:mb-8 hover:text-[#111110] transition-colors group font-black">
+                <Link to="/shop" className="inline-flex items-center gap-2 sm:gap-3 font-sans text-[8.5px] sm:text-[9px] tracking-[0.3em] sm:tracking-[0.35em] uppercase text-[#7a7670] mb-3 sm:mb-5 md:mb-8 hover:text-[#111110] transition-colors group font-bold">
                     <ArrowLeft size={12} className="transition-transform group-hover:-translate-x-1.5" />
                     Back to Curation
                 </Link>
@@ -258,21 +259,21 @@ const ProductDetail = () => {
                                 initial={{ opacity: 0, y: 15 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.05 }}
-                                className="font-premium text-2xl sm:text-4xl lg:text-[42px] text-[#111110] leading-[1.12] mb-2 sm:mb-3 italic"
+                                className="font-plex text-2xl sm:text-4xl lg:text-[42px] text-[#111110] leading-[1.15] mb-2 sm:mb-3 font-medium tracking-tight"
                             >
                                 {product.name}
                             </Motion.h1>
                             
                             {/* Price & Value Details */}
                             <div className="flex flex-wrap items-baseline gap-2 sm:gap-3 mb-2.5 sm:mb-3.5">
-                                <span className="font-sans text-xl sm:text-3xl font-bold text-[#111110] tracking-tight">
+                                <span className="font-plex text-2xl sm:text-3xl font-semibold text-[#111110] tracking-tight">
                                     {formatPrice(product.price)}
                                 </span>
-                                {product.mrp && product.mrp > product.price && (
-                                    <span className="font-sans text-sm sm:text-base text-stone-400 line-through font-normal">
+                                {Number(product.mrp) > Number(product.price) ? (
+                                    <span className="font-plex text-sm sm:text-base text-stone-400 line-through font-normal">
                                         {formatPrice(product.mrp)}
                                     </span>
-                                )}
+                                ) : null}
                                 <span className="font-sans text-[10px] sm:text-[11px] text-[#78736a] uppercase tracking-wider font-medium">
                                     • Taxes Included
                                 </span>
@@ -281,7 +282,7 @@ const ProductDetail = () => {
                                 </span>
                             </div>
 
-                            <p className="font-sans text-[12.5px] sm:text-[14px] text-[#4a4742] leading-relaxed font-normal">
+                            <p className="font-plex text-[13.5px] sm:text-[15px] text-[#3d3a35] leading-relaxed font-normal">
                                 {product.description || product.details}
                             </p>
                         </header>
@@ -313,7 +314,7 @@ const ProductDetail = () => {
                                         <span className="font-sans text-[8.5px] sm:text-[9.5px] tracking-[0.15em] uppercase text-[#7a756c] font-semibold block mb-0.5">
                                             {spec.label}
                                         </span>
-                                        <span className="font-sans text-[11.5px] sm:text-[13.5px] text-[#1c1b18] font-semibold tracking-tight truncate">
+                                        <span className="font-plex text-[12px] sm:text-[14px] text-[#1c1b18] font-medium tracking-tight truncate">
                                             {spec.value}
                                         </span>
                                     </div>
@@ -343,12 +344,12 @@ const ProductDetail = () => {
 
                         {/* Action Area (Quantity + Add to Bag + Wishlist) */}
                         <div className="space-y-2.5 sm:space-y-3.5 pt-0.5 sm:pt-1">
-                            <div className="flex items-center justify-between text-[9.5px] sm:text-[10px] tracking-wider uppercase text-[#615c54] font-bold px-1">
+                            <div className="flex items-center justify-between text-[9.5px] sm:text-[10.5px] tracking-wider uppercase text-[#615c54] font-bold px-1">
                                 <span className="inline-flex items-center gap-1.5">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    {product.stock > 0 ? (availableToAdd > 0 ? 'In Stock' : 'In Bag') : 'Out of Stock'}
+                                    <span className={`w-2 h-2 rounded-full ${isOutOfStock ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+                                    {isOutOfStock ? 'Out of Stock' : (availableToAdd > 0 ? 'In Stock' : 'In Bag')}
                                 </span>
-                                {product.stock > 0 && product.stock < 10 && (
+                                {!isOutOfStock && Number(product.stock) < 10 && (
                                     <span className="text-[#a88243] font-bold">
                                         {availableToAdd > 0 ? `${availableToAdd} units left` : 'All in your bag'}
                                     </span>
@@ -358,16 +359,18 @@ const ProductDetail = () => {
                             <div className="flex items-center gap-2 sm:gap-3">
                                 <div className="flex items-center border border-[#111110]/15 rounded-full px-2.5 sm:px-3.5 h-11 sm:h-13.5 bg-white/80 backdrop-blur-sm shrink-0 shadow-xs">
                                     <button
-                                        disabled={availableToAdd === 0}
+                                        disabled={isOutOfStock || availableToAdd === 0}
                                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
                                         className="p-1 hover:opacity-50 transition-opacity disabled:opacity-20"
                                         aria-label="Decrease quantity"
                                     >
                                         <Minus size={12} />
                                     </button>
-                                    <span className="px-2 sm:px-4 font-sans font-bold text-xs text-[#111110]">{availableToAdd === 0 ? 0 : quantity}</span>
+                                    <span className="px-2 sm:px-4 font-sans font-bold text-xs text-[#111110]">
+                                        {isOutOfStock ? 0 : (availableToAdd === 0 ? 0 : quantity)}
+                                    </span>
                                     <button
-                                        disabled={availableToAdd === 0 || quantity >= availableToAdd}
+                                        disabled={isOutOfStock || availableToAdd === 0 || quantity >= availableToAdd}
                                         onClick={() => setQuantity(Math.min(availableToAdd, quantity + 1))}
                                         className="p-1 hover:opacity-50 transition-opacity disabled:opacity-20"
                                         aria-label="Increase quantity"
@@ -377,16 +380,25 @@ const ProductDetail = () => {
                                 </div>
 
                                 <button
-                                    disabled={availableToAdd === 0}
+                                    disabled={isOutOfStock || availableToAdd === 0}
                                     onClick={() => {
+                                        if (isOutOfStock) return;
                                         addToCart(product._id, quantity)
                                         // GA4: add_to_cart
                                         trackAddToCart(product, quantity)
                                     }}
-                                    className={`flex-1 h-11 sm:h-13.5 ${availableToAdd === 0 ? 'bg-[#111110]/20' : 'bg-[#111110] hover:bg-black'} text-[#f5f0e8] px-3 sm:px-6 text-[10px] sm:text-[11px] tracking-[0.16em] sm:tracking-[0.2em] uppercase font-sans font-bold flex items-center justify-center gap-2 sm:gap-3 transition-all rounded-full shadow-lux-sm active:scale-[0.99] disabled:cursor-not-allowed`}
+                                    className={`flex-1 h-11 sm:h-13.5 ${
+                                        isOutOfStock
+                                            ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed shadow-none'
+                                            : (availableToAdd === 0
+                                                ? 'bg-[#111110]/20 text-stone-400 cursor-not-allowed'
+                                                : 'bg-[#111110] hover:bg-black text-[#f5f0e8] shadow-lux-sm active:scale-[0.99]')
+                                    } px-3 sm:px-6 text-[10px] sm:text-[11px] tracking-[0.16em] sm:tracking-[0.2em] uppercase font-sans font-bold flex items-center justify-center gap-2 sm:gap-3 transition-all rounded-full disabled:cursor-not-allowed`}
                                 >
                                     <ShoppingBag size={14} />
-                                    <span>{product.stock === 0 ? 'Out of Stock' : (availableToAdd === 0 ? 'In Bag' : 'Buy Now')}</span>
+                                    <span>
+                                        {isOutOfStock ? 'Out of Stock' : (availableToAdd === 0 ? 'In Bag' : 'Buy Now')}
+                                    </span>
                                 </button>
 
                                 <button
@@ -429,8 +441,8 @@ const ProductDetail = () => {
                 <section className="mt-12 sm:mt-20 md:mt-28 pt-8 sm:pt-16 md:pt-20 border-t border-[#111110]/10">
                     <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6 mb-6 sm:mb-12">
                         <header className="space-y-2 sm:space-y-3">
-                            <span className="font-sans text-[8.5px] sm:text-[9px] tracking-[0.35em] sm:tracking-[0.4em] uppercase text-[#7a7670] block font-black">Verified Feedback</span>
-                            <h2 className="font-premium text-2xl sm:text-4xl md:text-5xl italic leading-none text-[#111110]">Customer Reviews</h2>
+                            <span className="font-sans text-[8.5px] sm:text-[9px] tracking-[0.35em] sm:tracking-[0.4em] uppercase text-[#7a7670] block font-bold">Verified Feedback</span>
+                            <h2 className="font-plex text-2xl sm:text-4xl md:text-5xl leading-none text-[#111110] font-normal">Customer Reviews</h2>
                             <div className="flex items-center gap-3 sm:gap-4 pt-1">
                                 <div className="flex text-primary">
                                     {[1, 2, 3, 4, 5].map((star) => (
@@ -449,7 +461,7 @@ const ProductDetail = () => {
 
                         <button
                             onClick={() => setShowReviewForm(!showReviewForm)}
-                            className="inline-flex items-center justify-center gap-2 bg-[#111110] text-[#f5f0e8] hover:bg-black px-4 sm:px-6 py-2 sm:py-3 rounded-full text-[8.5px] sm:text-[9px] tracking-[0.25em] sm:tracking-[0.3em] uppercase font-sans font-black transition-all shadow-lux-sm self-start sm:self-auto shrink-0"
+                            className="inline-flex items-center justify-center gap-2 bg-[#111110] text-[#f5f0e8] hover:bg-black px-4 sm:px-6 py-2 sm:py-3 rounded-full text-[8.5px] sm:text-[9px] tracking-[0.25em] sm:tracking-[0.3em] uppercase font-sans font-bold transition-all shadow-lux-sm self-start sm:self-auto shrink-0"
                         >
                             {showReviewForm ? 'Close Form' : 'Write a Review'}
                         </button>
@@ -461,7 +473,7 @@ const ProductDetail = () => {
                             {localStorage.getItem('userInfo') ? (
                                 <form onSubmit={submitReviewHandler} className="space-y-4 sm:space-y-6">
                                     <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-[#111110]/8">
-                                        <h3 className="font-premium text-xl sm:text-2xl italic text-[#111110]">Share Your Experience</h3>
+                                        <h3 className="font-plex text-xl sm:text-2xl text-[#111110] font-medium">Share Your Experience</h3>
                                         <button 
                                             type="button" 
                                             onClick={() => setShowReviewForm(false)}
@@ -472,7 +484,7 @@ const ProductDetail = () => {
                                     </div>
 
                                     <div className="space-y-1.5 sm:space-y-2">
-                                        <label className="text-[8.5px] sm:text-[9px] uppercase tracking-[0.25em] sm:tracking-[0.3em] font-black text-[#7a7670] block">Your Rating</label>
+                                        <label className="text-[8.5px] sm:text-[9px] uppercase tracking-[0.25em] sm:tracking-[0.3em] font-bold text-[#7a7670] block">Your Rating</label>
                                         <div className="flex gap-2 sm:gap-3">
                                             {[1, 2, 3, 4, 5].map((s) => (
                                                 <button
@@ -493,13 +505,13 @@ const ProductDetail = () => {
                                     </div>
 
                                     <div className="space-y-1.5 sm:space-y-2">
-                                        <label className="text-[8.5px] sm:text-[9px] uppercase tracking-[0.25em] sm:tracking-[0.3em] font-black text-[#7a7670] block">Your Review</label>
+                                        <label className="text-[8.5px] sm:text-[9px] uppercase tracking-[0.25em] sm:tracking-[0.3em] font-bold text-[#7a7670] block">Your Review</label>
                                         <textarea
                                             required
                                             value={comment}
                                             onChange={(e) => setComment(e.target.value)}
                                             rows={3}
-                                            className="w-full bg-[#fbf9f6] border border-[#111110]/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 font-body text-sm sm:text-base italic outline-none focus:border-primary focus:bg-white transition-all resize-none"
+                                            className="w-full bg-[#fbf9f6] border border-[#111110]/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 font-plex text-sm sm:text-base outline-none focus:border-primary focus:bg-white transition-all resize-none text-[#1c1b18]"
                                             placeholder="Write your honest reflection of this piece..."
                                         />
                                     </div>
@@ -507,15 +519,15 @@ const ProductDetail = () => {
                                     <button
                                         disabled={submittingReview}
                                         type="submit"
-                                        className="bg-[#111110] text-white px-6 sm:px-8 py-2.5 sm:py-3.5 text-[8.5px] sm:text-[9px] tracking-[0.3em] uppercase font-black hover:bg-black transition-all rounded-full shadow-lux disabled:opacity-50"
+                                        className="bg-[#111110] text-white px-6 sm:px-8 py-2.5 sm:py-3.5 text-[8.5px] sm:text-[9px] tracking-[0.3em] uppercase font-bold hover:bg-black transition-all rounded-full shadow-lux disabled:opacity-50"
                                     >
                                         {submittingReview ? 'Submitting...' : 'Submit Review'}
                                     </button>
                                 </form>
                             ) : (
                                 <div className="text-center py-4 sm:py-6 space-y-3 sm:space-y-4">
-                                    <p className="font-premium text-lg sm:text-xl italic text-[#111110]/70">Please identify yourself to leave a review.</p>
-                                    <Link to="/login" className="inline-block bg-[#111110] text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full text-[8.5px] sm:text-[9px] tracking-widest uppercase font-black hover:bg-black transition-all">
+                                    <p className="font-plex text-lg sm:text-xl text-[#111110]/80">Please identify yourself to leave a review.</p>
+                                    <Link to="/login" className="inline-block bg-[#111110] text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-full text-[8.5px] sm:text-[9px] tracking-widest uppercase font-bold hover:bg-black transition-all">
                                         Sign In
                                     </Link>
                                 </div>
@@ -527,12 +539,12 @@ const ProductDetail = () => {
                     {!product.reviews || product.reviews.length === 0 ? (
                         <div className="py-10 sm:py-16 px-4 sm:px-6 text-center bg-[#fbf9f6] rounded-2xl sm:rounded-3xl border border-[#111110]/5 max-w-2xl mx-auto flex flex-col items-center justify-center gap-3 sm:gap-4">
                             <Sparkles size={26} className="text-primary/40" />
-                            <h3 className="font-premium text-xl sm:text-2xl italic text-[#111110]">No reviews yet</h3>
-                            <p className="font-body text-xs sm:text-sm italic text-[#7a7670] max-w-sm">Be the first to share your experience with this creation.</p>
+                            <h3 className="font-plex text-xl sm:text-2xl text-[#111110] font-medium">No reviews yet</h3>
+                            <p className="font-plex text-xs sm:text-sm text-[#7a7670] max-w-sm">Be the first to share your experience with this creation.</p>
                             {!showReviewForm && (
                                 <button
                                     onClick={() => setShowReviewForm(true)}
-                                    className="mt-1 text-[8.5px] sm:text-[9px] tracking-[0.25em] sm:tracking-[0.3em] uppercase font-black text-primary border-b border-primary/40 pb-1 hover:border-primary transition-all"
+                                    className="mt-1 text-[8.5px] sm:text-[9px] tracking-[0.25em] sm:tracking-[0.3em] uppercase font-bold text-primary border-b border-primary/40 pb-1 hover:border-primary transition-all"
                                 >
                                     Write the First Review
                                 </button>
@@ -555,15 +567,15 @@ const ProductDetail = () => {
                                                 <Sparkles key={s} size={13} className={s <= review.rating ? 'fill-current' : 'text-[#111110]/15'} />
                                             ))}
                                         </div>
-                                        <span className="text-[7.5px] sm:text-[8px] uppercase tracking-widest font-black text-[#7a7670]">{new Date(review.createdAt).toLocaleDateString()}</span>
+                                        <span className="text-[7.5px] sm:text-[8px] uppercase tracking-widest font-bold text-[#7a7670]">{new Date(review.createdAt).toLocaleDateString()}</span>
                                     </div>
 
-                                    <p className="font-body text-sm sm:text-base italic text-[#4a4947] leading-relaxed">
+                                    <p className="font-plex text-sm sm:text-base text-[#4a4947] leading-relaxed font-normal">
                                         "{review.comment}"
                                     </p>
 
                                     <div className="pt-3 sm:pt-4 border-t border-[#111110]/5 flex items-center justify-between">
-                                        <span className="font-premium text-base sm:text-lg italic text-[#111110]">{review.name}</span>
+                                        <span className="font-plex text-base sm:text-lg font-medium text-[#111110]">{review.name}</span>
                                         <span className="font-sans text-[7.5px] sm:text-[8px] tracking-[0.2em] sm:tracking-[0.25em] uppercase text-primary font-bold bg-primary/8 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">Verified Client</span>
                                     </div>
                                 </Motion.div>
@@ -575,8 +587,8 @@ const ProductDetail = () => {
                 {/* Similar Products Section */}
                 <section className="mt-14 sm:mt-24 md:mt-32 pt-10 sm:pt-16 md:pt-20 border-t border-[#111110]/10 overflow-hidden pb-16 sm:pb-32 md:pb-48">
                     <div className="flex flex-col items-center mb-6 sm:mb-12 md:mb-16 text-center space-y-2 sm:space-y-3">
-                        <span className="font-sans text-[8.5px] sm:text-[9px] tracking-[0.4em] sm:tracking-[0.5em] uppercase text-[#7a7670] block font-black">Complete the Curation</span>
-                        <h2 className="font-premium text-2xl sm:text-4xl md:text-5xl italic leading-none text-[#111110]">You May Also Like</h2>
+                        <span className="font-sans text-[8.5px] sm:text-[9px] tracking-[0.4em] sm:tracking-[0.5em] uppercase text-[#7a7670] block font-bold">Complete the Curation</span>
+                        <h2 className="font-plex text-2xl sm:text-4xl md:text-5xl leading-none text-[#111110] font-normal">You May Also Like</h2>
                         <div className="w-10 sm:w-12 h-[1px] bg-primary/40 mt-2 sm:mt-3 mx-auto" />
                     </div>
 
@@ -605,24 +617,24 @@ const ProductDetail = () => {
 
                                         <div className="absolute bottom-3 sm:bottom-5 left-3 right-3 sm:left-5 sm:right-5 translate-y-6 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-10">
                                             <div className="bg-white/95 backdrop-blur-md px-3 sm:px-5 py-2 sm:py-3 rounded-full text-center shadow-sm">
-                                                <span className="font-sans text-[7.5px] sm:text-[8px] tracking-[0.25em] sm:tracking-[0.3em] uppercase text-[#111110] font-black">View Piece</span>
+                                                <span className="font-sans text-[7.5px] sm:text-[8px] tracking-[0.25em] sm:tracking-[0.3em] uppercase text-[#111110] font-bold">View Piece</span>
                                             </div>
                                         </div>
                                     </Link>
 
                                     <div className="p-3 sm:p-6 md:p-8 flex flex-col flex-1 text-center justify-center items-center gap-1.5 sm:gap-3">
-                                        <span className="text-[7.5px] sm:text-[8px] uppercase tracking-[0.3em] font-black opacity-40">{p.category}</span>
+                                        <span className="text-[7.5px] sm:text-[8px] uppercase tracking-[0.3em] font-bold opacity-40">{p.category}</span>
                                         <Link to={`/product/${p._id}`}>
-                                            <h3 className="font-sans text-xs sm:text-sm md:text-base font-medium text-[#111110] group-hover:text-primary transition-colors duration-300 line-clamp-1">{p.name}</h3>
+                                            <h3 className="font-plex text-xs sm:text-sm md:text-base font-medium text-[#111110] group-hover:text-primary transition-colors duration-300 line-clamp-1">{p.name}</h3>
                                         </Link>
-                                        <span className="font-sans font-bold text-xs sm:text-sm text-[#111110]">{formatPrice(p.price)}</span>
+                                        <span className="font-plex font-semibold text-xs sm:text-sm text-[#111110]">{formatPrice(p.price)}</span>
                                     </div>
                                 </Motion.div>
                             ))}
                         </div>
                     ) : (
                         <div className="text-center py-10 sm:py-16 px-4 sm:px-8 border border-dashed border-[#111110]/10 rounded-2xl sm:rounded-3xl max-w-xl mx-auto">
-                            <p className="font-premium text-lg sm:text-xl italic opacity-40">No similar pieces found in this collection.</p>
+                            <p className="font-plex text-lg sm:text-xl opacity-50">No similar pieces found in this collection.</p>
                         </div>
                     )}
                 </section>

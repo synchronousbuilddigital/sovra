@@ -302,11 +302,11 @@ const Home = () => {
                                                 <span className="font-label text-xs sm:text-base font-bold text-primary">
                                                     {formatPrice(product.price)}
                                                 </span>
-                                                {product.mrp > product.price && (
+                                                {Number(product.mrp) > Number(product.price) ? (
                                                     <span className="text-[10px] sm:text-xs font-mono text-secondary/50 line-through">
                                                         {formatPrice(product.mrp)}
                                                     </span>
-                                                )}
+                                                ) : null}
                                             </div>
                                             <h4 className="text-[11px] sm:text-xs font-medium text-primary/90 truncate group-hover/card:text-primary transition-colors">
                                                 {product.name}
@@ -524,11 +524,11 @@ const Home = () => {
                                                 <span className="font-sans text-xs sm:text-sm font-semibold text-[#111110]">
                                                     {formatPrice(product.price)}
                                                 </span>
-                                                {product.mrp && product.mrp > product.price && (
+                                                {Number(product.mrp) > Number(product.price) ? (
                                                     <span className="font-sans text-[10px] sm:text-xs text-stone-400 line-through">
                                                         {formatPrice(product.mrp)}
                                                     </span>
-                                                )}
+                                                ) : null}
                                             </div>
 
                                             {/* Category & Material: clean unified line without collisions */}

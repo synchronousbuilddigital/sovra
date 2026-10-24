@@ -139,49 +139,97 @@ const Admin = () => {
         navigate('/login')
     }
 
-    // Data Fetching Central
+    // Initial Data Fetching - Run once on mount so tab switching is instantaneous
     useEffect(() => {
         fetchAdminData()
-    }, [activeTab])
+    }, [])
 
-    const fetchAdminData = async () => {
+    const fetchAdminData = async (isSilent = false) => {
         try {
-            setLoading(true)
-            const [statsRes, productsRes, ordersRes, usersRes, revenueRes, promosRes, abandonedRes, reelsRes, categoriesRes] = await Promise.all([
+            if (!isSilent) {
+                setLoading(true)
+            }
+
+            const [
+                statsRes,
+                productsRes,
+                ordersRes,
+                usersRes,
+                revenueRes,
+                promosRes,
+                abandonedRes,
+                reelsRes,
+                categoriesRes
+            ] = await Promise.allSettled([
                 api.get('/analytics/stats'),
                 api.get('/products?pageSize=all'),
                 api.get('/orders'),
                 api.get('/users'),
                 api.get('/analytics/revenue'),
-                api.get('/promos').catch(() => ({ data: [] })),
-                api.get('/users/admin/abandoned-carts').catch(() => ({ data: [] })),
-                api.get('/reels?all=true').catch(() => ({ data: [] })),
-                api.get('/categories?all=true').catch(() => ({ data: [] }))
+                api.get('/promos'),
+                api.get('/users/admin/abandoned-carts'),
+                api.get('/reels?all=true'),
+                api.get('/categories?all=true')
             ])
 
-            setStats(statsRes.data)
-            setProducts(productsRes.data.products || [])
-            setProductTotal(productsRes.data.total || (productsRes.data.products || []).length)
-            setOrders(ordersRes.data)
-            setCustomers(usersRes.data)
-            setPromos(promosRes.data || [])
-            setAbandonedCarts(abandonedRes.data || [])
-            setReels(reelsRes.data || [])
-            setCategories(categoriesRes.data || [])
+            let hasSuccessfulData = false
 
+            if (statsRes.status === 'fulfilled' && statsRes.value?.data) {
+                setStats(statsRes.value.data)
+                hasSuccessfulData = true
+            }
 
+            if (productsRes.status === 'fulfilled' && productsRes.value?.data) {
+                const pData = productsRes.value.data
+                setProducts(pData.products || [])
+                setProductTotal(pData.total || (pData.products || []).length)
+                hasSuccessfulData = true
+            }
 
-            // Map revenue data for the chart
-            const fullYear = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, revenue: 0 }))
-            revenueRes.data.forEach(item => {
-                const index = fullYear.findIndex(f => f.month === item._id)
-                if (index !== -1) fullYear[index].revenue = item.revenue
-            })
-            setRevenueData(fullYear)
+            if (ordersRes.status === 'fulfilled' && ordersRes.value?.data) {
+                setOrders(ordersRes.value.data)
+                hasSuccessfulData = true
+            }
+
+            if (usersRes.status === 'fulfilled' && usersRes.value?.data) {
+                setCustomers(usersRes.value.data)
+                hasSuccessfulData = true
+            }
+
+            if (promosRes.status === 'fulfilled' && promosRes.value?.data) {
+                setPromos(promosRes.value.data || [])
+            }
+
+            if (abandonedRes.status === 'fulfilled' && abandonedRes.value?.data) {
+                setAbandonedCarts(abandonedRes.value.data || [])
+            }
+
+            if (reelsRes.status === 'fulfilled' && reelsRes.value?.data) {
+                setReels(reelsRes.value.data || [])
+            }
+
+            if (categoriesRes.status === 'fulfilled' && categoriesRes.value?.data) {
+                setCategories(categoriesRes.value.data || [])
+            }
+
+            if (revenueRes.status === 'fulfilled' && Array.isArray(revenueRes.value?.data)) {
+                const fullYear = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, revenue: 0 }))
+                revenueRes.value.data.forEach(item => {
+                    const index = fullYear.findIndex(f => f.month === item._id)
+                    if (index !== -1) fullYear[index].revenue = item.revenue
+                })
+                setRevenueData(fullYear)
+            }
+
+            if (!hasSuccessfulData && !isSilent) {
+                toast.error('Unable to fetch latest admin data. Please check your network or login session.')
+            }
 
         } catch (error) {
             console.error('Fetch admin data failed:', error)
-            toast.error('SOVRA archives are temporarily unreachable.')
+            if (!isSilent) {
+                toast.error('Unable to fetch latest admin data.')
+            }
         } finally {
             setLoading(false)
         }
@@ -292,8 +340,9 @@ const Admin = () => {
 
         setCurrentProduct({
             ...product,
+            stock: Math.max(0, Number(product.stock) || 0),
             price: product.price ?? '',
-            mrp: product.mrp || '',
+            mrp: product.mrp && Number(product.mrp) > 0 ? product.mrp : '',
             showOnHome: Boolean(product.showOnHome),
             images: gallery
         })
@@ -305,7 +354,7 @@ const Admin = () => {
         if (willShow) {
             const currentHomeCount = products.filter(p => p.showOnHome && p._id !== product._id).length
             if (currentHomeCount >= 8) {
-                toast.error('Home Screen Showcase is full (8/8 slots used). Click "★ In Home Shop" on any active piece to free up a slot first.')
+                toast.error('Home Screen Showcase is full (8/8 slots used). Click "In Home Shop" on any active piece to free up a slot first.')
                 return
             }
         }
@@ -324,8 +373,9 @@ const Admin = () => {
         if (window.confirm('Are you sure you want to delete this product?')) {
             try {
                 await api.delete(`/products/${id}`)
+                setProducts(prev => prev.filter(p => p._id !== id))
                 toast.success('Product deleted successfully.')
-                fetchAdminData()
+                fetchAdminData(true)
             } catch (error) {
                 toast.error('Deletion failed.')
             }
@@ -372,6 +422,7 @@ const Admin = () => {
                 ...currentProduct,
                 price: Number(currentProduct.price),
                 mrp: currentProduct.mrp ? Number(currentProduct.mrp) : 0,
+                stock: Math.max(0, parseInt(currentProduct.stock, 10) || 0),
                 showOnHome: Boolean(currentProduct.showOnHome)
             }
 
@@ -381,8 +432,9 @@ const Admin = () => {
                 toast.success('Product updated successfully.')
             } else {
                 const { data } = await api.post('/products', payload)
+                setProducts(prev => [data, ...prev])
                 toast.success('Product added successfully.')
-                fetchAdminData()
+                fetchAdminData(true)
             }
             setIsModalOpen(false)
         } catch (error) {
@@ -906,17 +958,21 @@ const Admin = () => {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-2 border-b border-[#111110]/8">
                     <div>
-                        <div className="flex items-center gap-2.5 mb-1">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-emerald-700">Live Store Online</span>
-                        </div>
-                        <h1 className="font-headline text-2xl sm:text-3xl md:text-4xl italic text-[#111110] font-light leading-tight">Dashboard Overview</h1>
-                        <p className="font-sans text-xs text-[#7a7670] mt-0.5 sm:mt-1">Real-time sales, orders, and store overview</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl text-[#111110] font-light leading-tight">Dashboard Overview</h1>
+                        <p className="text-xs text-[#7a7670] mt-0.5 sm:mt-1">Real-time sales, orders, and store overview</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
+                            onClick={() => { fetchAdminData(); toast.info('Database records synchronized.'); }}
+                            title="Sync live records from database"
+                            className="border border-[#111110]/15 bg-white text-[#111110] hover:bg-stone-50 transition-all px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs tracking-wider uppercase font-bold flex items-center gap-2 shadow-2xs active:scale-98 cursor-pointer"
+                        >
+                            <RotateCcw size={14} />
+                            <span className="hidden sm:inline">Sync Data</span>
+                        </button>
+                        <button
                             onClick={handleAddProduct}
-                            className="bg-[#111110] text-[#fffcf7] hover:bg-[#6e5b44] transition-all px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-sans text-xs tracking-wider uppercase font-bold flex items-center gap-2 shadow-sm active:scale-98"
+                            className="bg-[#111110] text-[#fffcf7] hover:bg-[#6e5b44] transition-all px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs tracking-wider uppercase font-bold flex items-center gap-2 shadow-sm active:scale-98"
                         >
                             <Plus size={15} />
                             <span>Add Product</span>
@@ -937,18 +993,18 @@ const Admin = () => {
                                     <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center ${stat.iconBg} flex-shrink-0`}>
                                         <Icon size={16} className="sm:w-5 sm:h-5" strokeWidth={1.8} />
                                     </div>
-                                    <span className={`font-sans text-[8.5px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full border ${stat.trendColor} whitespace-nowrap`}>
+                                    <span className={`text-[8.5px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full border ${stat.trendColor} whitespace-nowrap`}>
                                         <span className="sm:hidden">{stat.mobileTrend || stat.trend}</span>
                                         <span className="hidden sm:inline">{stat.trend}</span>
                                     </span>
                                 </div>
                                 <div>
-                                    <p className="font-sans text-[9px] sm:text-[10px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-[#7a7670] font-bold mb-0.5 sm:mb-1 whitespace-nowrap">
+                                    <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-[#7a7670] font-bold mb-0.5 sm:mb-1 whitespace-nowrap">
                                         <span className="sm:hidden">{stat.mobileLabel || stat.label}</span>
                                         <span className="hidden sm:inline">{stat.label}</span>
                                     </p>
-                                    <h3 className="font-headline text-base sm:text-2xl lg:text-3xl italic font-light text-[#111110] tracking-tight mb-1 sm:mb-2">{stat.value}</h3>
-                                    <p className="font-sans text-[9.5px] sm:text-[11px] text-[#7a7670]/80 font-medium border-t border-[#111110]/5 pt-1.5 sm:pt-2 flex items-center justify-between">
+                                    <h3 className="text-base sm:text-2xl lg:text-3xl font-light text-[#111110] tracking-tight mb-1 sm:mb-2">{stat.value}</h3>
+                                    <p className="text-[9.5px] sm:text-[11px] text-[#7a7670]/80 font-medium border-t border-[#111110]/5 pt-1.5 sm:pt-2 flex items-center justify-between">
                                         <span className="sm:hidden truncate">{stat.mobileSubtext || stat.subtext}</span>
                                         <span className="hidden sm:inline truncate">{stat.subtext}</span>
                                     </p>
@@ -962,12 +1018,12 @@ const Admin = () => {
                 <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)] flex flex-col justify-between">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6 sm:mb-8 pb-4 border-b border-[#111110]/5">
                         <div>
-                            <h2 className="font-headline text-2xl italic text-[#111110]">Revenue Performance</h2>
-                            <p className="font-sans text-xs text-[#7a7670]">Total sales across recent months</p>
+                            <h2 className="text-2xl text-[#111110]">Revenue Performance</h2>
+                            <p className="text-xs text-[#7a7670]">Total sales across recent months</p>
                         </div>
                         <div className="flex items-center gap-2 px-3 py-1 sm:px-3.5 sm:py-1.5 bg-[#6e5b44]/8 rounded-full border border-[#6e5b44]/15">
                             <TrendingUp size={14} className="text-[#6e5b44]" />
-                            <span className="font-sans text-xs font-bold text-[#6e5b44]">Peak: ₹{totalRevNum.toLocaleString()}</span>
+                            <span className="text-xs font-bold text-[#6e5b44]">Peak: ₹{totalRevNum.toLocaleString()}</span>
                         </div>
                     </div>
 
@@ -978,7 +1034,7 @@ const Admin = () => {
                             return (
                                 <div key={item.month} className="flex-1 flex flex-col items-center gap-2.5 h-full justify-end group relative">
                                     {/* Tooltip on hover */}
-                                    <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-[#111110] text-[#fffcf7] px-2.5 py-1 rounded-md text-[10px] font-sans font-bold whitespace-nowrap shadow-md z-10">
+                                    <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-[#111110] text-[#fffcf7] px-2.5 py-1 rounded-md text-[10px] font-bold whitespace-nowrap shadow-md z-10">
                                         ₹{item.revenue.toLocaleString()}
                                     </div>
                                     <div className="w-full h-full flex items-end">
@@ -993,7 +1049,7 @@ const Admin = () => {
                                             }`}
                                         />
                                     </div>
-                                    <span className={`font-sans text-[11px] font-bold uppercase tracking-wider ${
+                                    <span className={`text-[11px] font-bold uppercase tracking-wider ${
                                         item.month === 'Apr' ? 'text-[#6e5b44]' : 'text-[#7a7670]'
                                     }`}>
                                         {item.month}
@@ -1013,20 +1069,20 @@ const Admin = () => {
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <h2 className="font-headline text-2xl italic text-[#111110]">Low Stock Products</h2>
+                                    <h2 className="text-2xl text-[#111110]">Low Stock Products</h2>
                                     {lowStockPieces.length > 0 && (
-                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                             {lowStockPieces.length} {lowStockPieces.length === 1 ? 'item' : 'items'}
                                         </span>
                                     )}
                                 </div>
-                                <p className="font-sans text-xs text-[#7a7670]">Products with 5 or fewer items remaining in stock</p>
+                                <p className="text-xs text-[#7a7670]">Products with 5 or fewer items remaining in stock</p>
                             </div>
                         </div>
 
                         <button
                             onClick={() => setActiveTab('products')}
-                            className="font-sans text-xs font-bold text-[#6e5b44] hover:text-[#111110] flex items-center gap-1.5 transition-colors group self-start sm:self-auto"
+                            className="text-xs font-bold text-[#6e5b44] hover:text-[#111110] flex items-center gap-1.5 transition-colors group self-start sm:self-auto"
                         >
                             <span>Manage All Products</span>
                             <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
@@ -1036,8 +1092,8 @@ const Admin = () => {
                     {lowStockPieces.length === 0 ? (
                         <div className="py-8 text-center space-y-2 bg-[#faf7f2]/50 rounded-xl border border-[#111110]/5">
                             <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
-                            <p className="font-headline text-lg italic text-[#111110]">Inventory Healthy</p>
-                            <p className="font-sans text-xs text-[#7a7670]">All products currently have 6 or more units in stock.</p>
+                            <p className="text-lg text-[#111110]">Inventory Healthy</p>
+                            <p className="text-xs text-[#7a7670]">All products currently have 6 or more units in stock.</p>
                         </div>
                     ) : (
                         <div>
@@ -1057,35 +1113,35 @@ const Admin = () => {
                                                     />
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <p className="font-headline text-base italic text-[#111110] truncate">
+                                                    <p className="text-base text-[#111110] truncate">
                                                         {p.name}
                                                     </p>
-                                                    <p className="font-mono text-[10px] text-[#7a7670]">
+                                                    <p className="text-[10px] text-[#7a7670]">
                                                         {p.sku || 'SOV-MOD'} • {p.category}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="text-right flex-shrink-0">
-                                                <p className="font-headline text-base italic text-[#111110]">
+                                                <p className="text-base text-[#111110]">
                                                     ₹{p.price?.toLocaleString()}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between gap-2 pt-0.5">
                                             {p.stock === 0 ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-sans font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                                     Out of Stock (0)
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-sans font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                                                     Only {p.stock} left
                                                 </span>
                                             )}
                                             <button
                                                 onClick={() => handleEditProduct(p)}
-                                                className="px-3 py-1.5 bg-[#111110]/5 hover:bg-primary hover:text-white rounded-lg text-xs font-sans font-bold text-[#111110] transition-all inline-flex items-center gap-1.5"
+                                                className="px-3 py-1.5 bg-[#111110]/5 hover:bg-primary hover:text-white rounded-lg text-xs font-bold text-[#111110] transition-all inline-flex items-center gap-1.5"
                                                 title="Update stock for this product"
                                             >
                                                 <Edit3 size={12} />
@@ -1100,7 +1156,7 @@ const Admin = () => {
                             <div className="hidden md:block overflow-x-auto no-scrollbar">
                                 <table className="w-full text-left min-w-[700px]">
                                     <thead>
-                                        <tr className="border-b border-[#111110]/8 text-[10px] font-sans uppercase tracking-[0.2em] font-bold text-[#7a7670]">
+                                        <tr className="border-b border-[#111110]/8 text-[10px] uppercase tracking-[0.2em] font-bold text-[#7a7670]">
                                             <th className="pb-3 pl-2">Product</th>
                                             <th className="pb-3">SKU</th>
                                             <th className="pb-3">Category</th>
@@ -1124,34 +1180,34 @@ const Admin = () => {
                                                             />
                                                         </div>
                                                         <div>
-                                                            <p className="font-headline text-base italic text-[#111110] group-hover:text-primary transition-colors">
+                                                            <p className="text-base text-[#111110] group-hover:text-primary transition-colors">
                                                                 {p.name}
                                                             </p>
-                                                            <p className="font-sans text-[10px] text-[#7a7670]">
+                                                            <p className="text-[10px] text-[#7a7670]">
                                                                 {p.material || 'Stainless Steel'}
                                                             </p>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="py-3.5 font-mono text-xs text-[#7a7670]">
+                                                <td className="py-3.5 text-xs text-[#7a7670]">
                                                     {p.sku || 'SOV-MOD'}
                                                 </td>
                                                 <td className="py-3.5">
-                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-sans font-semibold bg-stone-100 text-stone-600">
+                                                    <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-stone-100 text-stone-600">
                                                         {p.category}
                                                     </span>
                                                 </td>
-                                                <td className="py-3.5 font-headline text-base italic text-[#111110]">
+                                                <td className="py-3.5 text-base text-[#111110]">
                                                     ₹{p.price?.toLocaleString()}
                                                 </td>
                                                 <td className="py-3.5 text-center">
                                                     {p.stock === 0 ? (
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                                             Out of Stock (0)
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                                                             Only {p.stock} left
                                                         </span>
@@ -1160,7 +1216,7 @@ const Admin = () => {
                                                 <td className="py-3.5 pr-2 text-right">
                                                     <button
                                                         onClick={() => handleEditProduct(p)}
-                                                        className="px-3 py-1 bg-[#111110]/5 hover:bg-primary hover:text-white rounded-lg text-xs font-sans font-bold text-[#111110] transition-all inline-flex items-center gap-1.5"
+                                                        className="px-3 py-1 bg-[#111110]/5 hover:bg-primary hover:text-white rounded-lg text-xs font-bold text-[#111110] transition-all inline-flex items-center gap-1.5"
                                                         title="Update stock for this product"
                                                     >
                                                         <Edit3 size={12} />
@@ -1177,7 +1233,7 @@ const Admin = () => {
                                 <div className="pt-3 text-center border-t border-[#111110]/5">
                                     <button
                                         onClick={() => setActiveTab('products')}
-                                        className="text-xs font-sans font-bold text-[#6e5b44] hover:underline"
+                                        className="text-xs font-bold text-[#6e5b44] hover:underline"
                                     >
                                         + {lowStockPieces.length - 6} more low stock items in Products tab
                                     </button>
@@ -1191,12 +1247,12 @@ const Admin = () => {
                 <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)]">
                     <div className="flex justify-between items-center mb-6 pb-4 border-b border-[#111110]/5">
                         <div>
-                            <h2 className="font-headline text-2xl italic text-[#111110]">Recent Orders</h2>
-                            <p className="font-sans text-xs text-[#7a7670]">Latest customer orders placed on store</p>
+                            <h2 className="text-2xl text-[#111110]">Recent Orders</h2>
+                            <p className="text-xs text-[#7a7670]">Latest customer orders placed on store</p>
                         </div>
                         <button
                             onClick={() => setActiveTab('orders')}
-                            className="font-sans text-xs font-bold text-[#6e5b44] hover:text-[#111110] flex items-center gap-1.5 transition-colors group"
+                            className="text-xs font-bold text-[#6e5b44] hover:text-[#111110] flex items-center gap-1.5 transition-colors group"
                         >
                             <span>View All Orders</span>
                             <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
@@ -1208,10 +1264,10 @@ const Admin = () => {
                         {orders.slice(0, 5).map((o) => (
                             <div key={o._id} className="py-3.5 space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <span className="font-mono text-xs font-semibold text-[#6e5b44]">
+                                    <span className="text-xs font-semibold text-[#6e5b44]">
                                         #{o._id.slice(-6).toUpperCase()}
                                     </span>
-                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-sans font-bold uppercase tracking-wider ${
+                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
                                         o.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                                         o.status === 'Shipped' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
                                         o.status === 'Processing' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
@@ -1229,19 +1285,19 @@ const Admin = () => {
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="font-sans text-xs font-bold text-[#111110]">{o.user?.name || 'Guest Customer'}</p>
-                                        <p className="font-sans text-[10px] text-[#7a7670]">
+                                        <p className="text-xs font-bold text-[#111110]">{o.user?.name || 'Guest Customer'}</p>
+                                        <p className="text-[10px] text-[#7a7670]">
                                             {new Date(o.createdAt).toLocaleDateString()} • {o.orderItems?.length || 1} {o.orderItems?.length === 1 ? 'Item' : 'Items'}
                                         </p>
                                     </div>
-                                    <p className="font-headline text-base italic text-[#111110] font-medium">
+                                    <p className="text-base text-[#111110] font-medium">
                                         ₹{o.totalPrice?.toLocaleString()}
                                     </p>
                                 </div>
                                 <div className="pt-1 flex justify-end">
                                     <button
                                         onClick={() => { setSelectedOrder(o); setOrderNotes(o.internalNotes || ''); setIsOrderModalOpen(true); }}
-                                        className="w-full py-1.5 bg-[#111110]/5 hover:bg-[#6e5b44] hover:text-white rounded-lg text-xs font-sans font-bold text-[#111110] transition-all flex items-center justify-center gap-1"
+                                        className="w-full py-1.5 bg-[#111110]/5 hover:bg-[#6e5b44] hover:text-white rounded-lg text-xs font-bold text-[#111110] transition-all flex items-center justify-center gap-1"
                                     >
                                         <Eye size={12} />
                                         <span>View Order</span>
@@ -1250,7 +1306,7 @@ const Admin = () => {
                             </div>
                         ))}
                         {orders.length === 0 && (
-                            <div className="py-8 text-center font-sans text-xs text-[#7a7670] italic">
+                            <div className="py-8 text-center text-xs text-[#7a7670] ">
                                 No orders have been recorded yet.
                             </div>
                         )}
@@ -1260,7 +1316,7 @@ const Admin = () => {
                     <div className="hidden md:block overflow-x-auto no-scrollbar">
                         <table className="w-full text-left min-w-[700px]">
                             <thead>
-                                <tr className="border-b border-[#111110]/8 text-[10px] font-sans uppercase tracking-[0.2em] font-bold text-[#7a7670]">
+                                <tr className="border-b border-[#111110]/8 text-[10px] uppercase tracking-[0.2em] font-bold text-[#7a7670]">
                                     <th className="pb-3 pl-2">Order ID</th>
                                     <th className="pb-3">Customer</th>
                                     <th className="pb-3">Items</th>
@@ -1273,24 +1329,24 @@ const Admin = () => {
                             <tbody className="divide-y divide-[#111110]/5">
                                 {orders.slice(0, 5).map((o) => (
                                     <tr key={o._id} className="hover:bg-[#faf7f2]/60 transition-colors group">
-                                        <td className="py-3.5 pl-2 font-mono text-xs font-semibold text-[#6e5b44]">
+                                        <td className="py-3.5 pl-2 text-xs font-semibold text-[#6e5b44]">
                                             #{o._id.slice(-6).toUpperCase()}
                                         </td>
                                         <td className="py-3.5">
-                                            <p className="font-sans text-xs font-bold text-[#111110]">{o.user?.name || 'Guest Customer'}</p>
-                                            <p className="font-sans text-[10px] text-[#7a7670]">{o.user?.email || 'N/A'}</p>
+                                            <p className="text-xs font-bold text-[#111110]">{o.user?.name || 'Guest Customer'}</p>
+                                            <p className="text-[10px] text-[#7a7670]">{o.user?.email || 'N/A'}</p>
                                         </td>
-                                        <td className="py-3.5 font-sans text-xs text-[#111110]">
+                                        <td className="py-3.5 text-xs text-[#111110]">
                                             {o.orderItems?.length || 1} {o.orderItems?.length === 1 ? 'Item' : 'Items'}
                                         </td>
-                                        <td className="py-3.5 font-sans text-xs text-[#7a7670]">
+                                        <td className="py-3.5 text-xs text-[#7a7670]">
                                             {new Date(o.createdAt).toLocaleDateString()}
                                         </td>
-                                        <td className="py-3.5 font-headline text-base italic text-[#111110] font-medium">
+                                        <td className="py-3.5 text-base text-[#111110] font-medium">
                                             ₹{o.totalPrice?.toLocaleString()}
                                         </td>
                                         <td className="py-3.5">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider ${
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                                 o.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                                                 o.status === 'Shipped' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
                                                 o.status === 'Processing' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
@@ -1309,7 +1365,7 @@ const Admin = () => {
                                         <td className="py-3.5 pr-2 text-right">
                                             <button
                                                 onClick={() => { setSelectedOrder(o); setOrderNotes(o.internalNotes || ''); setIsOrderModalOpen(true); }}
-                                                className="px-3 py-1 bg-[#111110]/5 hover:bg-[#6e5b44] hover:text-white rounded-lg text-xs font-sans font-bold text-[#111110] transition-all inline-flex items-center gap-1"
+                                                className="px-3 py-1 bg-[#111110]/5 hover:bg-[#6e5b44] hover:text-white rounded-lg text-xs font-bold text-[#111110] transition-all inline-flex items-center gap-1"
                                             >
                                                 <Eye size={12} />
                                                 <span>View</span>
@@ -1319,7 +1375,7 @@ const Admin = () => {
                                 ))}
                                 {orders.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="py-12 text-center font-sans text-xs text-[#7a7670] italic">
+                                        <td colSpan={7} className="py-12 text-center text-xs text-[#7a7670] ">
                                             No orders have been recorded yet.
                                         </td>
                                     </tr>
@@ -1371,11 +1427,11 @@ const Admin = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-stone-200/70">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="font-mono text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Orders & Shipments</span>
+                            <span className="text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Orders & Shipments</span>
                             <span className="text-stone-300">•</span>
-                            <span className="text-xs text-stone-500 font-mono">{orders.length} total orders</span>
+                            <span className="text-xs text-stone-500 ">{orders.length} total orders</span>
                         </div>
-                        <h2 className="font-headline text-3xl md:text-4xl italic font-light text-primary tracking-tight">Customer Orders</h2>
+                        <h2 className="text-3xl md:text-4xl font-light text-primary tracking-tight">Customer Orders</h2>
                     </div>
 
                     {/* Search */}
@@ -1404,11 +1460,11 @@ const Admin = () => {
                     >
                         <div className="flex items-center gap-3">
                             <RotateCcw className="w-4 h-4 text-amber-700 animate-spin" style={{ animationDuration: '4s' }} />
-                            <p className="font-label text-xs uppercase tracking-wider font-bold text-amber-800">
+                            <p className="text-xs uppercase tracking-wider font-bold text-amber-800">
                                 {pendingReturns.length} Pending Return Request{pendingReturns.length > 1 ? 's' : ''} Need Review
                             </p>
                         </div>
-                        <span className="text-xs font-mono font-semibold text-amber-800 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                        <span className="text-xs font-semibold text-amber-800 group-hover:translate-x-1 transition-transform flex items-center gap-1">
                             Review <ArrowRight className="w-3.5 h-3.5" />
                         </span>
                     </div>
@@ -1423,14 +1479,14 @@ const Admin = () => {
                             <button
                                 key={status}
                                 onClick={() => setOrderFilter(status)}
-                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-label uppercase tracking-wider font-semibold whitespace-nowrap transition-all ${
+                                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs uppercase tracking-wider font-semibold whitespace-nowrap transition-all ${
                                     isActive
                                         ? 'bg-primary text-white shadow-sm'
                                         : 'bg-white/80 text-stone-600 border border-stone-200/80 hover:bg-stone-100 hover:text-stone-900'
                                 }`}
                             >
                                 <span>{status}</span>
-                                <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-500'}`}>
+                                <span className={`text-[9px] px-1.5 py-0.2 rounded-full ${isActive ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-500'}`}>
                                     {count}
                                 </span>
                             </button>
@@ -1449,40 +1505,40 @@ const Admin = () => {
                                 {/* Left Info */}
                                 <div className="space-y-2 flex-1">
                                     <div className="flex flex-wrap items-center gap-3">
-                                        <span className="font-mono text-[11px] font-bold text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10">
+                                        <span className="text-[11px] font-bold text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10">
                                             #{o._id.slice(-8).toUpperCase()}
                                         </span>
-                                        <span className="flex items-center gap-1 font-mono text-[11px] text-stone-400">
+                                        <span className="flex items-center gap-1 text-[11px] text-stone-400">
                                             <Clock className="w-3 h-3" />
                                             {new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                         </span>
-                                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider font-bold border ${getStatusColor(o.status)}`}>
+                                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold border ${getStatusColor(o.status)}`}>
                                             {o.status}
                                         </span>
                                         {o.isPaid ? (
-                                            <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
+                                            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">
                                                 Paid
                                             </span>
                                         ) : (
-                                            <span className="text-[10px] font-mono text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
+                                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
                                                 COD / Unpaid
                                             </span>
                                         )}
                                     </div>
 
                                     <div className="flex items-center gap-3 pt-1">
-                                        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-headline text-base italic flex items-center justify-center font-bold">
+                                        <div className="w-9 h-9 rounded-full bg-primary/10 text-primary text-base flex items-center justify-center font-bold">
                                             {(o.user?.name || 'G').charAt(0).toUpperCase()}
                                         </div>
                                         <div>
                                             <h4
                                                 onClick={() => { setSelectedOrder(o); setOrderNotes(o.internalNotes || ''); setIsOrderModalOpen(true); }}
-                                                className="font-headline text-xl italic font-normal text-stone-900 group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2"
+                                                className="text-xl font-normal text-stone-900 group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2"
                                             >
                                                 {o.user?.name || 'Guest Customer'}
                                                 <Eye className="w-3.5 h-3.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </h4>
-                                            <p className="text-xs text-stone-400 font-mono">
+                                            <p className="text-xs text-stone-400 ">
                                                 {o.user?.email || 'No email provided'} • {o.shippingAddress?.city || 'India'}
                                             </p>
                                         </div>
@@ -1492,14 +1548,14 @@ const Admin = () => {
                                 {/* Center / Summary */}
                                 <div className="flex items-center gap-8 py-2 border-y lg:border-y-0 lg:border-x border-stone-200/50 lg:px-8">
                                     <div>
-                                        <p className="text-[10px] font-mono uppercase tracking-wider text-stone-400">Items Ordered</p>
+                                        <p className="text-[10px] uppercase tracking-wider text-stone-400">Items Ordered</p>
                                         <p className="text-sm font-semibold text-stone-800">
                                             {o.orderItems?.length || 0} {o.orderItems?.length === 1 ? 'Item' : 'Items'}
                                         </p>
                                     </div>
                                     <div className="text-right lg:text-left">
-                                        <p className="text-[10px] font-mono uppercase tracking-wider text-stone-400">Total Amount</p>
-                                        <p className="font-headline text-2xl italic font-light text-primary">
+                                        <p className="text-[10px] uppercase tracking-wider text-stone-400">Total Amount</p>
+                                        <p className="text-2xl font-light text-primary">
                                             ₹{o.totalPrice?.toLocaleString()}
                                         </p>
                                     </div>
@@ -1532,8 +1588,8 @@ const Admin = () => {
                     {filtered.length === 0 && (
                         <div className="py-20 text-center bg-white/40 border border-stone-200/60 rounded-2xl space-y-3">
                             <ShoppingBag className="w-10 h-10 text-stone-300 mx-auto" />
-                            <p className="font-headline text-2xl italic text-stone-400">No orders found</p>
-                            <p className="text-xs text-stone-400 font-mono">Try adjusting your search criteria or clearing filters.</p>
+                            <p className="text-2xl text-stone-400">No orders found</p>
+                            <p className="text-xs text-stone-400 ">Try adjusting your search criteria or clearing filters.</p>
                             {(orderSearch || orderFilter !== 'All') && (
                                 <button
                                     onClick={() => { setOrderSearch(''); setOrderFilter('All'); }}
@@ -1554,11 +1610,11 @@ const Admin = () => {
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-stone-200/70">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Cart Recovery</span>
+                        <span className="text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Cart Recovery</span>
                         <span className="text-stone-300">•</span>
-                        <span className="text-xs text-stone-500 font-mono">{abandonedCarts.length} abandoned carts</span>
+                        <span className="text-xs text-stone-500 ">{abandonedCarts.length} abandoned carts</span>
                     </div>
-                    <h2 className="font-headline text-3xl md:text-4xl italic font-light text-primary tracking-tight">Abandoned Carts</h2>
+                    <h2 className="text-3xl md:text-4xl font-light text-primary tracking-tight">Abandoned Carts</h2>
                 </div>
             </header>
 
@@ -1569,19 +1625,19 @@ const Admin = () => {
                         <div key={cart._id} className="p-4 space-y-3">
                             <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-headline text-base italic flex items-center justify-center font-bold flex-shrink-0">
+                                    <div className="w-9 h-9 rounded-full bg-primary/10 text-primary text-base flex items-center justify-center font-bold flex-shrink-0">
                                         {cart.name ? cart.name.charAt(0).toUpperCase() : 'C'}
                                     </div>
                                     <div className="min-w-0">
-                                        <div className="font-headline text-base italic text-stone-900 truncate">{cart.name}</div>
-                                        <div className="font-mono text-[10px] text-stone-400 truncate">{cart.email}</div>
+                                        <div className="text-base text-stone-900 truncate">{cart.name}</div>
+                                        <div className="text-[10px] text-stone-400 truncate">{cart.email}</div>
                                     </div>
                                 </div>
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80 flex-shrink-0">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 flex-shrink-0">
                                     {cart.cart?.length || 0} {cart.cart?.length === 1 ? 'Item' : 'Items'}
                                 </span>
                             </div>
-                            <div className="flex items-center justify-between text-[10px] font-mono text-stone-500 pt-1">
+                            <div className="flex items-center justify-between text-[10px] text-stone-500 pt-1">
                                 <span>Last Active: {new Date(cart.cartLastUpdated).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                             </div>
                             <button
@@ -1596,8 +1652,8 @@ const Admin = () => {
                     {abandonedCarts.length === 0 && (
                         <div className="py-16 text-center text-stone-400 space-y-2 p-4">
                             <ShoppingCart className="w-8 h-8 mx-auto text-stone-300 mb-2" />
-                            <p className="font-headline text-xl italic">No abandoned carts found</p>
-                            <p className="text-xs font-mono text-stone-400">All customer carts have been ordered or cleared.</p>
+                            <p className="text-xl ">No abandoned carts found</p>
+                            <p className="text-xs text-stone-400">All customer carts have been ordered or cleared.</p>
                         </div>
                     )}
                 </div>
@@ -1606,7 +1662,7 @@ const Admin = () => {
                 <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
-                            <tr className="border-b border-stone-200/70 bg-stone-50/60 text-stone-400 font-mono text-[10px] uppercase tracking-wider">
+                            <tr className="border-b border-stone-200/70 bg-stone-50/60 text-stone-400 text-[10px] uppercase tracking-wider">
                                 <th className="py-4 px-6 font-semibold">Customer</th>
                                 <th className="py-4 px-6 font-semibold">Last Active</th>
                                 <th className="py-4 px-6 font-semibold text-center">Items In Cart</th>
@@ -1618,20 +1674,20 @@ const Admin = () => {
                                 <tr key={cart._id} className="hover:bg-primary/[0.02] transition-colors group">
                                     <td className="py-4 px-6">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-headline text-sm italic flex items-center justify-center font-bold">
+                                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm flex items-center justify-center font-bold">
                                                 {cart.name ? cart.name.charAt(0).toUpperCase() : 'C'}
                                             </div>
                                             <div>
-                                                <div className="font-headline text-lg italic text-stone-900">{cart.name}</div>
-                                                <div className="font-mono text-[11px] text-stone-400">{cart.email}</div>
+                                                <div className="text-lg text-stone-900">{cart.name}</div>
+                                                <div className="text-[11px] text-stone-400">{cart.email}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="py-4 px-6 font-mono text-stone-500">
+                                    <td className="py-4 px-6 text-stone-500">
                                         {new Date(cart.cartLastUpdated).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                                     </td>
                                     <td className="py-4 px-6 text-center">
-                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
                                             {cart.cart?.length || 0} {cart.cart?.length === 1 ? 'Item' : 'Items'}
                                         </span>
                                     </td>
@@ -1650,8 +1706,8 @@ const Admin = () => {
                                 <tr>
                                     <td colSpan={4} className="py-20 text-center text-stone-400 space-y-2">
                                         <ShoppingCart className="w-8 h-8 mx-auto text-stone-300 mb-2" />
-                                        <p className="font-headline text-2xl italic">No abandoned carts found</p>
-                                        <p className="text-xs font-mono text-stone-400">All customer carts have been ordered or cleared.</p>
+                                        <p className="text-2xl ">No abandoned carts found</p>
+                                        <p className="text-xs text-stone-400">All customer carts have been ordered or cleared.</p>
                                     </td>
                                 </tr>
                             )}
@@ -1667,15 +1723,15 @@ const Admin = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-200/70">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Discount Registry</span>
+                        <span className="text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Discount Registry</span>
                         <span className="text-stone-300">•</span>
-                        <span className="text-xs text-stone-500 font-mono">{promos.length} codes issued</span>
+                        <span className="text-xs text-stone-500 ">{promos.length} codes issued</span>
                     </div>
-                    <h2 className="font-headline text-3xl md:text-4xl italic font-light text-primary tracking-tight">Discount Coupons</h2>
+                    <h2 className="text-3xl md:text-4xl font-light text-primary tracking-tight">Discount Coupons</h2>
                 </div>
                 <button
                     onClick={() => handleAction('Create Promo')}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-label uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-all"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-all"
                 >
                     <Plus className="w-4 h-4" />
                     <span>Create Coupon</span>
@@ -1693,7 +1749,7 @@ const Admin = () => {
                             <div className="flex items-start justify-between gap-3 mb-4">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-mono text-base font-bold tracking-wider text-stone-900 bg-stone-100 px-2.5 py-1 rounded-lg border border-stone-200">
+                                        <span className="text-base font-bold tracking-wider text-stone-900 bg-stone-100 px-2.5 py-1 rounded-lg border border-stone-200">
                                             {p.code}
                                         </span>
                                         <button
@@ -1707,18 +1763,18 @@ const Admin = () => {
                                             <Copy className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
-                                    <p className="text-[10px] font-mono text-stone-400">
+                                    <p className="text-[10px] text-stone-400">
                                         {p.expiryDate ? `Expires: ${new Date(p.expiryDate).toLocaleDateString('en-IN')}` : 'Never Expires'}
                                     </p>
                                 </div>
 
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold font-mono bg-amber-50 text-amber-800 border border-amber-200/80">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
                                     {p.discount}% OFF
                                 </span>
                             </div>
 
                             {/* Redemptions Info */}
-                            <div className="flex items-center justify-between py-3 border-t border-stone-100 text-[10px] font-mono">
+                            <div className="flex items-center justify-between py-3 border-t border-stone-100 text-[10px] ">
                                 <span className="text-stone-500">Redemptions</span>
                                 <span className="font-bold text-stone-800 bg-stone-100 px-2.5 py-0.5 rounded-full">
                                     {p.usedCount || 0} customer{p.usedCount === 1 ? '' : 's'} (1 per account)
@@ -1728,7 +1784,7 @@ const Admin = () => {
 
                         {/* Bottom Row */}
                         <div className="flex items-center justify-between pt-4 border-t border-stone-100 mt-2">
-                            <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-semibold">
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold">
                                 <span className={`w-2 h-2 rounded-full ${p.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-stone-300'}`} />
                                 <span className={p.isActive ? 'text-emerald-700' : 'text-stone-400'}>
                                     {p.isActive ? 'Active' : 'Deactivated'}
@@ -1748,8 +1804,8 @@ const Admin = () => {
                 {promos.length === 0 && (
                     <div className="col-span-full py-16 text-center bg-white/40 border border-stone-200/60 rounded-2xl space-y-3">
                         <Tag className="w-10 h-10 text-stone-300 mx-auto" />
-                        <p className="font-headline text-2xl italic text-stone-400">No discount coupons active</p>
-                        <p className="text-xs text-stone-400 font-mono">Create a discount coupon code for your customers.</p>
+                        <p className="text-2xl text-stone-400">No discount coupons active</p>
+                        <p className="text-xs text-stone-400 ">Create a discount coupon code for your customers.</p>
                     </div>
                 )}
             </div>
@@ -1778,25 +1834,16 @@ const Admin = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-stone-200/70">
                     <div>
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="font-mono text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Product Inventory</span>
+                            <span className="text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Product Inventory</span>
                             <span className="text-stone-300">•</span>
-                            <span className="text-xs text-stone-500 font-mono">{productTotal} products in catalog</span>
-                            <span className="text-stone-300">•</span>
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                                homeProductsCount >= 8
-                                    ? 'bg-amber-50 text-amber-800 border border-amber-300'
-                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${homeProductsCount >= 8 ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`} />
-                                Home Shop Showcase: {homeProductsCount} / 8 slots
-                            </span>
+                            <span className="text-xs text-stone-500 ">{productTotal} products in catalog</span>
                         </div>
-                        <h2 className="font-headline text-3xl md:text-4xl italic font-light text-primary tracking-tight">Product Inventory</h2>
+                        <h2 className="text-3xl md:text-4xl font-light text-primary tracking-tight">Product Inventory</h2>
                     </div>
 
                     <button
                         onClick={handleAddProduct}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-label uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-all self-start md:self-auto"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-all self-start md:self-auto"
                     >
                         <Plus className="w-4 h-4" />
                         <span>Add Product</span>
@@ -1811,7 +1858,7 @@ const Admin = () => {
                             <button
                                 key={cat}
                                 onClick={() => setPieceCategory(cat)}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-label uppercase tracking-wider font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                                className={`px-3 py-1.5 rounded-xl text-xs uppercase tracking-wider font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 ${
                                     pieceCategory === cat
                                         ? 'bg-primary text-white shadow-sm'
                                         : cat === 'Home Showcase'
@@ -1821,8 +1868,8 @@ const Admin = () => {
                             >
                                 {cat === 'Home Showcase' ? (
                                     <>
-                                        <span>★ Home Showcase</span>
-                                        <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${pieceCategory === cat ? 'bg-white/20 text-white' : 'bg-emerald-200/60 text-emerald-900 font-bold'}`}>
+                                        <span>Home Showcase</span>
+                                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${pieceCategory === cat ? 'bg-white/20 text-white' : 'bg-emerald-200/60 text-emerald-900 font-bold'}`}>
                                             {homeProductsCount}/8
                                         </span>
                                     </>
@@ -1869,35 +1916,35 @@ const Admin = () => {
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                                            <span className="font-headline text-base italic text-stone-900 truncate">
+                                            <span className="text-sm font-semibold text-stone-900 truncate">
                                                 {p.name}
                                             </span>
                                             {p.showOnHome && (
-                                                <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold not-italic flex-shrink-0">
-                                                    ★ Home Shop
+                                                <span className="text-[8px] px-1 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold flex-shrink-0">
+                                                    Home Shop
                                                 </span>
                                             )}
                                             {(p.isHero || p.hero) && (
-                                                <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold not-italic flex-shrink-0">
+                                                <span className="text-[8px] px-1 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold flex-shrink-0">
                                                     Hero
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2 text-[10px] font-mono text-stone-400">
-                                            <span className="text-stone-600 font-bold font-sans">{p.category}</span>
+                                        <div className="flex items-center gap-2 text-[10px] text-stone-400">
+                                            <span className="text-stone-600 font-bold">{p.category}</span>
                                             <span>•</span>
                                             <span className="truncate">{p.sku || 'SOV-MOD'}</span>
                                         </div>
                                         <div className="flex items-baseline gap-2 mt-1 flex-wrap">
-                                            <span className="font-headline text-sm italic font-semibold text-primary">
+                                            <span className="text-sm font-bold text-stone-900">
                                                 ₹{p.price?.toLocaleString()}
                                             </span>
                                             {p.mrp > p.price && (
-                                                <span className="text-[10px] font-mono text-stone-400 line-through">
+                                                <span className="text-[10px] text-stone-400 line-through">
                                                     MRP: ₹{p.mrp?.toLocaleString()}
                                                 </span>
                                             )}
-                                            <span className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold ${
+                                            <span className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold ${
                                                 p.stock > 5
                                                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                                     : p.stock > 0
@@ -1912,14 +1959,14 @@ const Admin = () => {
                                 <div className="flex items-center gap-1.5 flex-shrink-0">
                                     <button
                                         onClick={() => handleToggleHomeProduct(p)}
-                                        className={`px-2 py-1 rounded-lg text-[9px] font-mono font-bold transition-all ${
+                                        className={`px-2 py-1 rounded-lg text-[9px] font-bold transition-all ${
                                             p.showOnHome
                                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
                                                 : 'bg-stone-100 text-stone-600 border border-stone-200 hover:bg-stone-200'
                                         }`}
                                         title={p.showOnHome ? "Remove from Home Showcase" : "Add to Home Showcase"}
                                     >
-                                        {p.showOnHome ? '★ In Home' : '+ Home'}
+                                        {p.showOnHome ? 'In Home' : '+ Home'}
                                     </button>
                                     <button
                                         onClick={() => handleEditProduct(p)}
@@ -1944,7 +1991,7 @@ const Admin = () => {
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left min-w-[820px]">
                             <thead>
-                                <tr className="border-b border-stone-200/70 bg-stone-50/60 text-stone-400 font-mono text-[10px] uppercase tracking-wider">
+                                <tr className="border-b border-stone-200/70 bg-stone-50/60 text-stone-400 text-[10px] uppercase tracking-wider">
                                     <th className="py-4 px-6 font-semibold">Product</th>
                                     <th className="py-4 px-6 font-semibold">SKU</th>
                                     <th className="py-4 px-6 font-semibold">Category</th>
@@ -1969,36 +2016,36 @@ const Admin = () => {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <div className="font-headline text-lg italic text-stone-900 group-hover:text-primary transition-colors flex items-center gap-2">
+                                                    <div className="text-sm font-semibold text-stone-900 group-hover:text-primary transition-colors flex items-center gap-2">
                                                         <span>{p.name}</span>
                                                         {(p.isHero || p.hero) && (
-                                                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/80 font-bold not-italic">
+                                                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200/80 font-bold ">
                                                                 Hero
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="font-mono text-[10px] text-stone-400">{p.material || 'Stainless Steel'}</p>
+                                                    <p className="text-[10px] text-stone-400">{p.material || 'Stainless Steel'}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-3.5 px-6 font-mono text-[11px] text-stone-500 uppercase tracking-wider">
+                                        <td className="py-3.5 px-6 text-[11px] text-stone-500 uppercase tracking-wider">
                                             {p.sku || 'SOV-MOD'}
                                         </td>
                                         <td className="py-3.5 px-6">
-                                            <span className="px-2.5 py-1 rounded-md text-[10px] font-label uppercase tracking-wider font-semibold bg-stone-100 text-stone-600">
+                                            <span className="px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-semibold bg-stone-100 text-stone-600">
                                                 {p.category}
                                             </span>
                                         </td>
                                         <td className="py-3.5 px-6 text-right">
-                                            <div className="font-headline text-lg italic font-light text-primary">
+                                            <div className="text-sm font-bold text-stone-900">
                                                 ₹{p.price?.toLocaleString()}
                                             </div>
                                             {p.mrp > p.price ? (
-                                                <div className="text-[10px] font-mono text-stone-400 line-through">
+                                                <div className="text-[10px] text-stone-400 line-through">
                                                     MRP: ₹{p.mrp?.toLocaleString()}
                                                 </div>
                                             ) : p.mrp > 0 ? (
-                                                <div className="text-[10px] font-mono text-stone-300">
+                                                <div className="text-[10px] text-stone-300">
                                                     MRP: ₹{p.mrp?.toLocaleString()}
                                                 </div>
                                             ) : null}
@@ -2006,7 +2053,7 @@ const Admin = () => {
                                         <td className="py-3.5 px-6 text-center">
                                             <button
                                                 onClick={() => handleToggleHomeProduct(p)}
-                                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-label font-bold uppercase tracking-wider transition-all shadow-2xs ${
+                                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all shadow-2xs ${
                                                     p.showOnHome
                                                         ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
                                                         : 'bg-stone-100 text-stone-500 border border-stone-200 hover:border-stone-300 hover:text-stone-800 hover:bg-stone-50'
@@ -2014,22 +2061,22 @@ const Admin = () => {
                                                 title={p.showOnHome ? 'Click to remove from Home Showcase' : (homeProductsCount >= 8 ? 'Home showcase is full (max 8)' : 'Click to showcase on Home Screen Shop')}
                                             >
                                                 <span className={`w-1.5 h-1.5 rounded-full ${p.showOnHome ? 'bg-emerald-500' : 'bg-stone-300'}`} />
-                                                {p.showOnHome ? '★ In Home Shop' : '+ Showcase'}
+                                                {p.showOnHome ? 'In Home Shop' : '+ Showcase'}
                                             </button>
                                         </td>
                                         <td className="py-3.5 px-6 text-center">
                                             {p.stock > 5 ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                                     In Stock ({p.stock})
                                                 </span>
                                             ) : p.stock > 0 ? (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                                                     Low ({p.stock})
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                                     Out of Stock
                                                 </span>
@@ -2059,7 +2106,7 @@ const Admin = () => {
                                     <tr>
                                         <td colSpan={6} className="py-16 text-center text-stone-400 space-y-2">
                                             <Package className="w-8 h-8 mx-auto text-stone-300 mb-2" />
-                                            <p className="font-headline text-2xl italic">No products match your filters</p>
+                                            <p className="text-2xl ">No products match your filters</p>
                                         </td>
                                     </tr>
                                 )}
@@ -2068,7 +2115,7 @@ const Admin = () => {
                     </div>
 
                     {/* Product Summary Footer */}
-                    <div className="flex items-center justify-between px-6 py-4 border-t border-stone-200/70 bg-stone-50/40 text-xs text-stone-500 font-mono">
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-stone-200/70 bg-stone-50/40 text-xs text-stone-500 ">
                         <span>Showing all {filteredPieces.length} products</span>
                         <span className="text-stone-400">Total in catalog: {products.length}</span>
                     </div>
@@ -2088,11 +2135,11 @@ const Admin = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-stone-200/70">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="font-mono text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Customer List</span>
+                            <span className="text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Customer List</span>
                             <span className="text-stone-300">•</span>
-                            <span className="text-xs text-stone-500 font-mono">{customers.length} registered users</span>
+                            <span className="text-xs text-stone-500 ">{customers.length} registered users</span>
                         </div>
-                        <h2 className="font-headline text-3xl md:text-4xl italic font-light text-primary tracking-tight">Customers</h2>
+                        <h2 className="text-3xl md:text-4xl font-light text-primary tracking-tight">Customers</h2>
                     </div>
 
                     <div className="relative w-full md:w-80">
@@ -2119,15 +2166,15 @@ const Admin = () => {
                             <div key={c._id} className="p-4 space-y-3">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-headline text-base italic flex items-center justify-center font-bold flex-shrink-0">
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary text-base flex items-center justify-center font-bold flex-shrink-0">
                                             {(c.name || 'C').charAt(0).toUpperCase()}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <div className="font-headline text-base italic text-stone-900 truncate">{c.name}</div>
-                                            <div className="font-mono text-[10px] text-stone-400 truncate">{c.email}</div>
+                                            <div className="text-base text-stone-900 truncate">{c.name}</div>
+                                            <div className="text-[10px] text-stone-400 truncate">{c.email}</div>
                                         </div>
                                     </div>
-                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider font-bold border flex-shrink-0 ${
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider font-bold border flex-shrink-0 ${
                                         c.isAdmin
                                             ? 'bg-amber-50 text-amber-800 border-amber-200'
                                             : 'bg-stone-100 text-stone-700 border-stone-200'
@@ -2136,16 +2183,16 @@ const Admin = () => {
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between text-xs pt-1 border-t border-stone-100">
-                                    <span className="text-[10px] font-mono text-stone-500">
-                                        Pref: <span className="font-sans font-bold text-stone-700">{c.preference || 'All Jewelry'}</span>
+                                    <span className="text-[10px] text-stone-500">
+                                        Pref: <span className="font-bold text-stone-700">{c.preference || 'All Jewelry'}</span>
                                     </span>
-                                    <span className="font-headline text-base italic font-medium text-primary">
+                                    <span className="text-base font-medium text-primary">
                                         ₹{c.spend?.toLocaleString() || 0}
                                     </span>
                                 </div>
                                 <button
                                     onClick={() => { setSelectedCustomer(c); setIsCustomerModalOpen(true); }}
-                                    className="w-full py-2 bg-stone-100 hover:bg-primary hover:text-white text-stone-700 rounded-xl text-xs font-sans font-bold transition-all flex items-center justify-center gap-1.5"
+                                    className="w-full py-2 bg-stone-100 hover:bg-primary hover:text-white text-stone-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
                                 >
                                     <Eye className="w-3.5 h-3.5" />
                                     <span>View Customer Profile</span>
@@ -2155,7 +2202,7 @@ const Admin = () => {
                         {filteredCustomers.length === 0 && (
                             <div className="py-16 text-center text-stone-400 space-y-2 p-4">
                                 <Users className="w-8 h-8 mx-auto text-stone-300 mb-2" />
-                                <p className="font-headline text-xl italic">No customers found</p>
+                                <p className="text-xl ">No customers found</p>
                             </div>
                         )}
                     </div>
@@ -2164,7 +2211,7 @@ const Admin = () => {
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left min-w-[760px]">
                             <thead>
-                                <tr className="border-b border-stone-200/70 bg-stone-50/60 text-stone-400 font-mono text-[10px] uppercase tracking-wider">
+                                <tr className="border-b border-stone-200/70 bg-stone-50/60 text-stone-400 text-[10px] uppercase tracking-wider">
                                     <th className="py-4 px-6 font-semibold">Customer</th>
                                     <th className="py-4 px-6 font-semibold">Role</th>
                                     <th className="py-4 px-6 font-semibold">Preference</th>
@@ -2177,17 +2224,17 @@ const Admin = () => {
                                     <tr key={c._id} className="hover:bg-primary/[0.02] transition-colors group">
                                         <td className="py-3.5 px-6">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-headline text-base italic flex items-center justify-center font-bold">
+                                                <div className="w-9 h-9 rounded-full bg-primary/10 text-primary text-base flex items-center justify-center font-bold">
                                                     {(c.name || 'C').charAt(0).toUpperCase()}
                                                 </div>
                                                 <div>
-                                                    <div className="font-headline text-lg italic text-stone-900 group-hover:text-primary transition-colors">{c.name}</div>
-                                                    <div className="font-mono text-[11px] text-stone-400">{c.email}</div>
+                                                    <div className="text-lg text-stone-900 group-hover:text-primary transition-colors">{c.name}</div>
+                                                    <div className="text-[11px] text-stone-400">{c.email}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="py-3.5 px-6">
-                                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono uppercase tracking-wider font-bold border ${
+                                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold border ${
                                                 c.isAdmin
                                                     ? 'bg-amber-50 text-amber-800 border-amber-200'
                                                     : 'bg-stone-100 text-stone-700 border-stone-200'
@@ -2196,11 +2243,11 @@ const Admin = () => {
                                             </span>
                                         </td>
                                         <td className="py-3.5 px-6">
-                                            <span className="px-2.5 py-1 rounded-md text-[10px] font-label uppercase tracking-wider font-semibold bg-stone-100 text-stone-600">
+                                            <span className="px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider font-semibold bg-stone-100 text-stone-600">
                                                 {c.preference || 'All Jewelry'}
                                             </span>
                                         </td>
-                                        <td className="py-3.5 px-6 text-right font-headline text-lg italic font-light text-primary">
+                                        <td className="py-3.5 px-6 text-right text-lg font-light text-primary">
                                             ₹{c.spend?.toLocaleString() || 0}
                                         </td>
                                         <td className="py-3.5 px-6 text-right">
@@ -2218,7 +2265,7 @@ const Admin = () => {
                                     <tr>
                                         <td colSpan={5} className="py-16 text-center text-stone-400 space-y-2">
                                             <Users className="w-8 h-8 mx-auto text-stone-300 mb-2" />
-                                            <p className="font-headline text-2xl italic">No customers found</p>
+                                            <p className="text-2xl ">No customers found</p>
                                         </td>
                                     </tr>
                                 )}
@@ -2234,11 +2281,11 @@ const Admin = () => {
         <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
             <div className="pb-6 border-b border-stone-200/70">
                 <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Store Management</span>
+                    <span className="text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Store Management</span>
                     <span className="text-stone-300">•</span>
-                    <span className="text-xs text-stone-500 font-mono">System Configuration</span>
+                    <span className="text-xs text-stone-500 ">System Configuration</span>
                 </div>
-                <h2 className="font-headline text-3xl md:text-4xl italic font-light text-primary tracking-tight">Admin Settings</h2>
+                <h2 className="text-3xl md:text-4xl font-light text-primary tracking-tight">Admin Settings</h2>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -2246,13 +2293,13 @@ const Admin = () => {
                 <div className="space-y-6">
                     <section className="bg-white/80 backdrop-blur-md p-6 md:p-8 rounded-2xl border border-stone-200/70 space-y-6 shadow-sm">
                         <div className="flex items-center justify-between border-b border-stone-100 pb-4">
-                            <h3 className="font-headline text-xl italic text-primary">Store Configuration</h3>
-                            <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Online</span>
+                            <h3 className="text-xl text-primary">Store Configuration</h3>
+                            <span className="text-[10px] uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Online</span>
                         </div>
                         <div className="space-y-5">
                             <div className="flex justify-between items-center group">
                                 <div>
-                                    <h4 className="font-headline text-lg italic text-stone-900">Catalog-Only Mode</h4>
+                                    <h4 className="text-lg text-stone-900">Catalog-Only Mode</h4>
                                     <p className="text-xs text-stone-400">Display products for browsing only (no checkout).</p>
                                 </div>
                                 <div className="w-12 h-6 bg-stone-200 rounded-full relative cursor-pointer group-hover:bg-primary/30 transition-all">
@@ -2261,22 +2308,22 @@ const Admin = () => {
                             </div>
                             <div className="flex justify-between items-center pt-4 border-t border-stone-100">
                                 <div>
-                                    <h4 className="font-headline text-lg italic text-stone-900">GST / Jewelry Tax</h4>
+                                    <h4 className="text-lg text-stone-900">GST / Jewelry Tax</h4>
                                     <p className="text-xs text-stone-400">Applicable tax rate on products.</p>
                                 </div>
-                                <span className="font-mono font-bold text-sm bg-stone-100 text-stone-800 px-2.5 py-1 rounded-lg">3% IGST</span>
+                                <span className="font-bold text-sm bg-stone-100 text-stone-800 px-2.5 py-1 rounded-lg">3% IGST</span>
                             </div>
                         </div>
                     </section>
 
                     <section className="bg-white/80 backdrop-blur-md p-6 md:p-8 rounded-2xl border border-stone-200/70 space-y-4 shadow-sm">
-                        <h3 className="font-headline text-xl italic text-primary border-b border-stone-100 pb-4">Export Orders & Sales Data</h3>
+                        <h3 className="text-xl text-primary border-b border-stone-100 pb-4">Export Orders & Sales Data</h3>
                         <p className="text-xs text-stone-500 leading-relaxed">
                             Export comprehensive store data including orders, sales records, customer lists, and inventory for accounting.
                         </p>
                         <button
                             onClick={() => handleAction('Export CSV')}
-                            className="inline-flex items-center justify-center gap-2 w-full py-3 bg-stone-100 hover:bg-primary hover:text-white text-stone-800 rounded-xl text-xs font-label uppercase tracking-wider font-bold transition-all border border-stone-200/80 shadow-sm"
+                            className="inline-flex items-center justify-center gap-2 w-full py-3 bg-stone-100 hover:bg-primary hover:text-white text-stone-800 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border border-stone-200/80 shadow-sm"
                         >
                             <Download className="w-4 h-4" />
                             <span>Download All Data (.CSV)</span>
@@ -2284,13 +2331,13 @@ const Admin = () => {
                     </section>
 
                     <section className="bg-white/80 backdrop-blur-md p-6 md:p-8 rounded-2xl border border-stone-200/70 space-y-4 shadow-sm">
-                        <h3 className="font-headline text-xl italic text-primary border-b border-stone-100 pb-4">Session & Security</h3>
+                        <h3 className="text-xl text-primary border-b border-stone-100 pb-4">Session & Security</h3>
                         <p className="text-xs text-stone-500 leading-relaxed">
                             Safely terminate your administrator session on this device.
                         </p>
                         <button
                             onClick={handleLogout}
-                            className="inline-flex items-center justify-center gap-2 w-full py-3 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 rounded-xl text-xs font-label uppercase tracking-wider font-bold transition-all border border-rose-200/80 shadow-sm"
+                            className="inline-flex items-center justify-center gap-2 w-full py-3 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 rounded-xl text-xs uppercase tracking-wider font-bold transition-all border border-rose-200/80 shadow-sm"
                         >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out from Admin</span>
@@ -2301,8 +2348,8 @@ const Admin = () => {
                 {/* Staff Privileges */}
                 <section className="bg-white/80 backdrop-blur-md p-6 md:p-8 rounded-2xl border border-stone-200/70 space-y-6 shadow-sm flex flex-col">
                     <div className="flex items-center justify-between border-b border-stone-100 pb-4">
-                        <h3 className="font-headline text-xl italic text-primary">Staff Roles & Privileges</h3>
-                        <span className="text-xs font-mono text-stone-400">{customers.length} total users</span>
+                        <h3 className="text-xl text-primary">Staff Roles & Privileges</h3>
+                        <span className="text-xs text-stone-400">{customers.length} total users</span>
                     </div>
 
                     <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
@@ -2312,17 +2359,17 @@ const Admin = () => {
                                 className="flex items-center justify-between p-3.5 rounded-xl bg-stone-50/70 border border-stone-200/60 hover:border-primary/30 transition-all"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-headline text-sm italic flex items-center justify-center font-bold">
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-sm flex items-center justify-center font-bold">
                                         {(c.name || 'S').charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                        <h4 className="font-headline text-base italic text-stone-900">{c.name}</h4>
-                                        <p className="font-mono text-[10px] text-stone-400">{c.email}</p>
+                                        <h4 className="text-base text-stone-900">{c.name}</h4>
+                                        <p className="text-[10px] text-stone-400">{c.email}</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => handleToggleAdmin(c._id, !c.isAdmin)}
-                                    className={`px-3 py-1.5 rounded-lg font-mono text-[10px] uppercase tracking-wider font-bold transition-all ${
+                                    className={`px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-wider font-bold transition-all ${
                                         c.isAdmin
                                             ? 'bg-rose-50 text-rose-700 border border-rose-200/80 hover:bg-rose-100'
                                             : 'bg-primary text-white hover:bg-primary/90 shadow-sm'
@@ -2346,10 +2393,10 @@ const Admin = () => {
                     <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-4xl bg-[#fffcf7] shadow-lux border border-outline-variant/10 p-5 sm:p-8 md:p-16 overflow-y-auto max-h-[88vh] no-scrollbar">
                         <div className="flex justify-between items-start mb-6 md:mb-12">
                             <div className="flex items-center gap-4 sm:gap-8">
-                                <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-headline text-2xl sm:text-4xl italic flex-shrink-0">{selectedCustomer.name.charAt(0)}</div>
+                                <div className="w-12 h-12 sm:w-20 sm:h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary text-2xl sm:text-4xl flex-shrink-0">{selectedCustomer.name.charAt(0)}</div>
                                 <div>
-                                    <h2 className="font-headline text-2xl sm:text-4xl italic font-light">{selectedCustomer.name}</h2>
-                                    <p className="font-label text-[10px] uppercase tracking-[0.3em] font-black opacity-40 mt-1 sm:mt-2">{selectedCustomer.email}</p>
+                                    <h2 className="text-2xl sm:text-4xl font-light">{selectedCustomer.name}</h2>
+                                    <p className="text-[10px] uppercase tracking-[0.3em] font-black opacity-40 mt-1 sm:mt-2">{selectedCustomer.email}</p>
                                 </div>
                             </div>
                             <button onClick={() => setIsCustomerModalOpen(false)} className="w-10 h-10 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-800 hover:bg-stone-100 transition-colors" title="Close">
@@ -2361,32 +2408,32 @@ const Admin = () => {
                             {/* Client Activity */}
                             <div className="space-y-12">
                                 <section>
-                                    <h3 className="font-label text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4 mb-6">Wishlist Items</h3>
+                                    <h3 className="text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4 mb-6">Wishlist Items</h3>
                                     <div className="space-y-6">
                                         {selectedCustomer.wishlist?.length > 0 ? selectedCustomer.wishlist.map(item => (
                                             <div key={item._id} className="flex gap-6 items-center group">
                                                 <img src={item.img} className="w-16 h-16 object-cover grayscale group-hover:grayscale-0 transition-all" />
                                                 <div>
-                                                    <p className="font-headline text-lg italic">{item.name}</p>
-                                                    <p className="font-label text-[9px] uppercase font-black opacity-40">₹{item.price.toLocaleString()}</p>
+                                                    <p className="text-lg ">{item.name}</p>
+                                                    <p className="text-[9px] uppercase font-black opacity-40">₹{item.price.toLocaleString()}</p>
                                                 </div>
                                             </div>
-                                        )) : <p className="font-body text-sm opacity-40 italic">No items saved yet.</p>}
+                                        )) : <p className="text-sm opacity-40 ">No items saved yet.</p>}
                                     </div>
                                 </section>
 
                                 <section>
-                                    <h3 className="font-label text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4 mb-6">Recently Viewed Products</h3>
+                                    <h3 className="text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4 mb-6">Recently Viewed Products</h3>
                                     <div className="space-y-6 opacity-60">
                                         {selectedCustomer.recentlyViewed?.length > 0 ? selectedCustomer.recentlyViewed.map((view, i) => (
                                             <div key={i} className="flex gap-6 items-center">
-                                                <div className="w-12 h-12 bg-black/5 flex items-center justify-center text-xs italic">{i + 1}</div>
+                                                <div className="w-12 h-12 bg-black/5 flex items-center justify-center text-xs ">{i + 1}</div>
                                                 <div>
-                                                    <p className="font-headline text-md italic">{view.product?.name}</p>
-                                                    <p className="font-label text-[8px] uppercase font-black opacity-40">{new Date(view.viewedAt).toLocaleDateString()}</p>
+                                                    <p className="text-md ">{view.product?.name}</p>
+                                                    <p className="text-[8px] uppercase font-black opacity-40">{new Date(view.viewedAt).toLocaleDateString()}</p>
                                                 </div>
                                             </div>
-                                        )) : <p className="font-body text-sm opacity-40 italic">No recent activity recorded.</p>}
+                                        )) : <p className="text-sm opacity-40 ">No recent activity recorded.</p>}
                                     </div>
                                 </section>
                             </div>
@@ -2394,8 +2441,8 @@ const Admin = () => {
                             {/* CRM Actions */}
                             <div className="space-y-12">
                                 <section className="p-8 bg-primary/[0.03] border border-primary/5 space-y-6">
-                                    <h3 className="font-label text-[11px] uppercase tracking-[0.2em] font-black">Send Discount Code</h3>
-                                    <p className="font-body text-xs italic opacity-60">Send a personalized discount code directly to this customer.</p>
+                                    <h3 className="text-[11px] uppercase tracking-[0.2em] font-black">Send Discount Code</h3>
+                                    <p className="text-xs opacity-60">Send a personalized discount code directly to this customer.</p>
                                     <div className="flex gap-4">
                                         <input placeholder="Code..." className="flex-1 bg-white border border-black/5 p-3 text-xs outline-none" />
                                         <button className="bg-primary text-on-primary px-6 text-[9px] font-black uppercase tracking-widest">Send</button>
@@ -2403,10 +2450,10 @@ const Admin = () => {
                                 </section>
 
                                 <section className="space-y-6">
-                                    <h3 className="font-label text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4">Account Information</h3>
-                                    <div className="flex justify-between text-[11px] uppercase font-black opacity-40 italic"><span>Account Status</span><span>{selectedCustomer.status || 'Active Member'}</span></div>
-                                    <div className="flex justify-between text-[11px] uppercase font-black opacity-40 italic"><span>Lifetime Spend</span><span>₹{selectedCustomer.spend?.toLocaleString() || 0}</span></div>
-                                    <div className="flex justify-between text-[11px] uppercase font-black opacity-40 italic"><span>Member Since</span><span>{new Date(selectedCustomer.createdAt).toLocaleDateString()}</span></div>
+                                    <h3 className="text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4">Account Information</h3>
+                                    <div className="flex justify-between text-[11px] uppercase font-black opacity-40 "><span>Account Status</span><span>{selectedCustomer.status || 'Active Member'}</span></div>
+                                    <div className="flex justify-between text-[11px] uppercase font-black opacity-40 "><span>Lifetime Spend</span><span>₹{selectedCustomer.spend?.toLocaleString() || 0}</span></div>
+                                    <div className="flex justify-between text-[11px] uppercase font-black opacity-40 "><span>Member Since</span><span>{new Date(selectedCustomer.createdAt).toLocaleDateString()}</span></div>
                                 </section>
                             </div>
                         </div>
@@ -2425,8 +2472,8 @@ const Admin = () => {
                     <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-4xl bg-[#fffcf7] shadow-lux border border-outline-variant/10 p-5 sm:p-8 md:p-16 overflow-y-auto max-h-[88vh] no-scrollbar">
                         <div className="flex justify-between items-start mb-6 md:mb-12">
                             <div>
-                                <h2 className="font-headline text-2xl sm:text-3xl md:text-4xl italic font-light">Order Details</h2>
-                                <p className="font-label text-[10px] uppercase tracking-[0.3em] font-black opacity-40 mt-1 sm:mt-2">Order #{selectedOrder._id.slice(-6).toUpperCase()}</p>
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-light">Order Details</h2>
+                                <p className="text-[10px] uppercase tracking-[0.3em] font-black opacity-40 mt-1 sm:mt-2">Order #{selectedOrder._id.slice(-6).toUpperCase()}</p>
                             </div>
                             <button onClick={() => setIsOrderModalOpen(false)} className="w-10 h-10 rounded-full flex items-center justify-center text-stone-400 hover:text-stone-800 hover:bg-stone-100 transition-colors" title="Close">
                                 <X className="w-5 h-5" />
@@ -2435,12 +2482,12 @@ const Admin = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-10 md:gap-16 mb-8 md:mb-16">
                             <div className="space-y-8">
-                                <h3 className="font-label text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4">Customer Details</h3>
-                                <p className="font-headline text-2xl italic">{selectedOrder.user?.name || 'Guest'}</p>
-                                <p className="font-body text-sm opacity-60 italic">{selectedOrder.shippingAddress?.address}, {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.country}</p>
+                                <h3 className="text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4">Customer Details</h3>
+                                <p className="text-2xl ">{selectedOrder.user?.name || 'Guest'}</p>
+                                <p className="text-sm opacity-60 ">{selectedOrder.shippingAddress?.address}, {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.country}</p>
                             </div>
                             <div className="space-y-8">
-                                <h3 className="font-label text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4">Order Status & Shipping</h3>
+                                <h3 className="text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4">Order Status & Shipping</h3>
                                 <div className="space-y-4">
                                     <div className="flex justify-between text-[10px] uppercase font-black opacity-40"><span>Payment</span><span className={selectedOrder.isPaid ? 'text-primary' : 'text-orange-500'}>{selectedOrder.isPaid ? 'Completed' : 'Pending'}</span></div>
                                     <div className="flex justify-between text-[10px] uppercase font-black opacity-40"><span>Delivery</span><span className={selectedOrder.isDelivered ? 'text-primary' : 'text-blue-500'}>{selectedOrder.status}</span></div>
@@ -2449,7 +2496,7 @@ const Admin = () => {
                                     {selectedOrder.returnRequest?.isRequested && (
                                         <div className="mt-8 pt-6 border-t border-amber-500/20 bg-amber-500/[0.04] p-6 border border-amber-500/10 space-y-6 animate-in fade-in slide-in-from-top-4">
                                             <div className="flex justify-between items-start">
-                                                <h4 className="font-label text-[9px] uppercase font-black text-amber-600">Return Request</h4>
+                                                <h4 className="text-[9px] uppercase font-black text-amber-600">Return Request</h4>
                                                 <span className={`text-[8px] uppercase tracking-widest font-black px-3 py-1 border ${
                                                     selectedOrder.returnRequest.status === 'Approved' ? 'border-green-500 text-green-600 bg-green-50' :
                                                     selectedOrder.returnRequest.status === 'Rejected' ? 'border-red-500 text-red-600 bg-red-50' :
@@ -2460,11 +2507,11 @@ const Admin = () => {
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-[10px] uppercase font-black opacity-40">Reason</p>
-                                                <p className="font-headline text-lg italic">{selectedOrder.returnRequest.reason}</p>
+                                                <p className="text-lg ">{selectedOrder.returnRequest.reason}</p>
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-[10px] uppercase font-black opacity-40">Customer Note</p>
-                                                <p className="font-body text-[11px] italic opacity-70 leading-relaxed">{selectedOrder.returnRequest.details || 'No additional details.'}</p>
+                                                <p className="text-[11px] opacity-70 leading-relaxed">{selectedOrder.returnRequest.details || 'No additional details.'}</p>
                                             </div>
 
                                             {selectedOrder.returnRequest.status === 'Pending' && (
@@ -2472,19 +2519,19 @@ const Admin = () => {
                                                     <textarea 
                                                         value={returnAdminNotes}
                                                         onChange={e => setReturnAdminNotes(e.target.value)}
-                                                        className="w-full bg-white border border-black/5 p-3 text-[10px] italic min-h-[50px] outline-none focus:border-amber-500"
+                                                        className="w-full bg-white border border-black/5 p-3 text-[10px] min-h-[50px] outline-none focus:border-amber-500"
                                                         placeholder="Admin response note..."
                                                     />
                                                     <div className="flex gap-2">
                                                         <button 
                                                             onClick={() => handleUpdateReturnStatus(selectedOrder._id, 'Approved')}
-                                                            className="flex-1 bg-green-600 text-white py-3 font-label text-[8px] uppercase tracking-widest font-black"
+                                                            className="flex-1 bg-green-600 text-white py-3 text-[8px] uppercase tracking-widest font-black"
                                                         >
                                                             Approve
                                                         </button>
                                                         <button 
                                                             onClick={() => handleUpdateReturnStatus(selectedOrder._id, 'Rejected')}
-                                                            className="flex-1 bg-red-600 text-white py-3 font-label text-[8px] uppercase tracking-widest font-black"
+                                                            className="flex-1 bg-red-600 text-white py-3 text-[8px] uppercase tracking-widest font-black"
                                                         >
                                                             Reject
                                                         </button>
@@ -2494,7 +2541,7 @@ const Admin = () => {
                                             {selectedOrder.returnRequest.adminNotes && (
                                                 <div className="pt-2 border-t border-black/5">
                                                     <p className="text-[10px] uppercase font-black opacity-40">Staff Note</p>
-                                                    <p className="font-body text-[11px] italic opacity-70">{selectedOrder.returnRequest.adminNotes}</p>
+                                                    <p className="text-[11px] opacity-70">{selectedOrder.returnRequest.adminNotes}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -2502,11 +2549,11 @@ const Admin = () => {
 
                                     {/* Logistical Inputs */}
                                     <div className="pt-6 space-y-4 border-t border-black/5">
-                                        <label className="block font-label text-[9px] uppercase font-black opacity-40">Update Order Status</label>
+                                        <label className="block text-[9px] uppercase font-black opacity-40">Update Order Status</label>
                                         <select
                                             value={selectedOrder.status}
                                             onChange={(e) => handleUpdateOrderStatus(selectedOrder._id, e.target.value)}
-                                            className="w-full px-4 py-2 border border-primary/20 text-primary font-label text-[9px] uppercase tracking-[0.2em] font-black italic bg-transparent outline-none"
+                                            className="w-full px-4 py-2 border border-primary/20 text-primary text-[9px] uppercase tracking-[0.2em] font-black bg-transparent outline-none"
                                         >
                                             {['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Return Requested'].map(s => (
                                                 <option key={s} value={s}>{s}</option>
@@ -2519,13 +2566,13 @@ const Admin = () => {
                                                     placeholder="Tracking Number..."
                                                     value={trackingNumber || selectedOrder.trackingNumber || ''}
                                                     onChange={e => setTrackingNumber(e.target.value)}
-                                                    className="w-full bg-white border border-black/5 p-3 text-[10px] italic outline-none focus:border-primary"
+                                                    className="w-full bg-white border border-black/5 p-3 text-[10px] outline-none focus:border-primary"
                                                 />
                                                 <input
                                                     placeholder="Courier (e.g. FedEx, BlueDart)..."
                                                     value={carrier || selectedOrder.carrier || ''}
                                                     onChange={e => setCarrier(e.target.value)}
-                                                    className="w-full bg-white border border-black/5 p-3 text-[10px] italic outline-none focus:border-primary"
+                                                    className="w-full bg-white border border-black/5 p-3 text-[10px] outline-none focus:border-primary"
                                                 />
                                             </div>
                                         )}
@@ -2535,14 +2582,14 @@ const Admin = () => {
                                                 placeholder="Reason for cancellation/rejection..."
                                                 value={statusReason || selectedOrder.statusUpdateReason || ''}
                                                 onChange={e => setStatusReason(e.target.value)}
-                                                className="w-full bg-white border border-black/5 p-3 text-[10px] italic min-h-[60px] outline-none focus:border-primary"
+                                                className="w-full bg-white border border-black/5 p-3 text-[10px] min-h-[60px] outline-none focus:border-primary"
                                             />
                                         )}
 
                                         {(trackingNumber || statusReason) && (
                                             <button
                                                 onClick={() => handleUpdateOrderStatus(selectedOrder._id, selectedOrder.status)}
-                                                className="w-full py-2 bg-primary text-on-primary font-label text-[9px] uppercase tracking-widest font-black"
+                                                className="w-full py-2 bg-primary text-on-primary text-[9px] uppercase tracking-widest font-black"
                                             >
                                                 Save Details
                                             </button>
@@ -2554,39 +2601,39 @@ const Admin = () => {
 
 
                         <div className="space-y-8">
-                            <h3 className="font-label text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4">Items in Order</h3>
+                            <h3 className="text-[11px] uppercase tracking-[0.4em] font-black border-b border-black/5 pb-4">Items in Order</h3>
                             {selectedOrder.orderItems?.map((item, idx) => (
                                 <div key={idx} className="flex items-center gap-8 py-4 border-b border-black/5 last:border-0">
                                     <img src={item.image} className="w-20 h-20 object-cover grayscale" />
                                     <div className="flex-1">
-                                        <h4 className="font-headline text-xl italic">{item.name}</h4>
-                                        <p className="font-label text-[10px] uppercase opacity-40">Qty: {item.qty}</p>
+                                        <h4 className="text-xl ">{item.name}</h4>
+                                        <p className="text-[10px] uppercase opacity-40">Qty: {item.qty}</p>
                                     </div>
-                                    <p className="font-headline text-xl font-light">₹{(item.price * item.qty).toLocaleString()}</p>
+                                    <p className="text-xl font-light">₹{(item.price * item.qty).toLocaleString()}</p>
                                 </div>
                             ))}
                         </div>
 
                         {/* Internal Notes Section */}
                         <div className="mt-16 pt-12 border-t border-black/5 space-y-8 bg-primary/[0.02] p-8 border border-primary/5">
-                            <h3 className="font-label text-[11px] uppercase tracking-[0.4em] font-black opacity-40">Internal Staff Notes</h3>
+                            <h3 className="text-[11px] uppercase tracking-[0.4em] font-black opacity-40">Internal Staff Notes</h3>
                             <textarea
                                 value={orderNotes}
                                 onChange={(e) => setOrderNotes(e.target.value)}
-                                className="w-full bg-white border border-black/5 p-6 font-body text-sm italic min-h-[120px] outline-none focus:border-primary"
+                                className="w-full bg-white border border-black/5 p-6 text-sm min-h-[120px] outline-none focus:border-primary"
                                 placeholder="Staff note (Gift wrap, Express delivery, etc.)..."
                             />
                             <div className="flex justify-between items-center">
-                                <p className="font-body text-[9px] opacity-30 italic">Visible only to staff.</p>
-                                <button onClick={handleUpdateOrderNotes} disabled={savingNotes} className="bg-primary/10 text-primary px-8 py-3 font-label text-[9px] uppercase tracking-widest font-black hover:bg-primary hover:text-white transition-all disabled:opacity-50">
+                                <p className="text-[9px] opacity-30 ">Visible only to staff.</p>
+                                <button onClick={handleUpdateOrderNotes} disabled={savingNotes} className="bg-primary/10 text-primary px-8 py-3 text-[9px] uppercase tracking-widest font-black hover:bg-primary hover:text-white transition-all disabled:opacity-50">
                                     {savingNotes ? 'Saving...' : 'Save Staff Note'}
                                 </button>
                             </div>
                         </div>
 
                         <div className="mt-12 flex flex-col md:flex-row gap-4 pt-12 border-t border-black/5">
-                            <button onClick={() => handlePrintInvoice(selectedOrder._id)} className="flex-1 bg-[#111110] text-white py-5 font-label text-[10px] uppercase tracking-[0.4em] font-black hover:opacity-90 transition-all">Print Invoice</button>
-                            <button onClick={() => handleAction('Packing Slip')} className="flex-1 border border-[#111110]/20 py-5 font-label text-[10px] uppercase tracking-[0.4em] font-black hover:bg-[#111110] hover:text-white transition-all">Packing Slip</button>
+                            <button onClick={() => handlePrintInvoice(selectedOrder._id)} className="flex-1 bg-[#111110] text-white py-5 text-[10px] uppercase tracking-[0.4em] font-black hover:opacity-90 transition-all">Print Invoice</button>
+                            <button onClick={() => handleAction('Packing Slip')} className="flex-1 border border-[#111110]/20 py-5 text-[10px] uppercase tracking-[0.4em] font-black hover:bg-[#111110] hover:text-white transition-all">Packing Slip</button>
                         </div>
                     </motion.div>
                 </div>
@@ -2601,7 +2648,7 @@ const Admin = () => {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
                     <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-4xl bg-[#fffcf7] shadow-lux border border-outline-variant/10 p-5 sm:p-8 md:p-16 overflow-y-auto max-h-[88vh] no-scrollbar">
                         <div className="flex justify-between items-start mb-6 md:mb-12">
-                            <h2 className="font-headline text-2xl sm:text-3xl md:text-4xl italic">{editMode ? 'Edit Product' : 'Add New Product'}</h2>
+                            <h2 className="text-2xl sm:text-3xl md:text-4xl ">{editMode ? 'Edit Product' : 'Add New Product'}</h2>
                             <button onClick={() => setIsModalOpen(false)} className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
@@ -2609,29 +2656,36 @@ const Admin = () => {
                         <form onSubmit={handleSaveProduct} className="space-y-6 sm:space-y-12">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6">
                                 <div className="md:col-span-1">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40 block mb-1">Product Name *</label>
-                                    <input type="text" required value={currentProduct.name} onChange={(e) => setCurrentProduct({ ...currentProduct, name: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 font-headline text-xl italic outline-none focus:border-primary" placeholder="Product Name..." />
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40 block mb-1">Product Name *</label>
+                                    <input type="text" required value={currentProduct.name} onChange={(e) => setCurrentProduct({ ...currentProduct, name: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-xl outline-none focus:border-primary" placeholder="Product Name..." />
                                 </div>
                                 <div className="md:col-span-1">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40 block mb-1">Category *</label>
-                                    <select value={currentProduct.category} onChange={(e) => setCurrentProduct({ ...currentProduct, category: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2.5 font-label text-[12px] uppercase font-black">
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40 block mb-1">Category *</label>
+                                    <select value={currentProduct.category} onChange={(e) => setCurrentProduct({ ...currentProduct, category: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2.5 text-[12px] uppercase font-black">
                                         {(categories.length > 0 ? categories.map(c => c.name) : ['Necklaces', 'Rings', 'Earrings', 'Bracelets', 'Collections']).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                     </select>
                                 </div>
                                 <div className="md:col-span-1">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40 block mb-1">Selling Price (₹) *</label>
-                                    <input type="number" required min="0" value={currentProduct.price} onChange={(e) => setCurrentProduct({ ...currentProduct, price: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 font-headline text-xl outline-none focus:border-primary" placeholder="Selling Price..." />
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40 block mb-1">Selling Price (₹) *</label>
+                                    <input type="number" required min="0" value={currentProduct.price} onChange={(e) => setCurrentProduct({ ...currentProduct, price: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-xl outline-none focus:border-primary" placeholder="Selling Price..." />
                                 </div>
                                 <div className="md:col-span-1">
                                     <div className="flex items-center justify-between mb-1">
-                                        <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Original MRP (₹)</label>
+                                        <label className="text-[9px] uppercase tracking-widest opacity-40">Original MRP (₹)</label>
                                         {Number(currentProduct.mrp) > Number(currentProduct.price) && Number(currentProduct.price) > 0 && (
-                                            <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
                                                 {Math.round(((Number(currentProduct.mrp) - Number(currentProduct.price)) / Number(currentProduct.mrp)) * 100)}% OFF
                                             </span>
                                         )}
                                     </div>
-                                    <input type="number" min="0" value={currentProduct.mrp ?? ''} onChange={(e) => setCurrentProduct({ ...currentProduct, mrp: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 font-headline text-xl text-stone-600 outline-none focus:border-primary" placeholder="e.g. 8999" />
+                                    <input 
+                                        type="number" 
+                                        min="0" 
+                                        value={currentProduct.mrp && Number(currentProduct.mrp) > 0 ? currentProduct.mrp : ''} 
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, mrp: e.target.value })} 
+                                        className="w-full bg-transparent border-b border-black/10 py-2 text-xl text-stone-600 outline-none focus:border-primary" 
+                                        placeholder="e.g. 8999" 
+                                    />
                                 </div>
                             </div>
 
@@ -2662,26 +2716,26 @@ const Admin = () => {
                                     />
                                     <label htmlFor="modal-show-on-home" className="cursor-pointer select-none">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-label text-xs uppercase font-bold text-stone-800 tracking-wider">
+                                            <span className="text-xs uppercase font-bold text-stone-800 tracking-wider">
                                                 Showcase in Home Screen Shop
                                             </span>
-                                            <span className="font-mono text-[10px] text-stone-500 font-semibold bg-white px-2 py-0.5 rounded border border-stone-200">
+                                            <span className="text-[10px] text-stone-500 font-semibold bg-white px-2 py-0.5 rounded border border-stone-200">
                                                 Max 8 products
                                             </span>
                                         </div>
-                                        <p className="text-[11px] text-stone-500 font-mono mt-1">
+                                        <p className="text-[11px] text-stone-500 mt-1">
                                             Featured in the "Shop the Collection" section on the Home Screen.
                                         </p>
                                     </label>
                                 </div>
                                 <div className="flex-shrink-0 self-start sm:self-center">
                                     {currentProduct.showOnHome ? (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                             Active ({products.filter(p => p.showOnHome && p._id !== currentProduct._id).length + 1} of 8 slots used)
                                         </span>
                                     ) : (
-                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold ${
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold ${
                                             products.filter(p => p.showOnHome && p._id !== currentProduct._id).length >= 8
                                                 ? 'bg-rose-50 text-rose-700 border border-rose-200'
                                                 : 'bg-stone-200/70 text-stone-600'
@@ -2696,31 +2750,40 @@ const Admin = () => {
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 md:gap-12 border-t border-black/5 pt-6 md:pt-10">
                                 <div className="space-y-4">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Product SKU</label>
-                                    <input type="text" value={currentProduct.sku} onChange={(e) => setCurrentProduct({ ...currentProduct, sku: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm italic outline-none focus:border-primary" placeholder="TG-2026..." />
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Product SKU</label>
+                                    <input type="text" value={currentProduct.sku} onChange={(e) => setCurrentProduct({ ...currentProduct, sku: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="TG-2026..." />
                                 </div>
                                 <div className="space-y-4">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Base Material</label>
-                                    <input type="text" value={currentProduct.material} onChange={(e) => setCurrentProduct({ ...currentProduct, material: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm italic outline-none focus:border-primary" placeholder="22K Gold..." />
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Base Material</label>
+                                    <input type="text" value={currentProduct.material} onChange={(e) => setCurrentProduct({ ...currentProduct, material: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="22K Gold..." />
                                 </div>
                                 <div className="space-y-4">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Stone/Pearl</label>
-                                    <input type="text" value={currentProduct.stone} onChange={(e) => setCurrentProduct({ ...currentProduct, stone: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm italic outline-none focus:border-primary" placeholder="Emerald..." />
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Stone/Pearl</label>
+                                    <input type="text" value={currentProduct.stone} onChange={(e) => setCurrentProduct({ ...currentProduct, stone: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="Emerald..." />
                                 </div>
                                 <div className="space-y-4">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Net Weight</label>
-                                    <input type="text" value={currentProduct.weight} onChange={(e) => setCurrentProduct({ ...currentProduct, weight: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm italic outline-none focus:border-primary" placeholder="14.5g..." />
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Net Weight</label>
+                                    <input type="text" value={currentProduct.weight} onChange={(e) => setCurrentProduct({ ...currentProduct, weight: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="14.5g..." />
                                 </div>
                                 <div className="space-y-4">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Length / Size</label>
-                                    <input type="text" value={currentProduct.length} onChange={(e) => setCurrentProduct({ ...currentProduct, length: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm italic outline-none focus:border-primary" placeholder="18-inch..." />
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Length / Size</label>
+                                    <input type="text" value={currentProduct.length} onChange={(e) => setCurrentProduct({ ...currentProduct, length: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="18-inch..." />
                                 </div>
                                 <div className="space-y-4">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Stock Quantity</label>
-                                    <input type="number" value={currentProduct.stock} onChange={(e) => setCurrentProduct({ ...currentProduct, stock: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm font-black outline-none focus:border-primary" />
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Stock Quantity</label>
+                                    <input 
+                                        type="number" 
+                                        min="0"
+                                        value={currentProduct.stock} 
+                                        onChange={(e) => {
+                                            const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
+                                            setCurrentProduct({ ...currentProduct, stock: val });
+                                        }} 
+                                        className="w-full bg-transparent border-b border-black/10 py-2 text-sm font-black outline-none focus:border-primary" 
+                                    />
                                 </div>
                                 <div className="flex items-end pb-2 gap-4">
-                                    <label className="font-label text-[9px] uppercase tracking-widest opacity-40">Featured Hero</label>
+                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Featured Hero</label>
                                     <input type="checkbox" checked={currentProduct.isHero} onChange={(e) => setCurrentProduct({ ...currentProduct, isHero: e.target.checked })} className="w-4 h-4 accent-primary" />
                                 </div>
                             </div>
@@ -2753,7 +2816,7 @@ const Admin = () => {
                                             ) : (
                                                 <div className="flex flex-col items-center gap-2 opacity-40 group-hover:opacity-70 transition-opacity">
                                                     <ImagePlus className="w-6 h-6 text-primary" />
-                                                    <span className="text-[9px] uppercase tracking-widest font-black font-label text-primary">Upload</span>
+                                                    <span className="text-[9px] uppercase tracking-widest font-black text-primary">Upload</span>
                                                 </div>
                                             )}
                                             {uploadingIdx === (isMain ? 'main' : idx - 1) && <div className="absolute inset-0 bg-white/80 flex items-center justify-center animate-spin z-20"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full" /></div>}
@@ -2763,11 +2826,11 @@ const Admin = () => {
                                 })}
                             </div>
 
-                            <textarea required value={currentProduct.details} onChange={(e) => setCurrentProduct({ ...currentProduct, details: e.target.value })} className="w-full bg-surface-container-low border border-black/5 p-6 text-sm italic min-h-[120px] outline-none focus:border-primary" placeholder="Product description & details..." />
+                            <textarea required value={currentProduct.details} onChange={(e) => setCurrentProduct({ ...currentProduct, details: e.target.value })} className="w-full bg-surface-container-low border border-black/5 p-6 text-sm min-h-[120px] outline-none focus:border-primary" placeholder="Product description & details..." />
 
                             <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-6 pt-6 sm:pt-8 border-t border-black/10">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto px-6 py-3 font-label text-[10px] uppercase font-black opacity-60 hover:opacity-100 transition-all text-center">Cancel</button>
-                                <button type="submit" disabled={!!uploadingIdx} className="w-full sm:w-auto bg-primary text-on-primary px-8 sm:px-16 py-3.5 sm:py-5 font-label text-[10px] uppercase tracking-[0.3em] font-black shadow-lux hover:bg-primary-dim transition-all text-center">Save Product</button>
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto px-6 py-3 text-[10px] uppercase font-black opacity-60 hover:opacity-100 transition-all text-center">Cancel</button>
+                                <button type="submit" disabled={!!uploadingIdx} className="w-full sm:w-auto bg-primary text-on-primary px-8 sm:px-16 py-3.5 sm:py-5 text-[10px] uppercase tracking-[0.3em] font-black shadow-lux hover:bg-primary-dim transition-all text-center">Save Product</button>
                             </div>
                         </form>
                     </motion.div>
@@ -2783,7 +2846,7 @@ const Admin = () => {
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsPromoModalOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
                     <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-[#fffcf7] shadow-lux border border-outline-variant/10 p-5 sm:p-8 md:p-16 max-h-[88vh] overflow-y-auto no-scrollbar">
                         <div className="flex justify-between items-start mb-6 md:mb-12">
-                            <h2 className="font-headline text-2xl sm:text-3xl md:text-4xl italic">Create Discount Coupon</h2>
+                            <h2 className="text-2xl sm:text-3xl md:text-4xl ">Create Discount Coupon</h2>
                             <button onClick={() => setIsPromoModalOpen(false)} className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-colors">
                                 <X className="w-5 h-5" />
                             </button>
@@ -2791,25 +2854,25 @@ const Admin = () => {
                         <form onSubmit={handleSavePromo} className="space-y-6 sm:space-y-12">
                             <div className="space-y-8">
                                 <div className="group">
-                                    <label className="font-label text-[9px] uppercase tracking-widest font-black opacity-40">Coupon Code</label>
-                                    <input required type="text" value={currentPromo.code} onChange={(e) => setCurrentPromo({ ...currentPromo, code: e.target.value.toUpperCase() })} className="w-full bg-transparent border-b border-black/10 py-3 font-headline text-3xl italic outline-none focus:border-primary" placeholder="e.g. SAVE20" />
+                                    <label className="text-[9px] uppercase tracking-widest font-black opacity-40">Coupon Code</label>
+                                    <input required type="text" value={currentPromo.code} onChange={(e) => setCurrentPromo({ ...currentPromo, code: e.target.value.toUpperCase() })} className="w-full bg-transparent border-b border-black/10 py-3 text-3xl outline-none focus:border-primary" placeholder="e.g. SAVE20" />
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-12">
                                     <div className="group">
-                                        <label className="font-label text-[9px] uppercase tracking-widest font-black opacity-40">Discount (%)</label>
-                                        <input required type="number" min="1" max="100" value={currentPromo.discount} onChange={(e) => setCurrentPromo({ ...currentPromo, discount: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-3 font-headline text-2xl outline-none focus:border-primary" placeholder="10" />
+                                        <label className="text-[9px] uppercase tracking-widest font-black opacity-40">Discount (%)</label>
+                                        <input required type="number" min="1" max="100" value={currentPromo.discount} onChange={(e) => setCurrentPromo({ ...currentPromo, discount: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-3 text-2xl outline-none focus:border-primary" placeholder="10" />
                                     </div>
                                     <div className="group">
-                                        <label className="font-label text-[9px] uppercase tracking-widest font-black opacity-40">Expiration Date (Optional)</label>
-                                        <input type="date" value={currentPromo.expiryDate} onChange={(e) => setCurrentPromo({ ...currentPromo, expiryDate: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-3 font-label text-[12px] uppercase outline-none focus:border-primary" />
+                                        <label className="text-[9px] uppercase tracking-widest font-black opacity-40">Expiration Date (Optional)</label>
+                                        <input type="date" value={currentPromo.expiryDate} onChange={(e) => setCurrentPromo({ ...currentPromo, expiryDate: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-3 text-[12px] uppercase outline-none focus:border-primary" />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex justify-end gap-6 pt-8 border-t border-black/10">
-                                <button type="button" onClick={() => setIsPromoModalOpen(false)} className="px-8 font-label text-[10px] uppercase font-black opacity-40 hover:opacity-100 transition-all">Cancel</button>
-                                <button type="submit" disabled={isSavingPromo} className="bg-primary text-on-primary px-16 py-5 font-label text-[10px] uppercase tracking-[0.3em] font-black shadow-lux hover:bg-primary-dim transition-all">
+                                <button type="button" onClick={() => setIsPromoModalOpen(false)} className="px-8 text-[10px] uppercase font-black opacity-40 hover:opacity-100 transition-all">Cancel</button>
+                                <button type="submit" disabled={isSavingPromo} className="bg-primary text-on-primary px-16 py-5 text-[10px] uppercase tracking-[0.3em] font-black shadow-lux hover:bg-primary-dim transition-all">
                                     {isSavingPromo ? 'Saving Coupon...' : 'Create Coupon'}
                                 </button>
                             </div>
@@ -2835,17 +2898,17 @@ const Admin = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-stone-200/70">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="font-mono text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Media Showcase</span>
+                            <span className="text-[10px] tracking-widest text-primary/70 uppercase font-semibold">Media Showcase</span>
                             <span className="text-stone-300">•</span>
-                            <span className="text-xs text-stone-500 font-mono">{reels.length} total reels</span>
+                            <span className="text-xs text-stone-500 ">{reels.length} total reels</span>
                         </div>
-                        <h2 className="font-headline text-3xl md:text-4xl italic font-light text-primary tracking-tight">Reels & Video Showcase</h2>
-                        <p className="text-xs text-stone-500 font-sans mt-1">Manage interactive reels displayed on the Home 3D Coverflow and the /reels page.</p>
+                        <h2 className="text-3xl md:text-4xl font-light text-primary tracking-tight">Reels & Video Showcase</h2>
+                        <p className="text-xs text-stone-500 mt-1">Manage interactive reels displayed on the Home 3D Coverflow and the /reels page.</p>
                     </div>
 
                     <button
                         onClick={handleOpenAddReel}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-label uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-all self-start md:self-auto active:scale-98"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-all self-start md:self-auto active:scale-98"
                     >
                         <Plus className="w-4 h-4" />
                         <span>Add New Reel</span>
@@ -2856,8 +2919,8 @@ const Admin = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="bg-white rounded-xl p-4 border border-stone-200/70 shadow-sm flex items-center justify-between">
                         <div>
-                            <p className="text-[10px] font-mono uppercase tracking-wider text-stone-400">Total Reels</p>
-                            <p className="font-headline text-2xl italic text-primary">{reels.length}</p>
+                            <p className="text-[10px] uppercase tracking-wider text-stone-400">Total Reels</p>
+                            <p className="text-2xl text-primary">{reels.length}</p>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                             <Film className="w-5 h-5" />
@@ -2865,8 +2928,8 @@ const Admin = () => {
                     </div>
                     <div className="bg-white rounded-xl p-4 border border-stone-200/70 shadow-sm flex items-center justify-between">
                         <div>
-                            <p className="text-[10px] font-mono uppercase tracking-wider text-stone-400">Active On Live Store</p>
-                            <p className="font-headline text-2xl italic text-emerald-700">{reels.filter(r => r.isActive).length}</p>
+                            <p className="text-[10px] uppercase tracking-wider text-stone-400">Active On Live Store</p>
+                            <p className="text-2xl text-emerald-700">{reels.filter(r => r.isActive).length}</p>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
                             <CheckCircle2 className="w-5 h-5" />
@@ -2874,8 +2937,8 @@ const Admin = () => {
                     </div>
                     <div className="bg-white rounded-xl p-4 border border-stone-200/70 shadow-sm flex items-center justify-between">
                         <div>
-                            <p className="text-[10px] font-mono uppercase tracking-wider text-stone-400">Linked To Products</p>
-                            <p className="font-headline text-2xl italic text-amber-700">{reels.filter(r => r.productId).length}</p>
+                            <p className="text-[10px] uppercase tracking-wider text-stone-400">Linked To Products</p>
+                            <p className="text-2xl text-amber-700">{reels.filter(r => r.productId).length}</p>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
                             <Tag className="w-5 h-5" />
@@ -2890,18 +2953,18 @@ const Admin = () => {
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-stone-200/80">
                             <div>
                                 <div className="flex items-center gap-2 mb-1.5">
-                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-widest bg-stone-100 text-primary border border-stone-200">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-stone-100 text-primary border border-stone-200">
                                         Home Screen Showcase
                                     </span>
                                     <span className="text-stone-300">•</span>
-                                    <span className="text-xs font-mono text-stone-500">
+                                    <span className="text-xs text-stone-500">
                                         {homeShowcaseReels.length} of 5 Slots Assigned
                                     </span>
                                 </div>
-                                <h3 className="font-headline text-2xl md:text-3xl italic text-primary tracking-tight font-light">
+                                <h3 className="text-2xl md:text-3xl text-primary tracking-tight font-light">
                                     Curated Home Screen Showcase (Top 5 Reels)
                                 </h3>
-                                <p className="text-xs text-stone-500 font-sans mt-1 max-w-2xl">
+                                <p className="text-xs text-stone-500 mt-1 max-w-2xl">
                                     Select and sequence the 5 reels displayed on the store homepage 3D coverflow showcase. Reorder slots, swap reels, or toggle featured status from any card below.
                                 </p>
                             </div>
@@ -2912,7 +2975,7 @@ const Admin = () => {
                                         type="button"
                                         onClick={handleAutoPopulateTop5}
                                         disabled={isSavingShowcase}
-                                        className="px-3.5 py-2 rounded-xl text-xs font-sans font-bold bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 transition-all flex items-center gap-1.5 shadow-2xs"
+                                        className="px-3.5 py-2 rounded-xl text-xs font-bold bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 transition-all flex items-center gap-1.5 shadow-2xs"
                                     >
                                         <span>Auto-Fill Active</span>
                                     </button>
@@ -2926,7 +2989,7 @@ const Admin = () => {
                                             }
                                         }}
                                         disabled={isSavingShowcase}
-                                        className="px-3 py-2 rounded-xl text-xs font-sans font-medium text-stone-500 hover:text-rose-600 hover:bg-rose-50 border border-stone-200 transition-all"
+                                        className="px-3 py-2 rounded-xl text-xs font-medium text-stone-500 hover:text-rose-600 hover:bg-rose-50 border border-stone-200 transition-all"
                                     >
                                         Clear Slots
                                     </button>
@@ -2962,7 +3025,7 @@ const Admin = () => {
 
                                                     {/* Slot Badge - Clean Luxury light badge, No emojis */}
                                                     <div className="absolute top-2.5 left-2.5 z-10">
-                                                        <span className="px-2.5 py-0.5 rounded-md font-mono text-[10px] font-bold bg-white text-stone-900 shadow-sm border border-stone-200/80 tracking-wide uppercase">
+                                                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-white text-stone-900 shadow-sm border border-stone-200/80 tracking-wide uppercase">
                                                             Slot #{slotIndex + 1}
                                                         </span>
                                                     </div>
@@ -3001,14 +3064,14 @@ const Admin = () => {
 
                                                     {/* Bottom Media Info */}
                                                     <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 text-white">
-                                                        <span className="text-[9px] font-mono text-amber-300 uppercase tracking-wider block mb-0.5">
+                                                        <span className="text-[9px] text-amber-300 uppercase tracking-wider block mb-0.5">
                                                             {slotReel.category || 'Jewellery'}
                                                         </span>
-                                                        <p className="font-headline text-sm italic text-white line-clamp-1 leading-snug">
+                                                        <p className="text-sm text-white line-clamp-1 leading-snug">
                                                             {slotReel.title || slotReel.name}
                                                         </p>
                                                         {slotReel.price && (
-                                                            <p className="font-mono text-xs font-bold text-amber-200 mt-0.5">
+                                                            <p className="text-xs font-bold text-amber-200 mt-0.5">
                                                                 {slotReel.price}
                                                             </p>
                                                         )}
@@ -3017,13 +3080,13 @@ const Admin = () => {
 
                                                 {/* Card Footer: Change Reel Dropdown */}
                                                 <div className="p-3 bg-white border-t border-stone-200/80 space-y-1">
-                                                    <label className="text-[9px] font-mono uppercase tracking-wider text-stone-400 block font-semibold">
+                                                    <label className="text-[9px] uppercase tracking-wider text-stone-400 block font-semibold">
                                                         Swap Slot Reel
                                                     </label>
                                                     <select
                                                         value={slotReel._id}
                                                         onChange={(e) => handleAssignSlot(slotIndex, e.target.value)}
-                                                        className="w-full bg-stone-50 hover:bg-white border border-stone-200 hover:border-primary/50 rounded-lg px-2 py-1.5 text-[11px] font-sans text-stone-800 focus:outline-none focus:border-primary transition-colors cursor-pointer"
+                                                        className="w-full bg-stone-50 hover:bg-white border border-stone-200 hover:border-primary/50 rounded-lg px-2 py-1.5 text-[11px] text-stone-800 focus:outline-none focus:border-primary transition-colors cursor-pointer"
                                                     >
                                                         <option value={slotReel._id}>Current: {slotReel.title || slotReel.name}</option>
                                                         {reels
@@ -3043,10 +3106,10 @@ const Admin = () => {
                                                     <Plus className="w-5 h-5 text-stone-400" />
                                                 </div>
                                                 <div>
-                                                    <span className="font-mono text-[10px] uppercase tracking-wider text-primary font-bold block">
+                                                    <span className="text-[10px] uppercase tracking-wider text-primary font-bold block">
                                                         Slot #{slotIndex + 1}
                                                     </span>
-                                                    <p className="font-headline text-sm italic text-stone-500 mt-0.5">
+                                                    <p className="text-sm text-stone-500 mt-0.5">
                                                         Empty Slot
                                                     </p>
                                                 </div>
@@ -3058,7 +3121,7 @@ const Admin = () => {
                                                             handleAssignSlot(slotIndex, e.target.value)
                                                         }
                                                     }}
-                                                    className="w-full bg-white hover:bg-stone-50 border border-stone-200 hover:border-primary rounded-xl px-2.5 py-2 text-xs font-sans text-stone-700 focus:outline-none focus:border-primary cursor-pointer transition-colors shadow-2xs"
+                                                    className="w-full bg-white hover:bg-stone-50 border border-stone-200 hover:border-primary rounded-xl px-2.5 py-2 text-xs text-stone-700 focus:outline-none focus:border-primary cursor-pointer transition-colors shadow-2xs"
                                                 >
                                                     <option value="">+ Assign Reel to Slot #{slotIndex + 1}</option>
                                                     {reels
@@ -3095,7 +3158,7 @@ const Admin = () => {
                             </button>
                         )}
                     </div>
-                    <span className="text-xs text-stone-400 font-mono self-end sm:self-auto">Showing {filteredReels.length} of {reels.length} reels</span>
+                    <span className="text-xs text-stone-400 self-end sm:self-auto">Showing {filteredReels.length} of {reels.length} reels</span>
                 </div>
 
                 {/* Reels Grid */}
@@ -3125,18 +3188,18 @@ const Admin = () => {
                                     {/* Top Controls: Order & Active Status & Showcase Badge */}
                                     <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 gap-1.5">
                                         <div className="flex items-center gap-1">
-                                            <span className="px-2 py-0.5 rounded-md font-mono text-[10px] font-bold bg-black/60 text-white backdrop-blur-sm border border-white/20">
+                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-black/60 text-white backdrop-blur-sm border border-white/20">
                                                 #{reel.order || 1}
                                             </span>
                                             {reel.isHomeShowcase && (
-                                                <span className="px-2 py-0.5 rounded font-mono text-[9px] font-bold bg-white text-stone-900 flex items-center shadow-sm border border-stone-200" title="Featured in Home Screen Showcase">
+                                                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-white text-stone-900 flex items-center shadow-sm border border-stone-200" title="Featured in Home Screen Showcase">
                                                     Slot #{homeShowcaseReels.findIndex(r => r._id === reel._id) + 1 || reel.homeOrder}
                                                 </span>
                                             )}
                                         </div>
                                         <button
                                             onClick={() => handleToggleReelActive(reel)}
-                                            className={`px-2 py-0.5 rounded-full text-[9px] font-sans font-bold uppercase tracking-wider backdrop-blur-sm transition-all border ${
+                                            className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider backdrop-blur-sm transition-all border ${
                                                 reel.isActive
                                                     ? 'bg-emerald-500/90 text-white border-emerald-400'
                                                     : 'bg-stone-800/90 text-stone-300 border-stone-600'
@@ -3149,14 +3212,14 @@ const Admin = () => {
 
                                     {/* Bottom Info on media */}
                                     <div className="absolute bottom-3 left-3 right-3 z-10 text-white">
-                                        <span className="inline-block px-1.5 py-0.5 rounded text-[8px] font-sans font-bold uppercase tracking-wider bg-white/20 backdrop-blur-sm border border-white/30 mb-1">
+                                        <span className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-white/20 backdrop-blur-sm border border-white/30 mb-1">
                                             {reel.category || 'Jewellery'}
                                         </span>
-                                        <h4 className="font-headline text-base italic leading-tight text-white line-clamp-2 drop-shadow-sm">
+                                        <h4 className="text-base leading-tight text-white line-clamp-2 drop-shadow-sm">
                                             {reelTitle}
                                         </h4>
                                         {reel.price && (
-                                            <p className="font-mono text-xs font-bold text-amber-200 mt-0.5 drop-shadow-sm">
+                                            <p className="text-xs font-bold text-amber-200 mt-0.5 drop-shadow-sm">
                                                 {reel.price}
                                             </p>
                                         )}
@@ -3167,16 +3230,16 @@ const Admin = () => {
                                 <div className="p-3.5 space-y-3 flex-1 flex flex-col justify-between bg-stone-50/40 border-t border-stone-100">
                                     {/* Linked product indicator */}
                                     <div>
-                                        <p className="font-mono text-[9px] uppercase tracking-wider text-stone-400 mb-1">Linked Product</p>
+                                        <p className="text-[9px] uppercase tracking-wider text-stone-400 mb-1">Linked Product</p>
                                         {linkedProduct ? (
                                             <div className="min-w-0">
                                                 <p className="text-[11px] font-semibold text-stone-800 truncate">{linkedProduct.name}</p>
-                                                <p className="font-mono text-[9px] text-primary">₹{linkedProduct.price?.toLocaleString()}</p>
+                                                <p className="text-[9px] text-primary">₹{linkedProduct.price?.toLocaleString()}</p>
                                             </div>
                                         ) : reel.productId ? (
-                                            <p className="font-mono text-[10px] text-stone-600 truncate">ID: {reel.productId}</p>
+                                            <p className="text-[10px] text-stone-600 truncate">ID: {reel.productId}</p>
                                         ) : (
-                                            <p className="font-sans text-[11px] text-stone-400 italic">No product linked</p>
+                                            <p className="text-[11px] text-stone-400 ">No product linked</p>
                                         )}
                                     </div>
 
@@ -3184,7 +3247,7 @@ const Admin = () => {
                                     <button
                                         type="button"
                                         onClick={() => handleToggleFeatureOnHome(reel)}
-                                        className={`w-full py-1.5 px-2.5 rounded-lg text-[11px] font-sans font-bold transition-all flex items-center justify-center gap-1.5 border shadow-2xs ${
+                                        className={`w-full py-1.5 px-2.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 border shadow-2xs ${
                                             reel.isHomeShowcase
                                                 ? 'bg-stone-900 text-white border-stone-900 hover:bg-stone-800'
                                                 : 'bg-white hover:bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-300'
@@ -3201,13 +3264,13 @@ const Admin = () => {
                                     <div className="flex items-center gap-2 pt-2 border-t border-stone-200/50">
                                         <button
                                             onClick={() => handleOpenEditReel(reel)}
-                                            className="flex-1 py-1.5 px-3 bg-white hover:bg-stone-100 border border-stone-200/80 rounded-lg text-xs font-sans font-bold text-stone-700 transition-all text-center shadow-xs"
+                                            className="flex-1 py-1.5 px-3 bg-white hover:bg-stone-100 border border-stone-200/80 rounded-lg text-xs font-bold text-stone-700 transition-all text-center shadow-xs"
                                         >
                                             Edit
                                         </button>
                                         <button
                                             onClick={() => handleDeleteReel(reel._id)}
-                                            className="py-1.5 px-3 bg-white hover:bg-rose-50 text-stone-500 hover:text-rose-600 border border-stone-200/80 rounded-lg text-xs font-sans font-bold transition-all shadow-xs"
+                                            className="py-1.5 px-3 bg-white hover:bg-rose-50 text-stone-500 hover:text-rose-600 border border-stone-200/80 rounded-lg text-xs font-bold transition-all shadow-xs"
                                         >
                                             Delete
                                         </button>
@@ -3221,13 +3284,13 @@ const Admin = () => {
                 {filteredReels.length === 0 && (
                     <div className="bg-white rounded-2xl border border-stone-200/70 p-16 text-center space-y-3">
                         <Film className="w-12 h-12 text-stone-300 mx-auto" />
-                        <h3 className="font-headline text-2xl italic text-stone-700">No reels found</h3>
-                        <p className="text-xs text-stone-400 font-sans max-w-sm mx-auto">
+                        <h3 className="text-2xl text-stone-700">No reels found</h3>
+                        <p className="text-xs text-stone-400 max-w-sm mx-auto">
                             {reelSearch ? 'No reels match your search filter.' : 'Click "Add New Reel" to create your first reel showcase.'}
                         </p>
                         <button
                             onClick={handleOpenAddReel}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-label uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-all"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-all"
                         >
                             <Plus className="w-4 h-4" />
                             <span>Add Reel Now</span>
@@ -3250,12 +3313,8 @@ const Admin = () => {
                 {/* Clean Top Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-black/8">
                     <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="font-mono text-[10px] uppercase tracking-widest text-stone-500 font-semibold">Store Management</span>
-                        </div>
-                        <h2 className="font-headline text-3xl sm:text-4xl italic font-light text-stone-900 tracking-tight">Categories</h2>
-                        <p className="font-sans text-xs text-stone-500 mt-1">
+                        <h2 className="text-3xl sm:text-4xl font-light text-stone-900 tracking-tight">Categories</h2>
+                        <p className="text-xs text-stone-500 mt-1">
                             Create categories and use the button below to easily toggle which 4 appear on the Home Screen.
                         </p>
                     </div>
@@ -3263,13 +3322,13 @@ const Admin = () => {
                     <div className="flex items-center gap-3">
                         <div className="px-3.5 py-2 rounded-xl bg-stone-100 border border-stone-200/80 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-primary" />
-                            <span className="text-xs font-mono text-stone-700 font-bold">
+                            <span className="text-xs text-stone-700 font-bold">
                                 Home: {homeCategoriesCount} / 4
                             </span>
                         </div>
                         <button
                             onClick={handleOpenAddCategory}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all cursor-pointer"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all cursor-pointer"
                         >
                             <Plus className="w-4 h-4" />
                             <span>Create Category</span>
@@ -3282,7 +3341,7 @@ const Admin = () => {
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         <button
                             onClick={() => setCategoryFilter('all')}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-sans font-bold transition-all cursor-pointer ${
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                                 categoryFilter === 'all'
                                     ? 'bg-primary text-white shadow-xs'
                                     : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
@@ -3292,17 +3351,17 @@ const Admin = () => {
                         </button>
                         <button
                             onClick={() => setCategoryFilter('home')}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-sans font-bold transition-all cursor-pointer ${
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                                 categoryFilter === 'home'
                                     ? 'bg-primary text-white shadow-xs'
                                     : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
                             }`}
                         >
-                            ★ Home Screen ({homeCategoriesCount})
+                            Home Screen ({homeCategoriesCount})
                         </button>
                         <button
                             onClick={() => setCategoryFilter('collection')}
-                            className={`px-3.5 py-1.5 rounded-xl text-xs font-sans font-bold transition-all cursor-pointer ${
+                            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                                 categoryFilter === 'collection'
                                     ? 'bg-primary text-white shadow-xs'
                                     : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
@@ -3348,28 +3407,28 @@ const Admin = () => {
                                     </div>
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-headline text-xl sm:text-2xl italic text-stone-900 truncate">
+                                            <h3 className="text-xl sm:text-2xl text-stone-900 truncate">
                                                 {cat.name}
                                             </h3>
                                             {cat.showOnHome && (
-                                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono font-bold shrink-0">
-                                                    ★ On Home Screen
+                                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold shrink-0">
+                                                    On Home Screen
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-stone-500 font-sans">
+                                        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-stone-500 ">
                                             {cat.tagline && (
                                                 <span className="font-medium text-stone-700">{cat.tagline}</span>
                                             )}
                                             {cat.tagline && cat.count && <span>•</span>}
                                             {cat.count && (
-                                                <span className="font-mono text-[11px] text-stone-400">{cat.count}</span>
+                                                <span className="text-[11px] text-stone-400">{cat.count}</span>
                                             )}
                                             <span className="hidden md:inline text-stone-300">•</span>
                                             <Link
                                                 to={`/shop/${cat.slug || cat.name.toLowerCase()}`}
                                                 target="_blank"
-                                                className="text-primary hover:underline font-mono text-[11px] hidden md:inline-flex items-center gap-1"
+                                                className="text-primary hover:underline text-[11px] hidden md:inline-flex items-center gap-1"
                                             >
                                                 <span>/shop/{cat.slug || cat.name.toLowerCase()}</span>
                                                 <ExternalLink className="w-2.5 h-2.5" />
@@ -3384,7 +3443,7 @@ const Admin = () => {
                                     <button
                                         type="button"
                                         onClick={() => handleToggleHomeCategory(cat)}
-                                        className={`px-4 py-2 rounded-xl text-xs font-sans font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
                                             cat.showOnHome
                                                 ? 'bg-emerald-600 text-white border-emerald-600 hover:bg-rose-600 hover:border-rose-600 shadow-2xs group'
                                                 : (homeCategoriesCount >= 4
@@ -3434,13 +3493,13 @@ const Admin = () => {
                 {filteredCategories.length === 0 && (
                     <div className="bg-white rounded-2xl border border-stone-200/70 p-12 text-center space-y-3">
                         <Layers className="w-10 h-10 text-stone-300 mx-auto" />
-                        <h3 className="font-headline text-xl italic text-stone-700">No categories found</h3>
-                        <p className="text-xs text-stone-400 font-sans max-w-sm mx-auto">
+                        <h3 className="text-xl text-stone-700">No categories found</h3>
+                        <p className="text-xs text-stone-400 max-w-sm mx-auto">
                             {categorySearch ? 'No categories match your search.' : 'Create your first category to get started.'}
                         </p>
                         <button
                             onClick={handleOpenAddCategory}
-                            className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all cursor-pointer"
+                            className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all cursor-pointer"
                         >
                             <Plus className="w-4 h-4" />
                             <span>Create Category</span>
@@ -3463,10 +3522,10 @@ const Admin = () => {
                         <motion.div initial={{ opacity: 0, scale: 0.95, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 15 }} className="relative w-full max-w-lg bg-[#fffcf7] rounded-2xl shadow-xl border border-stone-200 p-6 sm:p-8 overflow-y-auto max-h-[90vh] no-scrollbar">
                             <div className="flex items-center justify-between pb-4 border-b border-black/8">
                                 <div>
-                                    <h2 className="font-headline text-2xl italic text-stone-900">
+                                    <h2 className="text-2xl text-stone-900">
                                         {editCategoryMode ? `Edit Category: ${currentCategory.name}` : 'Create Category'}
                                     </h2>
-                                    <p className="text-[11px] text-stone-400 font-sans mt-0.5">
+                                    <p className="text-[11px] text-stone-400 mt-0.5">
                                         Fill in the category name and image.
                                     </p>
                                 </div>
@@ -3478,7 +3537,7 @@ const Admin = () => {
                             <form onSubmit={handleSaveCategory} className="space-y-4 pt-4">
                                 {/* Category Name */}
                                 <div className="space-y-1.5">
-                                    <label className="font-mono text-[10px] uppercase tracking-wider text-stone-600 font-bold">Category Name *</label>
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-600 font-bold">Category Name *</label>
                                     <input
                                         type="text"
                                         required
@@ -3493,15 +3552,15 @@ const Admin = () => {
                                                 slug: prev.slug ? prev.slug : autoSlug
                                             }))
                                         }}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-sm font-sans text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-sm text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
                                     />
                                 </div>
 
                                 {/* Image Upload & Preview */}
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <label className="font-mono text-[10px] uppercase tracking-wider text-stone-600 font-bold">Category Image *</label>
-                                        <label className="px-3 py-1 bg-stone-900 text-white rounded-lg text-[10px] font-sans font-bold cursor-pointer hover:bg-stone-800 transition-all flex items-center gap-1 shadow-2xs">
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-600 font-bold">Category Image *</label>
+                                        <label className="px-3 py-1 bg-stone-900 text-white rounded-lg text-[10px] font-bold cursor-pointer hover:bg-stone-800 transition-all flex items-center gap-1 shadow-2xs">
                                             <ImagePlus className="w-3.5 h-3.5" />
                                             <span>{uploadingHomeImg ? 'Uploading...' : 'Upload Image'}</span>
                                             <input type="file" accept="image/*" disabled={uploadingHomeImg} onChange={handleCategoryHomeImageUpload} className="hidden" />
@@ -3513,7 +3572,7 @@ const Admin = () => {
                                         placeholder="Image URL or upload a file above"
                                         value={currentCategory.homeImage}
                                         onChange={(e) => setCurrentCategory({ ...currentCategory, homeImage: e.target.value })}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-mono text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
                                     />
                                     {currentCategory.homeImage && (
                                         <div className="aspect-[16/9] rounded-xl overflow-hidden bg-stone-100 border border-stone-200 relative">
@@ -3525,23 +3584,23 @@ const Admin = () => {
                                 {/* Tagline & Count */}
                                 <div className="grid grid-cols-2 gap-3 pt-1">
                                     <div className="space-y-1">
-                                        <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Tagline (Optional)</label>
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Tagline (Optional)</label>
                                         <input
                                             type="text"
                                             placeholder="e.g. Collection Alpha"
                                             value={currentCategory.tagline}
                                             onChange={(e) => setCurrentCategory({ ...currentCategory, tagline: e.target.value })}
-                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-sans text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Pieces (Optional)</label>
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Pieces (Optional)</label>
                                         <input
                                             type="text"
                                             placeholder="e.g. 12 Pieces"
                                             value={currentCategory.count}
                                             onChange={(e) => setCurrentCategory({ ...currentCategory, count: e.target.value })}
-                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-sans text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
                                         />
                                     </div>
                                 </div>
@@ -3564,10 +3623,10 @@ const Admin = () => {
                                             className="w-4 h-4 mt-0.5 rounded text-primary focus:ring-primary border-stone-300 cursor-pointer"
                                         />
                                         <div>
-                                            <span className="text-xs font-sans font-bold text-stone-900 block">
+                                            <span className="text-xs font-bold text-stone-900 block">
                                                 Showcase on Home Screen (Max 4)
                                             </span>
-                                            <span className="text-[11px] text-stone-500 font-sans block mt-0.5">
+                                            <span className="text-[11px] text-stone-500 block mt-0.5">
                                                 {currentCategory.showOnHome
                                                     ? 'This category will appear in the 4-card grid on the Home Screen.'
                                                     : (isHomeSlotsMaxed
@@ -3584,14 +3643,14 @@ const Admin = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsCategoryModalOpen(false)}
-                                        className="px-5 py-2.5 rounded-xl border border-stone-200 text-xs font-sans font-bold text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer"
+                                        className="px-5 py-2.5 rounded-xl border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSavingCategory}
-                                        className="px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer"
+                                        className="px-6 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50 cursor-pointer"
                                     >
                                         {isSavingCategory ? 'Saving...' : (editCategoryMode ? 'Update Category' : 'Save Category')}
                                     </button>
@@ -3612,8 +3671,8 @@ const Admin = () => {
                     <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-3xl bg-[#fffcf7] rounded-2xl sm:rounded-3xl shadow-2xl border border-stone-200/80 p-4 sm:p-8 md:p-10 overflow-y-auto max-h-[88vh] no-scrollbar">
                         <div className="flex items-center justify-between pb-6 border-b border-black/10">
                             <div>
-                                <span className="font-mono text-[10px] uppercase tracking-widest text-primary font-semibold">Reels Curator</span>
-                                <h2 className="font-headline text-3xl italic text-stone-900 mt-1">{editReelMode ? 'Edit Reel' : 'Add New Reel'}</h2>
+                                <span className="text-[10px] uppercase tracking-widest text-primary font-semibold">Reels Curator</span>
+                                <h2 className="text-3xl text-stone-900 mt-1">{editReelMode ? 'Edit Reel' : 'Add New Reel'}</h2>
                             </div>
                             <button onClick={() => setIsReelModalOpen(false)} className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-colors">
                                 <X className="w-5 h-5" />
@@ -3624,22 +3683,22 @@ const Admin = () => {
                             {/* Title & Category */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="md:col-span-2 space-y-1.5">
-                                    <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Reel Title *</label>
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Reel Title *</label>
                                     <input
                                         type="text"
                                         required
                                         placeholder="e.g. Abstract Emerald Drop Earring"
                                         value={currentReel.title}
                                         onChange={(e) => setCurrentReel({ ...currentReel, title: e.target.value })}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs font-sans text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Category</label>
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Category</label>
                                     <select
                                         value={currentReel.category}
                                         onChange={(e) => setCurrentReel({ ...currentReel, category: e.target.value })}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-sans text-stone-800 focus:outline-none focus:border-primary transition-colors"
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:border-primary transition-colors"
                                     >
                                         {['Earrings', 'Rings', 'Necklaces', 'Bracelets', 'Collections', 'Fine Jewellery'].map(cat => (
                                             <option key={cat} value={cat}>{cat}</option>
@@ -3651,14 +3710,14 @@ const Admin = () => {
                             {/* Cover Media & Upload */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2 border-t border-black/5">
                                 <div className="md:col-span-2 space-y-3">
-                                    <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Cover Image (Vertical 9:16) *</label>
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Cover Image (Vertical 9:16) *</label>
                                     <div className="flex items-center gap-3">
-                                        <label className="px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-sans font-bold cursor-pointer hover:bg-primary/90 transition-all flex items-center gap-2 shadow-sm">
+                                        <label className="px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-primary/90 transition-all flex items-center gap-2 shadow-sm">
                                             <ImagePlus className="w-4 h-4" />
                                             <span>{uploadingReelImg ? 'Uploading...' : 'Upload Image'}</span>
                                             <input type="file" accept="image/*" disabled={uploadingReelImg} onChange={handleReelImageUpload} className="hidden" />
                                         </label>
-                                        <span className="text-[11px] text-stone-400 font-sans">or paste image URL below</span>
+                                        <span className="text-[11px] text-stone-400 ">or paste image URL below</span>
                                     </div>
                                     <input
                                         type="text"
@@ -3666,36 +3725,36 @@ const Admin = () => {
                                         placeholder="https://... or /reels/reel-1.jpg"
                                         value={currentReel.image}
                                         onChange={(e) => setCurrentReel({ ...currentReel, image: e.target.value })}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs font-mono text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
                                     />
                                     <div className="space-y-1.5 pt-2">
-                                        <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Video URL (Optional)</label>
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Video URL (Optional)</label>
                                         <input
                                             type="text"
                                             placeholder="https://... (mp4 / stream URL)"
                                             value={currentReel.video || ''}
                                             onChange={(e) => setCurrentReel({ ...currentReel, video: e.target.value })}
-                                            className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs font-mono text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
                                         />
                                     </div>
                                 </div>
 
                                 {/* Preview Frame */}
                                 <div className="space-y-1.5">
-                                    <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Live Preview</label>
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Live Preview</label>
                                     <div className="w-full max-w-[160px] aspect-[9/16] rounded-2xl overflow-hidden bg-stone-900 border border-stone-200 shadow-sm relative mx-auto">
                                         {currentReel.image ? (
                                             <>
                                                 <img src={getOptimizedImage(currentReel.image, 300)} alt="" className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 pointer-events-none" />
-                                                <div className="absolute bottom-2 inset-x-2 text-white text-[10px] font-sans truncate text-center drop-shadow">
+                                                <div className="absolute bottom-2 inset-x-2 text-white text-[10px] truncate text-center drop-shadow">
                                                     {currentReel.title || 'Preview Title'}
                                                 </div>
                                             </>
                                         ) : (
                                             <div className="w-full h-full flex flex-col items-center justify-center text-stone-500 text-xs gap-1.5 p-3 text-center">
                                                 <Film className="w-6 h-6 text-stone-600" />
-                                                <span className="font-mono text-[9px]">No media selected</span>
+                                                <span className="text-[9px]">No media selected</span>
                                             </div>
                                         )}
                                     </div>
@@ -3705,7 +3764,7 @@ const Admin = () => {
                             {/* Linked Product & Price */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2 border-t border-black/5">
                                 <div className="space-y-1.5 md:col-span-2">
-                                    <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Link with Store Product</label>
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Link with Store Product</label>
                                     <select
                                         value={currentReel.productId}
                                         onChange={(e) => {
@@ -3722,7 +3781,7 @@ const Admin = () => {
                                                 setCurrentReel(prev => ({ ...prev, productId: selectedId }))
                                             }
                                         }}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-sans text-stone-800 focus:outline-none focus:border-primary transition-colors"
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:border-primary transition-colors"
                                     >
                                         <option value="">-- No Linked Product (Generic Showcase) --</option>
                                         {products.map(p => (
@@ -3731,17 +3790,17 @@ const Admin = () => {
                                             </option>
                                         ))}
                                     </select>
-                                    <p className="text-[10px] text-stone-400 font-sans">Clicking "Buy Now" on this reel will open the selected product's details page.</p>
+                                    <p className="text-[10px] text-stone-400 ">Clicking "Buy Now" on this reel will open the selected product's details page.</p>
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Display Price</label>
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Display Price</label>
                                     <input
                                         type="text"
                                         placeholder="e.g. ₹9,500"
                                         value={currentReel.price || ''}
                                         onChange={(e) => setCurrentReel({ ...currentReel, price: e.target.value })}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs font-sans text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors"
                                     />
                                 </div>
                             </div>
@@ -3749,15 +3808,15 @@ const Admin = () => {
                             {/* Order Sequence & Visibility */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2 border-t border-black/5">
                                 <div className="space-y-1.5">
-                                    <label className="font-mono text-[10px] uppercase tracking-wider text-stone-500 font-bold">Display Sequence Order</label>
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Display Sequence Order</label>
                                     <input
                                         type="number"
                                         min={1}
                                         value={currentReel.order || 1}
                                         onChange={(e) => setCurrentReel({ ...currentReel, order: parseInt(e.target.value) || 1 })}
-                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs font-mono text-stone-800 focus:outline-none focus:border-primary transition-colors"
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs text-stone-800 focus:outline-none focus:border-primary transition-colors"
                                     />
-                                    <p className="text-[10px] text-stone-400 font-sans">Lower numbers appear first in the coverflow & reels feed.</p>
+                                    <p className="text-[10px] text-stone-400 ">Lower numbers appear first in the coverflow & reels feed.</p>
                                 </div>
 
                                 <div className="space-y-3 pt-4">
@@ -3769,7 +3828,7 @@ const Admin = () => {
                                             onChange={(e) => setCurrentReel({ ...currentReel, isActive: e.target.checked })}
                                             className="w-4 h-4 rounded text-primary focus:ring-primary border-stone-300"
                                         />
-                                        <label htmlFor="reelActive" className="text-xs font-sans font-bold text-stone-800 cursor-pointer">
+                                        <label htmlFor="reelActive" className="text-xs font-bold text-stone-800 cursor-pointer">
                                             Active on live store (Home coverflow & Reels feed)
                                         </label>
                                     </div>
@@ -3782,7 +3841,7 @@ const Admin = () => {
                                             onChange={(e) => setCurrentReel({ ...currentReel, isHomeShowcase: e.target.checked })}
                                             className="w-4 h-4 rounded text-primary focus:ring-primary border-stone-300"
                                         />
-                                        <label htmlFor="reelHomeShowcase" className="text-xs font-sans font-bold text-stone-800 cursor-pointer">
+                                        <label htmlFor="reelHomeShowcase" className="text-xs font-bold text-stone-800 cursor-pointer">
                                             Feature in Home Screen Showcase (Top 5 Reels)
                                         </label>
                                     </div>
@@ -3794,14 +3853,14 @@ const Admin = () => {
                                 <button
                                     type="button"
                                     onClick={() => setIsReelModalOpen(false)}
-                                    className="px-6 py-2.5 rounded-xl border border-stone-200 text-xs font-sans font-bold text-stone-600 hover:bg-stone-100 transition-colors"
+                                    className="px-6 py-2.5 rounded-xl border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-100 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSavingReel}
-                                    className="px-8 py-2.5 bg-primary text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50"
+                                    className="px-8 py-2.5 bg-primary text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50"
                                 >
                                     {isSavingReel ? 'Saving Reel...' : (editReelMode ? 'Update Reel' : 'Save Reel')}
                                 </button>
@@ -3826,7 +3885,7 @@ const Admin = () => {
     ];
 
     return (
-        <div className="flex flex-col lg:flex-row bg-[#fffcf7] min-h-screen selection:bg-primary-container text-stone-900 pt-0 lg:pt-0 overflow-x-hidden w-full max-w-full">
+        <div className="admin-panel flex flex-col lg:flex-row bg-[#fffcf7] min-h-screen selection:bg-primary-container text-stone-900 pt-0 lg:pt-0 overflow-x-hidden w-full max-w-full" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
             {renderInventoryModal()}
             {renderCategoryModal()}
             {renderOrderModal()}
@@ -3838,22 +3897,21 @@ const Admin = () => {
             <div className="lg:hidden sticky top-0 z-40 bg-[#fffcf7] border-b border-black/8 px-3.5 sm:px-6 py-2.5 shadow-xs transition-all duration-300">
                 <div className="flex items-center justify-between mb-2.5 px-0.5">
                     <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="font-mono text-[10px] tracking-widest text-primary/70 font-semibold uppercase">Admin Panel</span>
+                        <span className="text-[10px] tracking-widest text-primary/70 font-semibold uppercase">Admin Panel</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Link to="/" className="text-[10px] font-label uppercase tracking-widest text-primary font-bold flex items-center gap-1 hover:underline">
+                        <Link to="/" className="text-[10px] uppercase tracking-widest text-primary font-bold flex items-center gap-1 hover:underline">
                             <span>Store</span>
                             <ExternalLink className="w-3 h-3" />
                         </Link>
                         <span className="text-stone-300 text-xs">•</span>
-                        <Link to="/account" className="text-[10px] font-label uppercase tracking-widest text-stone-600 hover:text-primary font-bold flex items-center gap-1">
+                        <Link to="/account" className="text-[10px] uppercase tracking-widest text-stone-600 hover:text-primary font-bold flex items-center gap-1">
                             <span>Account</span>
                         </Link>
                         <span className="text-stone-300 text-xs">•</span>
                         <button
                             onClick={handleLogout}
-                            className="text-[10px] font-label uppercase tracking-widest text-stone-500 hover:text-red-600 font-bold flex items-center gap-1 transition-colors"
+                            className="text-[10px] uppercase tracking-widest text-stone-500 hover:text-red-600 font-bold flex items-center gap-1 transition-colors"
                         >
                             <LogOut className="w-3 h-3" />
                             <span>Sign Out</span>
@@ -3868,7 +3926,7 @@ const Admin = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-label uppercase tracking-wider font-bold whitespace-nowrap transition-all ${
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-bold whitespace-nowrap transition-all ${
                                     isActive
                                         ? 'bg-primary text-white shadow-sm'
                                         : 'bg-white/90 text-stone-600 border border-black/5 hover:bg-stone-100'
@@ -3877,7 +3935,7 @@ const Admin = () => {
                                 <Icon className="w-3.5 h-3.5" />
                                 <span>{tab.name}</span>
                                 {tab.count !== undefined && tab.count > 0 && (
-                                    <span className={`text-[8px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-white/25 text-white' : 'bg-black/5 text-stone-600'}`}>
+                                    <span className={`text-[8px] px-1.5 py-0.2 rounded-full ${isActive ? 'bg-white/25 text-white' : 'bg-black/5 text-stone-600'}`}>
                                         {tab.count}
                                     </span>
                                 )}
@@ -3888,14 +3946,10 @@ const Admin = () => {
             </div>
 
             {/* Desktop Fixed Studio Sidebar */}
-            <aside className="hidden lg:flex lg:w-72 xl:w-80 lg:fixed lg:top-0 lg:bottom-0 border-r border-[#6e5b44]/10 flex-col pt-28 pb-8 px-6 bg-white/70 backdrop-blur-2xl z-20">
+            <aside className="hidden lg:flex lg:w-72 xl:w-80 lg:fixed lg:top-0 lg:bottom-0 border-r border-[#6e5b44]/10 flex-col pt-8 pb-8 px-6 bg-white/70 backdrop-blur-2xl z-20">
                 {/* Brand / Admin Header */}
                 <div className="px-3 mb-8">
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary/70 font-semibold">SOVRA ADMIN PANEL</span>
-                    </div>
-                    <h1 className="font-headline text-3xl italic font-light text-primary tracking-tight">Admin Dashboard</h1>
+                    <h1 className="text-3xl font-light text-primary tracking-tight">Admin Dashboard</h1>
                 </div>
 
                 {/* Navigation items */}
@@ -3917,12 +3971,12 @@ const Admin = () => {
                                     <Icon className={`w-4 h-4 transition-transform duration-300 ${
                                         isActive ? 'text-amber-200 scale-110' : 'text-stone-400 group-hover:text-primary group-hover:scale-105'
                                     }`} />
-                                    <span className="font-label text-[11px] uppercase tracking-[0.2em] font-bold">
+                                    <span className="text-[11px] uppercase tracking-[0.2em] font-bold">
                                         {tab.name}
                                     </span>
                                 </div>
                                 {tab.count !== undefined && tab.count > 0 && (
-                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono tracking-wider font-semibold transition-colors ${
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] tracking-wider font-semibold transition-colors ${
                                         isActive
                                             ? 'bg-white/20 text-white'
                                             : 'bg-stone-200/70 text-stone-600 group-hover:bg-primary/10 group-hover:text-primary'
@@ -3939,35 +3993,33 @@ const Admin = () => {
                 <div className="pt-6 border-t border-stone-200/60 mt-auto px-1 space-y-2">
                     <Link
                         to="/"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary hover:text-white transition-all duration-300 text-[10px] font-label uppercase tracking-widest font-bold group"
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary hover:text-white transition-all duration-300 text-[10px] uppercase tracking-widest font-bold group"
                     >
                         <span className="flex items-center gap-2">
                             <span>View Live Store</span>
                         </span>
-                        <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                     </Link>
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-stone-500 hover:text-red-600 hover:bg-red-50 text-[10px] font-label uppercase tracking-widest font-bold transition-all group cursor-pointer"
+                        className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-stone-500 hover:text-red-600 hover:bg-red-50 text-[10px] uppercase tracking-widest font-bold transition-all group cursor-pointer"
                     >
                         <span className="flex items-center gap-2">
                             <LogOut className="w-3.5 h-3.5" />
                             <span>Sign Out</span>
                         </span>
                     </button>
-                    <p className="text-center font-mono text-[9px] text-stone-400 tracking-wider">
+                    <p className="text-center text-[9px] text-stone-400 tracking-wider">
                         v2.4 Admin Edition
                     </p>
                 </div>
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 lg:ml-72 xl:ml-80 pt-4 sm:pt-6 lg:pt-28 pb-20 sm:pb-32 px-3.5 sm:px-8 md:px-14 lg:px-16 min-h-screen overflow-x-hidden">
+            <main className="flex-1 lg:ml-72 xl:ml-80 pt-4 sm:pt-6 lg:pt-8 pb-20 sm:pb-32 px-3.5 sm:px-8 md:px-14 lg:px-16 min-h-screen overflow-x-hidden">
                 <div className="max-w-[1400px] mx-auto">
                     {loading ? (
-                        <div className="py-32 text-center opacity-40 font-label text-[14px] uppercase tracking-widest italic animate-pulse">
+                        <div className="py-32 text-center opacity-40 text-[14px] uppercase tracking-widest animate-pulse">
                             Loading data...
                         </div>
                     ) : (

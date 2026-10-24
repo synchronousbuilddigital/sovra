@@ -60,7 +60,8 @@ const getProducts = async (req, res) => {
     const pageSize = isAll ? 0 : (Number(req.query.pageSize) || 10);
     const page = Number(req.query.pageNumber) || 1;
 
-    const sanitizedKeyword = req.query.keyword ? escapeRegex(req.query.keyword.trim()) : '';
+    const rawKeyword = typeof req.query.keyword === 'string' ? req.query.keyword.trim() : '';
+    const sanitizedKeyword = rawKeyword ? escapeRegex(rawKeyword) : '';
     const keyword = sanitizedKeyword
       ? {
         name: {
@@ -70,7 +71,8 @@ const getProducts = async (req, res) => {
       }
       : {};
 
-    const sanitizedCategory = req.query.category && req.query.category !== 'all' ? escapeRegex(req.query.category.trim()) : '';
+    const rawCategory = typeof req.query.category === 'string' ? req.query.category.trim() : '';
+    const sanitizedCategory = rawCategory && rawCategory !== 'all' ? escapeRegex(rawCategory) : '';
     const category = sanitizedCategory
       ? { category: { $regex: `^${sanitizedCategory}$`, $options: 'i' } }
       : {};
@@ -90,14 +92,15 @@ const getProducts = async (req, res) => {
     }
 
     // Sorting logic
+    const sortParam = typeof req.query.sort === 'string' ? req.query.sort : '';
     let sortOptions = {};
-    if (req.query.sort === 'price-low') {
+    if (sortParam === 'price-low') {
       sortOptions = { price: 1 };
-    } else if (req.query.sort === 'price-high') {
+    } else if (sortParam === 'price-high') {
       sortOptions = { price: -1 };
-    } else if (req.query.sort === 'alphabetical') {
+    } else if (sortParam === 'alphabetical') {
       sortOptions = { name: 1 };
-    } else if (req.query.sort === 'shuffle') {
+    } else if (sortParam === 'shuffle') {
       sortOptions = { shuffleOrder: 1 };
     } else {
       sortOptions = { shuffleOrder: 1, createdAt: -1 }; // Default: Randomized Shuffle Feel
@@ -230,7 +233,7 @@ const createProduct = async (req, res) => {
       img,
       images: images || [],
       category,
-      stock: stock || 0,
+      stock: Math.max(0, parseInt(stock, 10) || 0),
       material: material || 'Stainless Steel',
       plating: plating || 'Gold 18K PVD Plating',
       stone: stone || 'Natural',
@@ -274,7 +277,7 @@ const updateProduct = async (req, res) => {
       product.img = img || product.img;
       product.images = images || product.images;
       product.category = category || product.category;
-      product.stock = stock !== undefined ? stock : product.stock;
+      product.stock = stock !== undefined ? Math.max(0, parseInt(stock, 10) || 0) : product.stock;
       product.material = material || product.material;
       product.plating = plating || product.plating;
       product.stone = stone || product.stone;

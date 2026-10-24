@@ -8,7 +8,7 @@
     "dev": "nodemon server.js",
     "data:import": "node seeder.js",
     "data:destroy": "node seeder.js -d",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/*.test.js"
   },
   "keywords": [],
   "author": "Antigravity",
@@ -32,6 +32,7 @@
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^8.0.4",
+    "razorpay": "^2.9.8",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.19.0",

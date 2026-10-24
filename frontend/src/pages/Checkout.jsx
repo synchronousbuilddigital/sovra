@@ -6,6 +6,7 @@ import { toast } from 'react-toastify'
 import api from '../utils/api'
 import { formatPrice } from '../utils/currency'
 import { trackPurchase } from '../utils/analytics'
+import { loadRazorpayScript } from '../utils/razorpay'
 import {
     MapPin, Phone, User, Check, Plus, ShieldCheck, Truck, Lock,
     ArrowRight, ArrowLeft, Tag, ShoppingBag, CreditCard, Banknote,
@@ -238,13 +239,87 @@ const Checkout = () => {
             }
 
             const { data } = await api.post('/orders', orderData)
-            setOrderInfo(data)
-            setStep(2)
-            trackPurchase(data._id, cart, total, taxes)
-            refreshProfile()
-            toast.success('Your order has been successfully placed.')
-            window.scrollTo({ top: 0, behavior: 'smooth' })
+
+            if (paymentMethod === 'Cash on Delivery') {
+                setOrderInfo(data)
+                setStep(2)
+                trackPurchase(data._id, cart, total, taxes)
+                refreshProfile()
+                toast.success('Your order has been placed with Cash on Delivery.')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+                return
+            }
+
+            // Online Payment with Razorpay
+            const isLoaded = await loadRazorpayScript()
+            if (!isLoaded) {
+                toast.error('Razorpay SDK could not be loaded. Please check your internet connection.')
+                navigate(`/order/${data._id}`)
+                return
+            }
+
+            try {
+                const { data: rzpOrder } = await api.post(`/payment/create-order/${data._id}`)
+
+                const options = {
+                    key: rzpOrder.keyId,
+                    amount: rzpOrder.amount,
+                    currency: rzpOrder.currency || 'INR',
+                    name: 'House of SOVRA',
+                    description: `Acquisition Order #${data._id.slice(-6).toUpperCase()}`,
+                    order_id: rzpOrder.razorpayOrderId,
+                    handler: async function (response) {
+                        try {
+                            setLoading(true)
+                            const verifyRes = await api.post('/payment/verify', {
+                                orderId: data._id,
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            })
+                            setOrderInfo(verifyRes.data.order || data)
+                            setStep(2)
+                            trackPurchase(data._id, cart, total, taxes)
+                            refreshProfile()
+                            toast.success('Payment verified & captured! Your piece is now in artisanal creation.')
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                        } catch (verifyErr) {
+                            console.error('Payment verification error:', verifyErr)
+                            toast.error(verifyErr.response?.data?.message || 'Payment signature verification failed.')
+                            navigate(`/order/${data._id}`)
+                        } finally {
+                            setLoading(false)
+                        }
+                    },
+                    prefill: {
+                        name: fullName || userInfo?.name || '',
+                        email: userInfo?.email || '',
+                        contact: phone || userInfo?.phone || ''
+                    },
+                    theme: {
+                        color: '#6e5b44'
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            toast.info('Payment was not completed. You can settle this acquisition anytime from your vault.')
+                            navigate(`/order/${data._id}`)
+                        }
+                    }
+                }
+
+                const rzp = new window.Razorpay(options)
+                rzp.on('payment.failed', function (response) {
+                    toast.error(`Payment failed: ${response.error?.description || 'Transaction declined'}`)
+                    navigate(`/order/${data._id}`)
+                })
+                rzp.open()
+            } catch (rzpErr) {
+                console.error('Failed to initialize Razorpay checkout:', rzpErr)
+                toast.error(rzpErr.response?.data?.message || 'Failed to initialize payment gateway.')
+                navigate(`/order/${data._id}`)
+            }
         } catch (error) {
+            console.error('Checkout error:', error)
             toast.error(error.response?.data?.message || 'Transaction could not be completed.')
         } finally {
             setLoading(false)

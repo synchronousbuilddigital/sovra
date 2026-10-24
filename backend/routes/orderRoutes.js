@@ -14,7 +14,12 @@ const {
   updateOrderNotes,
   getOrderInvoice
 } = require('../controllers/orderController');
+const {
+  createRazorpayOrder,
+  verifyPayment
+} = require('../controllers/paymentController');
 const { protect, admin, requireVerified } = require('../middleware/authMiddleware');
+const paymentRateLimiter = require('../middleware/paymentRateLimiter');
 
 router.route('/')
   .post(protect, requireVerified, addOrderItems)
@@ -23,6 +28,10 @@ router.route('/')
 router.route('/myorders').get(protect, getMyOrders);
 
 router.route('/:id').get(protect, getOrderById);
+
+// Razorpay Payment Endpoints
+router.route('/:id/razorpay-order').post(protect, paymentRateLimiter, createRazorpayOrder);
+router.route('/:id/verify-payment').post(protect, paymentRateLimiter, verifyPayment);
 
 router.route('/:id/pay').put(protect, admin, updateOrderToPaid);
 

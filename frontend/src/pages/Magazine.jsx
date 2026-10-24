@@ -67,7 +67,7 @@ const Magazine = () => {
     ]
 
     return (
-        <div className="pt-16 sm:pt-20 md:pt-24 pb-16 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
+        <div className="magazine-page pt-16 sm:pt-20 md:pt-24 pb-16 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
             <main className="max-w-[1920px] mx-auto px-6 sm:px-12 md:px-24">
                 
                 {/* Magazine Header: Vogue-esque Editorial Feel */}
@@ -75,7 +75,7 @@ const Magazine = () => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         whileInView={{ opacity: 1, scale: 1 }}
-                        className="w-12 h-12 mb-4 border border-primary/20 rounded-full flex items-center justify-center italic font-premium text-primary/40 text-xl"
+                        className="w-12 h-12 mb-4 border border-primary/20 rounded-full flex items-center justify-center font-plex text-primary/60 text-xl font-medium"
                     >
                         S
                     </motion.div>
@@ -85,7 +85,7 @@ const Magazine = () => {
                         className="flex items-center gap-4 mb-4"
                     >
                         <div className="w-8 sm:w-12 h-[1px] bg-primary/20" />
-                        <span className="font-sans text-[10px] sm:text-[11px] tracking-[0.4em] uppercase text-[#7a7670] font-black italic">
+                        <span className="font-sans text-[10px] sm:text-[11px] tracking-[0.4em] uppercase text-[#7a7670] font-bold">
                             The Sovereignty of Style
                         </span>
                         <div className="w-8 sm:w-12 h-[1px] bg-primary/20" />
@@ -94,15 +94,15 @@ const Magazine = () => {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                        className="font-premium text-6xl sm:text-7xl md:text-8xl lg:text-9xl text-[#111110] leading-[0.85] mb-5 italic font-light lowercase tracking-tighter"
+                        className="font-plex text-5xl sm:text-7xl md:text-8xl lg:text-9xl text-[#111110] leading-[0.92] mb-5 font-normal tracking-tight"
                     >
-                        Magaz<span className="not-italic font-normal">ine.</span>
+                        Magazine.
                     </motion.h1>
                     <motion.p 
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="max-w-2xl font-body text-sm sm:text-base md:text-lg leading-relaxed text-[#656464] font-light italic"
+                        className="max-w-2xl font-plex text-base sm:text-lg md:text-xl leading-relaxed text-[#55524e] font-normal"
                     >
                         A digital journal exploring the intersections of heritage jewellery, contemporary art, and the soul of artisan craftsmanship.
                     </motion.p>
@@ -129,7 +129,7 @@ const Magazine = () => {
                         </div>
                         <div className="absolute -bottom-10 -right-10 bg-[#fffcf7] p-12 hidden md:block border border-primary/5 shadow-lux rounded-2xl">
                              <Sparkles className="text-primary/20 mb-4" size={24} />
-                             <span className="font-sans text-[10px] tracking-[0.3em] uppercase text-[#7a7670] font-black">Issue No. 04</span>
+                             <span className="font-sans text-[10px] tracking-[0.3em] uppercase text-[#7a7670] font-bold">Issue No. 04</span>
                         </div>
                     </motion.div>
                     <motion.div 
@@ -138,19 +138,19 @@ const Magazine = () => {
                         transition={{ duration: 1.2, delay: 0.2 }}
                         className="lg:col-span-5 space-y-8"
                     >
-                        <span className="font-sans text-[10px] tracking-[0.4em] uppercase text-primary font-black block">Featured Narrative</span>
-                        <h2 className="font-premium text-6xl text-[#111110] leading-tight italic font-light">
+                        <span className="font-sans text-[10px] tracking-[0.4em] uppercase text-primary font-bold block">Featured Narrative</span>
+                        <h2 className="font-plex text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#111110] leading-[1.12] font-normal">
                             {articles[0].title}
                         </h2>
-                        <p className="font-body text-xl text-[#656464] leading-relaxed italic opacity-85 font-light">
+                        <p className="font-plex text-lg sm:text-xl text-[#55524e] leading-relaxed font-light">
                             {articles[0].subtitle}
                         </p>
                         <div className="flex items-center gap-8 pt-4">
-                            <span className="font-sans text-[9px] tracking-widest uppercase text-[#7a7670] font-black flex items-center gap-2">
+                            <span className="font-sans text-[9px] tracking-widest uppercase text-[#7a7670] font-bold flex items-center gap-2">
                                 <Clock size={12} /> {articles[0].readTime}
                             </span>
                             <div className="w-[1px] h-4 bg-primary/10" />
-                            <button className="font-sans text-[10px] tracking-[0.3em] uppercase text-[#111110] font-black flex items-center gap-4 group">
+                            <button className="font-sans text-[10px] tracking-[0.3em] uppercase text-[#111110] font-bold flex items-center gap-4 group">
                                 Begin Reading
                                 <ArrowRight size={14} className="transition-transform group-hover:translate-x-2" />
                             </button>
@@ -184,21 +184,21 @@ const Magazine = () => {
                             </div>
                             <div className="px-4 space-y-6">
                                 <div className="flex justify-between items-center">
-                                    <span className="font-sans text-[8px] tracking-[0.3em] uppercase text-primary font-black">{article.category}</span>
+                                    <span className="font-sans text-[8px] tracking-[0.3em] uppercase text-primary font-bold">{article.category}</span>
                                     <div className="flex gap-4">
                                         <Heart size={12} className="text-[#7a7670]/40 hover:text-error transition-colors cursor-pointer" />
                                         <Share2 size={12} className="text-[#7a7670]/40 hover:text-primary transition-colors cursor-pointer" />
                                     </div>
                                 </div>
-                                <h3 className="font-premium text-3xl text-[#111110] leading-none italic font-light group-hover:opacity-60 transition-opacity">
+                                <h3 className="font-plex text-2xl sm:text-3xl text-[#111110] leading-snug font-normal group-hover:text-primary transition-colors">
                                     {article.title}
                                 </h3>
-                                <p className="font-body text-sm text-[#656464]/80 leading-relaxed italic line-clamp-2">
+                                <p className="font-plex text-sm sm:text-base text-[#55524e] leading-relaxed font-light line-clamp-2">
                                     {article.subtitle}
                                 </p>
                                 <div className="pt-4 border-t border-primary/5 flex justify-between items-center">
-                                     <span className="font-sans text-[8px] tracking-widest text-[#7a7670] uppercase font-black">{article.date}</span>
-                                     <button className="font-sans text-[8px] tracking-[0.2em] uppercase text-[#111110] font-black hover:opacity-50 transition-opacity">Full Story</button>
+                                     <span className="font-sans text-[8px] tracking-widest text-[#7a7670] uppercase font-bold">{article.date}</span>
+                                     <button className="font-sans text-[8px] tracking-[0.2em] uppercase text-[#111110] font-bold hover:text-primary transition-colors">Full Story</button>
                                 </div>
                             </div>
                         </motion.article>
@@ -213,14 +213,14 @@ const Magazine = () => {
                      <motion.span 
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
-                        className="font-sans text-[10px] tracking-[0.6em] uppercase text-white/40 block font-black"
+                        className="font-sans text-[10px] tracking-[0.6em] uppercase text-white/50 block font-bold"
                      >
                         The SOVRA Circular
                      </motion.span>
                      <motion.h2 
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        className="font-premium text-5xl md:text-7xl text-[#f5f0e8] italic font-light max-w-4xl mx-auto"
+                        className="font-plex text-3xl sm:text-5xl md:text-6xl text-[#f5f0e8] font-normal leading-tight max-w-4xl mx-auto"
                      >
                         "Receive the whispers of our Udaipur studio in your inbox."
                      </motion.h2>
@@ -231,8 +231,8 @@ const Magazine = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 className="text-[#f5f0e8] py-8"
                              >
-                                 <h3 className="font-premium text-3xl mb-4 italic">Welcome to the inner circle.</h3>
-                                 <p className="font-sans text-[10px] tracking-widest uppercase opacity-60">A confirmation has been sent to {email}</p>
+                                 <h3 className="font-plex text-2xl sm:text-3xl mb-4 font-normal text-white">Welcome to the inner circle.</h3>
+                                 <p className="font-sans text-[10px] tracking-widest uppercase opacity-70">A confirmation has been sent to {email}</p>
                              </motion.div>
                          ) : (
                              <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-6 justify-center items-center">
@@ -242,12 +242,12 @@ const Magazine = () => {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    className="w-full bg-white/5 border border-white/10 rounded-full px-8 py-5 font-body text-white placeholder:text-white/20 focus:outline-none focus:border-white/40 hover:bg-white/10 hover:border-white/30 transition-all text-sm outline-none"
+                                    className="w-full bg-white/5 border border-white/10 rounded-full px-8 py-5 font-plex text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 hover:bg-white/10 hover:border-white/30 transition-all text-sm outline-none"
                                  />
                                  <button 
                                     type="submit"
                                     disabled={status === 'submitting'}
-                                    className="w-full md:w-auto bg-[#f5f0e8] text-[#111110] px-12 py-5 rounded-full font-sans text-[10px] tracking-widest uppercase font-black hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
+                                    className="w-full md:w-auto bg-[#f5f0e8] text-[#111110] px-12 py-5 rounded-full font-sans text-[10px] tracking-widest uppercase font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 whitespace-nowrap"
                                  >
                                      {status === 'submitting' ? 'Joining...' : 'Join the Circle'}
                                  </button>
