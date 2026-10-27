@@ -6,6 +6,12 @@ const { getRazorpayInstance } = require('../config/razorpay');
 const logger = require('../utils/logger');
 const { sendEmail, getOrderConfirmationTemplate } = require('../utils/sendEmail');
 
+const getNormalizedKeyId = () => {
+  let key = (process.env.RAZORPAY_KEY_ID || '').trim();
+  if (key.startsWith('zp_')) key = 'r' + key;
+  return key;
+};
+
 /**
  * @desc    Get Razorpay Public Configuration
  * @route   GET /api/payment/config
@@ -13,7 +19,7 @@ const { sendEmail, getOrderConfirmationTemplate } = require('../utils/sendEmail'
  */
 const getRazorpayConfig = (req, res) => {
   res.json({
-    keyId: process.env.RAZORPAY_KEY_ID || '',
+    keyId: getNormalizedKeyId(),
     currency: 'INR',
   });
 };
@@ -86,7 +92,7 @@ const createRazorpayOrder = async (req, res) => {
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
       orderId: order._id,
-      keyId: process.env.RAZORPAY_KEY_ID,
+      keyId: getNormalizedKeyId(),
     });
   } catch (error) {
     logger.error('Error creating Razorpay order:', error);
@@ -214,6 +220,14 @@ const verifyPayment = async (req, res) => {
     const updatedOrder = await order.save();
     logger.info(`Payment verified and captured for Order: ${updatedOrder._id}, Payment: ${razorpay_payment_id}`);
 
+    // Atomically clear user cart only upon successful payment verification
+    try {
+      await User.findByIdAndUpdate(order.user, { $set: { cart: [] } });
+      logger.info(`User cart cleared after successful payment for user ${order.user}`);
+    } catch (cartErr) {
+      logger.error('Failed to clear user cart after payment verification:', cartErr);
+    }
+
     // Asynchronously dispatch confirmation email
     try {
       const orderUser = await User.findById(order.user);
@@ -303,6 +317,14 @@ const handleWebhook = async (req, res) => {
           };
           await order.save();
           logger.info(`Order ${order._id} marked as paid via webhook (${event.event})`);
+
+          // Atomically clear user cart upon successful webhook payment confirmation
+          try {
+            await User.findByIdAndUpdate(order.user, { $set: { cart: [] } });
+            logger.info(`User cart cleared via webhook for user ${order.user}`);
+          } catch (cartErr) {
+            logger.error('Failed to clear user cart via webhook:', cartErr);
+          }
         }
       }
     }

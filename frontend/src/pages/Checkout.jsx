@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useShop } from '../context/ShopContext'
 import { toast } from 'react-toastify'
 import api from '../utils/api'
@@ -9,7 +9,7 @@ import { trackPurchase } from '../utils/analytics'
 import { loadRazorpayScript } from '../utils/razorpay'
 import {
     MapPin, Phone, User, Check, Plus, ShieldCheck, Truck, Lock,
-    ArrowRight, ArrowLeft, Tag, ShoppingBag, CreditCard, Banknote,
+    ArrowRight, ArrowLeft, Tag, ShoppingBag, CreditCard,
     QrCode, AlertCircle, CheckCircle2, ChevronRight, X, Building, Mail,
     Sparkles, Ticket
 } from 'lucide-react'
@@ -29,8 +29,6 @@ const Checkout = () => {
 
     const userInfo = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null
 
-    const [step, setStep] = useState(1) // 1: Checkout Form, 2: Order Confirmation
-    const [orderInfo, setOrderInfo] = useState(null)
     const [loading, setLoading] = useState(false)
 
     // Saved Addresses
@@ -50,7 +48,7 @@ const Checkout = () => {
     const [country, setCountry] = useState('India')
 
     // Payment Method
-    const [paymentMethod, setPaymentMethod] = useState('Online Card / NetBanking')
+    const [paymentMethod, setPaymentMethod] = useState('UPI / QR')
 
     // Promo Code & Available Vouchers
     const [promoCode, setPromoCode] = useState('')
@@ -240,21 +238,11 @@ const Checkout = () => {
 
             const { data } = await api.post('/orders', orderData)
 
-            if (paymentMethod === 'Cash on Delivery') {
-                setOrderInfo(data)
-                setStep(2)
-                trackPurchase(data._id, cart, total, taxes)
-                refreshProfile()
-                toast.success('Your order has been placed with Cash on Delivery.')
-                window.scrollTo({ top: 0, behavior: 'smooth' })
-                return
-            }
-
             // Online Payment with Razorpay
             const isLoaded = await loadRazorpayScript()
             if (!isLoaded) {
-                toast.error('Razorpay SDK could not be loaded. Please check your internet connection.')
-                navigate(`/order/${data._id}`)
+                toast.error('Payment gateway could not be loaded. Please check your internet connection.')
+                setLoading(false)
                 return
             }
 
@@ -265,8 +253,8 @@ const Checkout = () => {
                     key: rzpOrder.keyId,
                     amount: rzpOrder.amount,
                     currency: rzpOrder.currency || 'INR',
-                    name: 'House of SOVRA',
-                    description: `Acquisition Order #${data._id.slice(-6).toUpperCase()}`,
+                    name: 'SOVRA Jewellery',
+                    description: `Order #${data._id.slice(-8).toUpperCase()}`,
                     order_id: rzpOrder.razorpayOrderId,
                     handler: async function (response) {
                         try {
@@ -277,16 +265,13 @@ const Checkout = () => {
                                 razorpay_payment_id: response.razorpay_payment_id,
                                 razorpay_signature: response.razorpay_signature
                             })
-                            setOrderInfo(verifyRes.data.order || data)
-                            setStep(2)
                             trackPurchase(data._id, cart, total, taxes)
                             refreshProfile()
-                            toast.success('Payment verified & captured! Your piece is now in artisanal creation.')
-                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                            toast.success('Payment verified! Your order has been placed.')
+                            navigate('/account', { state: { activeTab: 'orders' } })
                         } catch (verifyErr) {
                             console.error('Payment verification error:', verifyErr)
-                            toast.error(verifyErr.response?.data?.message || 'Payment signature verification failed.')
-                            navigate(`/order/${data._id}`)
+                            toast.error(verifyErr.response?.data?.message || 'Payment verification failed.')
                         } finally {
                             setLoading(false)
                         }
@@ -297,36 +282,53 @@ const Checkout = () => {
                         contact: phone || userInfo?.phone || ''
                     },
                     theme: {
-                        color: '#6e5b44'
+                        color: '#111110'
                     },
                     modal: {
-                        ondismiss: function () {
-                            toast.info('Payment was not completed. You can settle this acquisition anytime from your vault.')
-                            navigate(`/order/${data._id}`)
+                        ondismiss: async function () {
+                            setLoading(false)
+                            toast.warn('Payment was cancelled. Your items remain safe in your bag.')
+                            // Cancel this uncompleted order so stock is restored and no pending order remains
+                            try {
+                                await api.put(`/orders/${data._id}/cancel`, { reason: 'Payment window closed during checkout' })
+                                refreshProfile()
+                            } catch (e) {
+                                console.error('Error cancelling unpaid order:', e)
+                            }
                         }
                     }
                 }
 
                 const rzp = new window.Razorpay(options)
-                rzp.on('payment.failed', function (response) {
-                    toast.error(`Payment failed: ${response.error?.description || 'Transaction declined'}`)
-                    navigate(`/order/${data._id}`)
+                rzp.on('payment.failed', async function (response) {
+                    setLoading(false)
+                    toast.error(`Payment failed: ${response.error?.description || 'Transaction declined.'} Your items remain in your bag.`)
+                    try {
+                        await api.put(`/orders/${data._id}/cancel`, { reason: 'Payment failed during checkout' })
+                        refreshProfile()
+                    } catch (e) {
+                        console.error('Error cancelling unpaid order:', e)
+                    }
                 })
                 rzp.open()
             } catch (rzpErr) {
                 console.error('Failed to initialize Razorpay checkout:', rzpErr)
-                toast.error(rzpErr.response?.data?.message || 'Failed to initialize payment gateway.')
-                navigate(`/order/${data._id}`)
+                toast.error(rzpErr.response?.data?.message || 'Failed to start payment gateway. Please try again.')
+                try {
+                    await api.put(`/orders/${data._id}/cancel`, { reason: 'Payment gateway error during checkout' })
+                    refreshProfile()
+                } catch (e) {}
+                setLoading(false)
             }
         } catch (error) {
             console.error('Checkout error:', error)
-            toast.error(error.response?.data?.message || 'Transaction could not be completed.')
+            toast.error(error.response?.data?.message || 'Order could not be created.')
         } finally {
             setLoading(false)
         }
     }
 
-    if (cart.length === 0 && step === 1) {
+    if (cart.length === 0) {
         return (
             <div className="pt-40 pb-24 px-6 text-center min-h-screen flex flex-col items-center justify-center">
                 <ShoppingBag size={48} className="text-stone-300 mb-4" strokeWidth={1.5} />
@@ -345,52 +347,43 @@ const Checkout = () => {
 
     return (
         <div className="pt-32 sm:pt-36 md:pt-40 pb-28 px-5 sm:px-8 md:px-12 max-w-[1400px] mx-auto font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen text-stone-900">
-            <AnimatePresence mode="wait">
-                {step === 1 ? (
-                    <motion.div
-                        key="checkout"
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -15 }}
-                        transition={{ duration: 0.4 }}
-                    >
-                        {/* Header & Steps Bar */}
-                        <header className="mb-10 pb-6 border-b border-[#111110]/8">
-                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="font-mono text-[10px] tracking-[0.25em] uppercase font-bold text-primary/80">
-                                            Secured Dispatch
-                                        </span>
-                                    </div>
-                                    <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl font-light tracking-tight italic text-[#111110]">
-                                        Checkout & Delivery
-                                    </h1>
-                                    <p className="font-sans text-xs text-[#7a7670] mt-2">
-                                        Provide delivery information and finalize your jewelry acquisition
-                                    </p>
-                                </div>
-
-                                {/* Step Indicator */}
-                                <div className="hidden sm:flex items-center gap-3 font-sans text-[11px] uppercase tracking-wider font-bold">
-                                    <Link to="/bag" className="flex items-center gap-2 text-stone-500 hover:text-primary pb-1">
-                                        <Check size={14} className="text-emerald-600" />
-                                        Bag Review
-                                    </Link>
-                                    <span className="text-stone-300">/</span>
-                                    <span className="flex items-center gap-2 text-primary border-b-2 border-primary pb-1">
-                                        <span className="w-5 h-5 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-mono">2</span>
-                                        Shipping & Payment
-                                    </span>
-                                    <span className="text-stone-300">/</span>
-                                    <span className="flex items-center gap-2 text-stone-400 pb-1">
-                                        <span className="w-5 h-5 rounded-full bg-stone-200 text-stone-600 text-[10px] flex items-center justify-center font-mono">3</span>
-                                        Confirmation
-                                    </span>
-                                </div>
+            <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+            >
+                {/* Header & Steps Bar */}
+                <header className="mb-10 pb-6 border-b border-[#111110]/8">
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="font-mono text-[10px] tracking-[0.25em] uppercase font-bold text-primary/80">
+                                    Secured Dispatch
+                                </span>
                             </div>
-                        </header>
+                            <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl font-light tracking-tight italic text-[#111110]">
+                                Checkout & Delivery
+                            </h1>
+                            <p className="font-sans text-xs text-[#7a7670] mt-2">
+                                Provide delivery information and finalize your jewelry acquisition
+                            </p>
+                        </div>
+
+                        {/* Step Indicator */}
+                        <div className="hidden sm:flex items-center gap-3 font-sans text-[11px] uppercase tracking-wider font-bold">
+                            <Link to="/bag" className="flex items-center gap-2 text-stone-500 hover:text-primary pb-1">
+                                <Check size={14} className="text-emerald-600" />
+                                Bag Review
+                            </Link>
+                            <span className="text-stone-300">/</span>
+                            <span className="flex items-center gap-2 text-primary border-b-2 border-primary pb-1">
+                                <span className="w-5 h-5 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-mono">2</span>
+                                Shipping & Payment
+                            </span>
+                        </div>
+                    </div>
+                </header>
 
                         {/* 2-Column Checkout Layout */}
                         <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
@@ -645,9 +638,9 @@ const Checkout = () => {
 
                                     <div className="space-y-2.5">
                                         {[
-                                            { id: 'Online Card / NetBanking', name: 'Credit / Debit Card or NetBanking', icon: CreditCard, sub: 'Visa, Mastercard, RuPay, Amex' },
-                                            { id: 'UPI / QR', name: 'UPI / QR Code', icon: QrCode, sub: 'Google Pay, PhonePe, Paytm, BHIM' },
-                                            { id: 'Cash on Delivery', name: 'Cash on Delivery (COD)', icon: Banknote, sub: 'Pay with cash upon white-glove arrival' }
+                                            { id: 'UPI / QR', name: 'UPI / QR Code', icon: QrCode, sub: 'Google Pay, PhonePe, Paytm, BHIM & all UPI apps' },
+                                            { id: 'Credit / Debit Cards', name: 'Credit / Debit Cards', icon: CreditCard, sub: 'Visa, Mastercard, RuPay, Maestro & Amex' },
+                                            { id: 'NetBanking / Wallets', name: 'NetBanking & Wallets', icon: ShieldCheck, sub: 'All major Indian Banks & Digital Wallets' }
                                         ].map(method => (
                                             <div
                                                 key={method.id}
@@ -936,100 +929,6 @@ const Checkout = () => {
                             </div>
                         </form>
                     </motion.div>
-                ) : (
-                    /* Step 2: Order Confirmed Screen */
-                    <motion.div
-                        key="confirmation"
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.4 }}
-                        className="max-w-3xl mx-auto"
-                    >
-                        <div className="bg-white rounded-3xl p-8 sm:p-12 border border-[#111110]/8 shadow-[0_8px_40px_rgba(110,91,68,0.08)] text-center space-y-8">
-                            <div className="w-20 h-20 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
-                                <Check size={36} strokeWidth={2.5} />
-                            </div>
-
-                            <div>
-                                <span className="font-mono text-xs uppercase tracking-[0.25em] font-bold text-emerald-700 block mb-2">
-                                    Order Successfully Confirmed
-                                </span>
-                                <h1 className="font-headline text-4xl sm:text-5xl italic text-stone-900 font-light">
-                                    Thank You for Your Acquisition
-                                </h1>
-                                <p className="font-sans text-xs text-stone-500 max-w-lg mx-auto mt-3 leading-relaxed">
-                                    Your order has been recorded at the SOVRA atelier. Our jewelers will inspect, package, and dispatch your pieces with white-glove security.
-                                </p>
-                            </div>
-
-                            {/* Order Details Ledger */}
-                            <div className="bg-stone-50/80 rounded-2xl p-6 text-left border border-stone-200/60 space-y-4">
-                                <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-stone-200/60">
-                                    <div>
-                                        <span className="font-sans text-[10px] uppercase tracking-wider font-bold text-stone-400 block">
-                                            Order Ledger ID
-                                        </span>
-                                        <span className="font-mono font-bold text-sm text-stone-900 select-all">
-                                            #{orderInfo?._id}
-                                        </span>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="font-sans text-[10px] uppercase tracking-wider font-bold text-stone-400 block">
-                                            Total Amount
-                                        </span>
-                                        <span className="font-headline text-xl italic text-stone-900 font-bold">
-                                            {formatPrice(orderInfo?.totalPrice)}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-sans pt-1">
-                                    <div>
-                                        <span className="text-stone-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
-                                            Delivery Destination
-                                        </span>
-                                        <p className="font-bold text-stone-900">{orderInfo?.shippingAddress?.fullName || fullName}</p>
-                                        <p className="text-stone-600">{orderInfo?.shippingAddress?.address || address}</p>
-                                        <p className="text-stone-600">
-                                            {orderInfo?.shippingAddress?.city || city}, {orderInfo?.shippingAddress?.postalCode || postalCode}
-                                        </p>
-                                        <p className="text-stone-600 font-mono mt-1">
-                                            Contact: +91 {orderInfo?.shippingAddress?.phone || phone}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="text-stone-400 font-bold uppercase tracking-wider text-[10px] block mb-1">
-                                            Order Status & Payment
-                                        </span>
-                                        <p className="font-bold text-emerald-700 capitalize">
-                                            {orderInfo?.status || 'Processing / Confirmed'}
-                                        </p>
-                                        <p className="text-stone-600">{orderInfo?.paymentMethod || paymentMethod}</p>
-                                        <p className="text-emerald-700 font-semibold mt-1">Free Insured Delivery</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
-                                <button
-                                    onClick={() => navigate('/account')}
-                                    className="bg-[#111110] hover:bg-primary text-[#fffcf7] px-8 py-3.5 rounded-xl font-sans text-xs uppercase tracking-[0.2em] font-bold shadow-md transition-all active:scale-98"
-                                >
-                                    View in My Orders
-                                </button>
-                                <button
-                                    onClick={() => navigate('/shop')}
-                                    className="bg-stone-100 hover:bg-stone-200 text-stone-800 px-8 py-3.5 rounded-xl font-sans text-xs uppercase tracking-[0.2em] font-bold transition-all"
-                                >
-                                    Explore Further
-                                </button>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </div>
     )
 }

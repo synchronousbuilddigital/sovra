@@ -79,13 +79,16 @@ const ScrollToTop = () => {
 
 const AppBody = () => {
   const location = useLocation();
-  const hideFooter = ['/admin', '/reels', '/account', '/bag', '/wishlist', '/checkout'].includes(location.pathname);
+  const isInvoicePage = location.pathname.includes('/invoice');
+  const isAdminPage = location.pathname.startsWith('/admin');
+  const hideNavbar = isAdminPage || isInvoicePage;
+  const hideFooter = isInvoicePage || isAdminPage || ['/reels', '/account', '/bag', '/wishlist', '/checkout'].includes(location.pathname);
 
   return (
     <>
       <ScrollToTop />
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
-      {!location.pathname.startsWith('/admin') && <Navbar />}
+      {!hideNavbar && <Navbar />}
       <main className="min-h-screen">
         <Suspense fallback={<PageLoader />}>
           <Routes>

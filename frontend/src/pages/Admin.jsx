@@ -318,7 +318,7 @@ const Admin = () => {
 
 
     const handlePrintInvoice = (orderId) => {
-        window.open(`${api.defaults.baseURL}/orders/${orderId}/invoice`, '_blank')
+        window.open(`/order/${orderId}/invoice`, '_blank')
     }
 
     const handleAddProduct = () => {

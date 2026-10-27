@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'react-toastify'
 import { useShop } from '../context/ShopContext'
@@ -8,7 +8,7 @@ import { formatPrice } from '../utils/currency'
 import Skeleton from '../components/Skeleton'
 import {
     LayoutDashboard, ShoppingBag, MapPin, Heart, User, ShieldCheck,
-    LogOut, Plus, Search, Eye, Edit3, Trash2, ExternalLink,
+    LogOut, Plus, Search, Eye, Edit3, Trash2, ExternalLink, FileText,
     CheckCircle2, AlertCircle, ArrowUpRight, RotateCcw,
     Check, X, ChevronRight, ArrowRight, Sparkles, Gem, Clock,
     CreditCard, Calendar, Mail, Phone, Lock, Filter, Package,
@@ -17,12 +17,19 @@ import {
 
 const Account = () => {
     const navigate = useNavigate()
+    const location = useLocation()
     const { wishlist, removeFromWishlist, refreshProfile, logout, addToCart } = useShop()
 
     const [userInfo, setUserInfo] = useState(
         localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null
     )
-    const [activeTab, setActiveTab] = useState('dashboard')
+    const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'dashboard')
+
+    useEffect(() => {
+        if (location.state?.activeTab) {
+            setActiveTab(location.state.activeTab)
+        }
+    }, [location.state])
 
     // Profile States
     const [profileName, setProfileName] = useState(userInfo?.name || '')
@@ -419,12 +426,13 @@ const Account = () => {
                                         <div className="text-right">
                                             <p className="font-plex text-lg text-stone-900 font-light">{formatPrice(order.totalPrice)}</p>
                                             <span className={`inline-block font-sans text-[9px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full border ${
+                                                order.status === 'Cancelled' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                                                 order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                                 order.status === 'Shipped' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                                                 order.status === 'Return Requested' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                                                 'bg-stone-100 text-stone-700 border-stone-200'
                                             }`}>
-                                                {order.status || (order.isPaid ? 'Paid' : 'Pending Payment')}
+                                                {order.status === 'Cancelled' ? 'Cancelled' : (order.status || (order.isPaid ? 'Paid' : 'Pending Payment'))}
                                             </span>
                                         </div>
                                         <ChevronRight size={18} className="text-stone-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
@@ -681,12 +689,13 @@ const Account = () => {
 
                                     <div className="flex items-center gap-3">
                                         <span className={`font-sans text-[10px] uppercase tracking-wider font-bold px-3 py-1 rounded-full border ${
+                                            order.status === 'Cancelled' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                                             order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                                             order.status === 'Shipped' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                                             order.status === 'Return Requested' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                                             'bg-stone-100 text-stone-700 border-stone-200'
                                         }`}>
-                                            {order.status || (order.isPaid ? 'Paid' : 'Pending Payment')}
+                                            {order.status === 'Cancelled' ? 'Cancelled' : (order.status || (order.isPaid ? 'Paid' : 'Pending Payment'))}
                                         </span>
                                     </div>
                                 </div>
@@ -722,32 +731,34 @@ const Account = () => {
                                         ))}
                                     </div>
 
-                                    {/* Logistics / Tracking details if shipped */}
-                                    {order.trackingNumber && (
-                                        <div className="mt-4 p-3 bg-blue-50/60 border border-blue-200/60 rounded-xl flex items-center justify-between text-xs font-sans">
-                                            <div className="flex items-center gap-2 text-blue-900">
-                                                <Package size={16} className="text-blue-600" />
-                                                <span>Tracking: <strong className="font-mono">{order.trackingNumber}</strong> via {order.carrier || 'Express'}</span>
+                                    {/* Logistics / Tracking details */}
+                                    {order.trackingNumber ? (
+                                        <div className="mt-4 p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-xl flex items-center gap-2.5 text-xs font-sans text-blue-900">
+                                            <Package size={17} className="text-blue-600 flex-shrink-0" />
+                                            <div>
+                                                <span className="font-semibold text-blue-950 block">Shipment Dispatched via {order.carrier || 'Express Courier'}</span>
+                                                <span className="text-stone-600 font-mono text-[11px]">AWB / Tracking Number: <strong className="text-stone-900">{order.trackingNumber}</strong></span>
                                             </div>
                                         </div>
-                                    )}
+                                    ) : order.status !== 'Cancelled' ? (
+                                        <div className="mt-4 px-3.5 py-2.5 bg-stone-50 border border-stone-200/60 rounded-xl flex items-center justify-between text-xs font-sans text-stone-600">
+                                            <div className="flex items-center gap-2">
+                                                <Clock size={14} className="text-stone-400 flex-shrink-0" />
+                                                <span>Status: <strong className="text-stone-900 font-semibold">{order.status || (order.isPaid ? 'Confirmed' : 'Pending Payment')}</strong> — Preparing for dispatch</span>
+                                            </div>
+                                            <span className="text-[11px] text-stone-400 font-medium">Tracking available once shipped</span>
+                                        </div>
+                                    ) : null}
 
                                     {/* Order Action Buttons */}
                                     <div className="mt-4 sm:mt-6 pt-4 border-t border-stone-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
                                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                             <button
-                                                onClick={() => navigate(`/order/${order._id}`)}
-                                                className="flex-1 sm:flex-none justify-center px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
-                                            >
-                                                <Eye size={14} />
-                                                <span>Order Details</span>
-                                            </button>
-                                            <button
                                                 onClick={() => navigate(`/order/${order._id}/invoice`)}
-                                                className="flex-1 sm:flex-none justify-center px-4 py-2 border border-stone-200 hover:bg-stone-50 text-stone-700 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
+                                                className="flex-1 sm:flex-none justify-center px-4 py-2 bg-[#111110] hover:bg-stone-800 text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-sm"
                                             >
-                                                <ExternalLink size={14} />
-                                                <span>View Invoice</span>
+                                                <FileText size={14} />
+                                                <span>Print / View Invoice</span>
                                             </button>
                                         </div>
 

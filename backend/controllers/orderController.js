@@ -144,6 +144,13 @@ const addOrderItems = async (req, res) => {
     const serverShippingPrice = 0; // Complimentary luxury shipping
     const serverTotalPrice = netTaxableAmount + serverTaxPrice + serverShippingPrice;
 
+    // Cash on Delivery check (COD is not provided)
+    if (paymentMethod === 'Cash on Delivery' || paymentMethod === 'COD') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Cash on Delivery is not supported. Please pay online via UPI, Cards, or NetBanking.' });
+    }
+
     // 4. Create Order with Server-Verified Financials
     const order = new Order({
       orderItems,
@@ -160,28 +167,8 @@ const addOrderItems = async (req, res) => {
 
     const createdOrder = await order.save({ session });
 
-    // 4. Clear User Cart
-    const user = await User.findById(req.user._id).session(session);
-    if (user) {
-      user.cart = [];
-      await user.save({ session });
-    }
-
     await session.commitTransaction();
     session.endSession();
-
-    // 5. Send Confirmation Email (Async, non-blocking after order success)
-    try {
-      const orderUser = await User.findById(req.user._id);
-      const emailOptions = {
-        email: orderUser.email,
-        subject: `Order Confirmation - SOVRA #${createdOrder._id.toString().slice(-6).toUpperCase()}`,
-        html: getOrderConfirmationTemplate(createdOrder, orderUser)
-      };
-      await sendEmail(emailOptions);
-    } catch (emailErr) {
-      console.error('Email confirmation failed:', emailErr);
-    }
 
     res.status(201).json(createdOrder);
   } catch (error) {
@@ -209,12 +196,12 @@ const getOrderById = async (req, res) => {
     // Security: IDOR prevention - only the customer who placed the order or an admin can access it
     const orderUserId = order.user ? (order.user._id ? order.user._id.toString() : order.user.toString()) : null;
     if (orderUserId !== req.user._id.toString() && !req.user.isAdmin) {
-      return res.status(403).json({ message: 'Access denied: You are not authorized to view this archival order.' });
+      return res.status(403).json({ message: 'Access denied: You are not authorized to view this order.' });
     }
 
     res.json(order);
   } catch (error) {
-    res.status(500).json({ message: 'Error retrieving record from vault' });
+    res.status(500).json({ message: 'Error retrieving order details.' });
   }
 };
 
@@ -379,6 +366,21 @@ const cancelOrder = async (req, res) => {
       });
     }
 
+    // Restore promo code usage if applied to this cancelled order
+    if (order.promoCode) {
+      try {
+        await Promo.findOneAndUpdate(
+          { code: order.promoCode },
+          {
+            $inc: { usedCount: -1 },
+            $pull: { usedBy: order.user }
+          }
+        );
+      } catch (promoErr) {
+        console.error('Failed to restore promo code on order cancellation:', promoErr);
+      }
+    }
+
     // Notify User
     const user = await User.findById(order.user);
     if (user) {
@@ -497,68 +499,156 @@ const updateOrderNotes = async (req, res) => {
 // @route   GET /api/orders/:id/invoice
 // @access  Private/Admin
 const getOrderInvoice = async (req, res) => {
-  const order = await Order.findById(req.params.id).populate('user', 'name email');
+  const order = await Order.findById(req.params.id).populate('user', 'name email phone');
 
   if (order) {
+    const grandTotal = order.totalPrice || 0;
+    const shippingAmount = order.shippingPrice || 0;
+    const netTaxable = Math.round(((grandTotal - shippingAmount) / 1.03) * 100) / 100;
+    const totalGst = Math.max(0, Math.round(((grandTotal - shippingAmount) - netTaxable) * 100) / 100);
+
     res.send(`
-      <html>
+      <!DOCTYPE html>
+      <html lang="en">
         <head>
+          <meta charset="UTF-8">
+          <title>Tax Invoice - #SOV-${order._id.toString().slice(-8).toUpperCase()}</title>
           <style>
-            body { font-family: 'Inter', system-ui, sans-serif; padding: 60px; color: #1a1a1a; line-height: 1.6; }
-            .header { border-bottom: 1px solid #1a1a1a; padding-bottom: 30px; display: flex; justify-content: space-between; align-items: baseline; }
-            .headline { font-size: 2.5rem; letter-spacing: -0.05em; font-weight: 300; font-style: italic; }
-            .meta { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.6; }
-            .items { width: 100%; border-collapse: collapse; margin-top: 60px; }
-            .items th { text-align: left; border-bottom: 1px solid #eee; padding: 15px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 900; }
-            .items td { padding: 25px 15px; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
-            .total { margin-top: 60px; text-align: right; border-top: 1px solid #1a1a1a; padding-top: 30px; }
-            @media print { body { padding: 20px; } .header { border-bottom-width: 2px; } }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #fff; color: #111; padding: 30px; font-size: 12px; line-height: 1.5; }
+            .invoice-box { max-width: 800px; margin: auto; border: 1px solid #e5e7eb; padding: 30px; background: #fff; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #111; padding-bottom: 20px; }
+            .brand-col { display: flex; gap: 14px; align-items: flex-start; }
+            .brand-logo { height: 60px; width: auto; object-fit: contain; }
+            .brand-title { font-size: 24px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; line-height: 1; }
+            .brand-tag { font-size: 10px; font-weight: 700; color: #6e5b44; text-transform: uppercase; margin-top: 4px; }
+            .company-info { font-size: 11px; color: #4b5563; margin-top: 6px; line-height: 1.4; }
+            .meta-col { text-align: right; }
+            .invoice-badge { font-size: 22px; font-weight: 800; text-transform: uppercase; color: #000; }
+            .meta-item { margin-top: 4px; font-size: 11px; }
+            .meta-item strong { color: #111; }
+            .paid-badge { display: inline-block; background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; margin-top: 5px; }
+            .address-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb; }
+            .address-card { background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px 14px; border-radius: 4px; }
+            .address-card h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin-bottom: 6px; }
+            .items-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            .items-table th { background: #f3f4f6; text-align: left; padding: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid #e5e7eb; }
+            .items-table td { padding: 10px; border: 1px solid #e5e7eb; font-size: 11px; }
+            .summary-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #e5e7eb; }
+            .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+            .grand-total { border-top: 2px solid #111; padding-top: 8px; font-size: 16px; font-weight: 800; }
+            .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; font-size: 10px; color: #6b7280; }
+            @media print {
+              body { padding: 0; background: #fff; }
+              .invoice-box { border: none; padding: 0; max-width: 100%; }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="headline">SOVRA ATELIER</div>
-            <div class="meta">Certificate of Acquisition #${order._id.toString().slice(-6).toUpperCase()}</div>
-          </div>
-          <div style="margin-top: 60px; display: grid; grid-template-cols: 1fr 1fr; gap: 40px;">
-            <div>
-              <p class="meta" style="margin-bottom: 10px;">Acquired By</p>
-              <strong>${order.user.name}</strong><br/>
-              ${order.shippingAddress.address}<br/>
-              ${order.shippingAddress.city}, ${order.shippingAddress.country}<br/>
-              ${order.user.email}
+          <div class="invoice-box">
+            <div class="header">
+              <div class="brand-col">
+                <img src="/logo.png" alt="SOVRA" class="brand-logo" onerror="this.style.display='none'" />
+                <div>
+                  <div class="brand-title">SOVRA</div>
+                  <div class="brand-tag">Demi-Fine Everyday Jewellery • Udaipur</div>
+                  <div class="company-info">
+                    <strong>Sovra Lifestyle Private Limited</strong><br/>
+                    23, Pulla Beside Platinum Square, RK Circle, Udaipur-313001, Rajasthan<br/>
+                    Email: support@sovra.in | Phone: +91 9571746435 | Web: www.sovra.in<br/>
+                    <strong>GSTIN: 08AAECS1234F1Z5</strong> (State Code: 08-Rajasthan)
+                  </div>
+                </div>
+              </div>
+              <div class="meta-col">
+                <div class="invoice-badge">TAX INVOICE</div>
+                <div style="font-size: 10px; color: #6b7280; text-transform: uppercase;">Original for Recipient</div>
+                <div class="meta-item">Invoice No: <strong>INV-SOV-${order._id.toString().slice(-8).toUpperCase()}</strong></div>
+                <div class="meta-item">Date: <strong>${new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></div>
+                <div class="meta-item">Order ID: <strong>#SOV-${order._id.toString().slice(-8).toUpperCase()}</strong></div>
+                <div class="meta-item">Payment: <strong>${order.paymentMethod || 'Online Prepaid'}</strong></div>
+                <div><span class="paid-badge" style="${order.status === 'Cancelled' ? 'background:#fee2e2;color:#991b1b;border-color:#fca5a5;' : !order.isPaid && order.paymentMethod !== 'Cash on Delivery' ? 'background:#fef3c7;color:#92400e;border-color:#fde68a;' : ''}">${order.status === 'Cancelled' ? 'CANCELLED (VOID)' : order.isPaid ? 'PAID' : (order.paymentMethod === 'Cash on Delivery' ? 'COD PENDING' : 'UNPAID')}</span></div>
+              </div>
             </div>
-            <div style="text-align: right;">
-              <p class="meta" style="margin-bottom: 10px;">Date of Registry</p>
-              ${new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
+
+            <div class="address-grid">
+              <div class="address-card">
+                <h4>Billed To (Customer)</h4>
+                <strong>${order.shippingAddress.fullName || order.user.name}</strong><br/>
+                ${order.shippingAddress.address}<br/>
+                ${order.shippingAddress.city}, ${order.shippingAddress.postalCode}<br/>
+                ${order.shippingAddress.country}<br/>
+                ${order.user.email ? 'Email: ' + order.user.email + '<br/>' : ''}
+                ${(order.shippingAddress.phone || order.user.phone) ? 'Phone: ' + (order.shippingAddress.phone || order.user.phone) : ''}
+              </div>
+              <div class="address-card">
+                <h4>Shipped To (Delivery Destination)</h4>
+                <strong>${order.shippingAddress.fullName || order.user.name}</strong><br/>
+                ${order.shippingAddress.address}<br/>
+                ${order.shippingAddress.city}, ${order.shippingAddress.postalCode}<br/>
+                ${order.shippingAddress.country}<br/>
+                Logistics: ${order.carrier || 'Express Courier (Insured Delivery)'}
+              </div>
             </div>
-          </div>
-          <table class="items">
-            <thead>
-              <tr>
-                <th>Archival Piece</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${order.orderItems.map(item => `
+
+            <table class="items-table">
+              <thead>
                 <tr>
-                  <td style="font-style: italic;">${item.name}</td>
-                  <td>${item.qty}</td>
-                  <td>₹${item.price.toLocaleString()}</td>
-                  <td style="font-weight: 600;">₹${(item.price * item.qty).toLocaleString()}</td>
+                  <th style="width: 30px; text-align: center;">#</th>
+                  <th>Item Description</th>
+                  <th style="width: 70px; text-align: center;">HSN</th>
+                  <th style="width: 40px; text-align: center;">Qty</th>
+                  <th style="width: 80px; text-align: right;">Unit Rate</th>
+                  <th style="width: 80px; text-align: right;">Taxable</th>
+                  <th style="width: 80px; text-align: right;">GST (3%)</th>
+                  <th style="width: 90px; text-align: right;">Total</th>
                 </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <div class="total">
-            <div style="font-size: 0.8rem; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.1em;">Final Treasury Valuation</div>
-            <div style="font-size: 3rem; font-style: italic; margin-top: 10px; font-weight: 300;">₹${order.totalPrice.toLocaleString()}</div>
-          </div>
-          <div style="margin-top: 100px; font-size: 0.65rem; opacity: 0.4; letter-spacing: 0.05em; text-align: center;">
-            Authenticity and provenance guaranteed by Maison Sovra. This acquisition is recorded in the permanent archive.
+              </thead>
+              <tbody>
+                ${order.orderItems.map((item, i) => {
+                  const gross = item.price * item.qty;
+                  const taxVal = Math.round((gross / 1.03) * 100) / 100;
+                  const gstVal = Math.round((gross - taxVal) * 100) / 100;
+                  return `
+                    <tr>
+                      <td style="text-align: center; color: #6b7280;">${i + 1}</td>
+                      <td>
+                        <strong>${item.name}</strong><br/>
+                        <span style="font-size: 10px; color: #6b7280;">SKU: SOV-${item.product.toString().slice(-6).toUpperCase()} • 18K PVD Gold Plating</span>
+                      </td>
+                      <td style="text-align: center; font-family: monospace;">7117</td>
+                      <td style="text-align: center; font-weight: bold;">${item.qty}</td>
+                      <td style="text-align: right; font-family: monospace;">₹${item.price.toLocaleString('en-IN')}</td>
+                      <td style="text-align: right; font-family: monospace;">₹${taxVal.toLocaleString('en-IN')}</td>
+                      <td style="text-align: right; font-family: monospace;">₹${gstVal.toLocaleString('en-IN')}</td>
+                      <td style="text-align: right; font-weight: bold; font-family: monospace;">₹${gross.toLocaleString('en-IN')}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+
+            <div class="summary-grid">
+              <div style="font-size: 10px; color: #4b5563;">
+                <p><strong>Declaration & Returns:</strong></p>
+                <p>1. Anti-tarnish, waterproof, certified 18K PVD gold plating.</p>
+                <p>2. 7-Day hassle-free returns & exchange on unworn items with tag.</p>
+                <p>3. Tax payable under reverse charge: No.</p>
+                <p style="margin-top: 6px; font-style: italic;">Computer generated Tax Invoice under Rule 48 of CGST Rules, 2017.</p>
+              </div>
+              <div>
+                <div class="total-row"><span>Items Subtotal:</span><span>₹${order.orderItems.reduce((acc, it) => acc + (it.price * it.qty), 0).toLocaleString('en-IN')}</span></div>
+                ${order.discountPrice > 0 ? `<div class="total-row" style="color: #047857;"><span>Discount:</span><span>- ₹${order.discountPrice.toLocaleString('en-IN')}</span></div>` : ''}
+                <div class="total-row"><span>Shipping:</span><span>${order.shippingPrice > 0 ? '₹' + order.shippingPrice.toLocaleString('en-IN') : 'FREE'}</span></div>
+                <div class="total-row" style="color: #6b7280; font-size: 11px;"><span>GST 3% (Included):</span><span>₹${totalGst.toLocaleString('en-IN')}</span></div>
+                <div class="total-row grand-total"><span>Grand Total:</span><span>₹${grandTotal.toLocaleString('en-IN')}</span></div>
+              </div>
+            </div>
+
+            <div class="footer">
+              <div>SOVRA JEWELLERY • UDAIPUR • WWW.SOVRA.IN</div>
+              <div style="text-align: right;">Authorized Signatory for SOVRA JEWELLERY</div>
+            </div>
           </div>
           <script>window.onload = () => { window.print(); }</script>
         </body>
