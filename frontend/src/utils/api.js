@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getStoredUser } from './storage';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
@@ -7,7 +8,7 @@ const api = axios.create({
 // Add a request interceptor to include the token in headers if it exists
 api.interceptors.request.use(
   (config) => {
-    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+    const userInfo = getStoredUser();
     if (userInfo && userInfo.token) {
       config.headers.Authorization = `Bearer ${userInfo.token}`;
     }

@@ -450,7 +450,8 @@ const addToWishlist = async (req, res) => {
       user.wishlist.push(productId);
       await user.save();
     }
-    res.status(201).json(user.wishlist);
+    const updatedUser = await User.findById(req.user._id).populate('wishlist');
+    res.status(201).json(updatedUser.wishlist);
   } catch (error) {
     res.status(500).json({ message: 'Failed to update your curated wishlist.' });
   }
@@ -464,7 +465,8 @@ const removeFromWishlist = async (req, res) => {
     const user = await User.findById(req.user._id);
     user.wishlist = user.wishlist.filter((id) => id.toString() !== req.params.id);
     await user.save();
-    res.json(user.wishlist);
+    const updatedUser = await User.findById(req.user._id).populate('wishlist');
+    res.json(updatedUser.wishlist);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

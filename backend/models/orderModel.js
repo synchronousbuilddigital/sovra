@@ -30,7 +30,7 @@ const orderSchema = mongoose.Schema({
   },
   paymentMethod: { type: String, required: true },
   razorpayOrderId: { type: String, index: true },
-  razorpayPaymentId: { type: String, index: true },
+  razorpayPaymentId: { type: String, index: true, unique: true, sparse: true },
   razorpaySignature: { type: String },
   paymentResult: {
     id: { type: String },

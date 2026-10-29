@@ -76,7 +76,7 @@ const EditorialHero = () => {
                                             }`}
                                     />
                                 </div>
-                                <span className={`text-[8.5px] font-mono tracking-wider uppercase transition-colors ${isActive ? 'text-[#111110] font-bold' : 'text-[#7a7670]'
+                                <span className={`text-[8.5px] font-sans tracking-wider uppercase transition-colors ${isActive ? 'text-[#111110] font-bold' : 'text-[#7a7670]'
                                     }`}>
                                     {item.name}
                                 </span>

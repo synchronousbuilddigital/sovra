@@ -93,9 +93,20 @@ test.describe('--- RAZORPAY SECURITY & INTEGRATION TEST SUITE ---', () => {
 
     const originalFindById = Order.findById;
     const originalFindOne = Order.findOne;
+    const originalFindOneAndUpdate = Order.findOneAndUpdate;
+    const originalUserFindByIdAndUpdate = User.findByIdAndUpdate;
+    const originalUserFindById = User.findById;
 
     Order.findById = async () => mockOrder;
     Order.findOne = async () => null; // No duplicate payment replay
+    Order.findOneAndUpdate = async () => {
+      mockOrder.isPaid = true;
+      mockOrder.razorpayPaymentId = rzpPaymentId;
+      mockOrder.status = 'Processing';
+      return mockOrder;
+    };
+    User.findByIdAndUpdate = async () => ({});
+    User.findById = async () => ({ email: 'patron@sovrajewellery.com', name: 'Patron' });
 
     try {
       const { req, res } = createMockReqRes({
@@ -117,6 +128,9 @@ test.describe('--- RAZORPAY SECURITY & INTEGRATION TEST SUITE ---', () => {
     } finally {
       Order.findById = originalFindById;
       Order.findOne = originalFindOne;
+      Order.findOneAndUpdate = originalFindOneAndUpdate;
+      User.findByIdAndUpdate = originalUserFindByIdAndUpdate;
+      User.findById = originalUserFindById;
     }
   });
 

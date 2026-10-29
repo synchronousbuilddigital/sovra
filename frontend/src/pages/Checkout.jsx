@@ -7,6 +7,7 @@ import api from '../utils/api'
 import { formatPrice } from '../utils/currency'
 import { trackPurchase } from '../utils/analytics'
 import { loadRazorpayScript } from '../utils/razorpay'
+import { getStoredUser } from '../utils/storage'
 import {
     MapPin, Phone, User, Check, Plus, ShieldCheck, Truck, Lock,
     ArrowRight, ArrowLeft, Tag, ShoppingBag, CreditCard,
@@ -27,7 +28,7 @@ const Checkout = () => {
     const { cart, refreshProfile } = useShop()
     const navigate = useNavigate()
 
-    const userInfo = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null
+    const userInfo = getStoredUser()
 
     const [loading, setLoading] = useState(false)
 
@@ -53,12 +54,17 @@ const Checkout = () => {
     // Promo Code & Available Vouchers
     const [promoCode, setPromoCode] = useState('')
     const [promoDiscount, setPromoDiscount] = useState(0)
+    const [maxDiscountLimit, setMaxDiscountLimit] = useState(null)
     const [isApplying, setIsApplying] = useState(false)
     const [availablePromos, setAvailablePromos] = useState([])
     const [loadingPromos, setLoadingPromos] = useState(false)
 
     const subtotal = cart.reduce((acc, item) => acc + ((item.product?.price || 0) * (item.qty || 0)), 0)
-    const discountAmount = (subtotal * promoDiscount) / 100
+    let calculated = (subtotal * promoDiscount) / 100
+    if (maxDiscountLimit && calculated > maxDiscountLimit) {
+        calculated = maxDiscountLimit
+    }
+    const discountAmount = calculated
     const taxes = (subtotal - discountAmount) * 0.08
     const total = subtotal - discountAmount + taxes
 
@@ -142,10 +148,12 @@ const Checkout = () => {
             const { data } = await api.get(`/promos/validate/${codeToValidate}?subtotal=${subtotal}`)
             setPromoCode(data.code || codeToValidate)
             setPromoDiscount(data.discount)
-            toast.success(`Coupon code applied: ${data.discount}% OFF`)
+            setMaxDiscountLimit(data.maxDiscountAmount || null)
+            toast.success(`Coupon code applied: ${data.discount}% OFF${data.maxDiscountAmount ? ` (Max ₹${data.maxDiscountAmount})` : ''}`)
         } catch (error) {
             toast.error(error.response?.data?.message || 'Invalid coupon code.')
             setPromoDiscount(0)
+            setMaxDiscountLimit(null)
         } finally {
             setIsApplying(false)
         }
@@ -153,6 +161,7 @@ const Checkout = () => {
 
     const handleRemovePromo = () => {
         setPromoDiscount(0)
+        setMaxDiscountLimit(null)
         setPromoCode('')
         toast.info('Coupon voucher removed.')
     }
@@ -323,7 +332,6 @@ const Checkout = () => {
         } catch (error) {
             console.error('Checkout error:', error)
             toast.error(error.response?.data?.message || 'Order could not be created.')
-        } finally {
             setLoading(false)
         }
     }
@@ -700,14 +708,14 @@ const Checkout = () => {
                                                         />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h4 className="font-headline text-sm italic text-stone-900 truncate">
+                                                        <h4 className="font-plex text-sm font-medium text-stone-900 truncate">
                                                             {piece.name}
                                                         </h4>
-                                                        <p className="font-mono text-xs text-stone-500">
+                                                        <p className="font-plex text-xs text-stone-500">
                                                             Qty: {item.qty} × {formatPrice(piece.price || 0)}
                                                         </p>
                                                     </div>
-                                                    <span className="font-headline text-sm italic text-stone-900 font-light">
+                                                    <span className="font-plex text-sm font-semibold text-stone-900">
                                                         {formatPrice((piece.price || 0) * (item.qty || 1))}
                                                     </span>
                                                 </div>
@@ -886,7 +894,7 @@ const Checkout = () => {
 
                                         <div className="flex justify-between items-center text-stone-600">
                                             <span className="uppercase tracking-wider font-bold text-[10px] text-stone-400">Estimated Taxes (GST 8%)</span>
-                                            <span className="font-mono text-sm font-semibold text-stone-800">{formatPrice(taxes)}</span>
+                                            <span className="font-plex text-sm font-semibold text-stone-800">{formatPrice(taxes)}</span>
                                         </div>
                                     </div>
 
@@ -898,7 +906,7 @@ const Checkout = () => {
                                             </span>
                                             <span className="font-sans text-[10px] text-stone-400">Final amount inclusive of taxes</span>
                                         </div>
-                                        <span className="font-headline text-3xl sm:text-4xl italic text-stone-900 font-light">
+                                        <span className="font-plex text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight">
                                             {formatPrice(total)}
                                         </span>
                                     </div>

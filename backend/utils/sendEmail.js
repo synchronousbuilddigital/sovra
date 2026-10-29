@@ -226,13 +226,18 @@ const getNewsletterTemplate = (email) => {
 </html>`;
 };
 
-const getOrderConfirmationTemplate = (order, user) => {
-  const itemsHtml = order.orderItems.map(item => `
+const getOrderConfirmationTemplate = (order, user = {}) => {
+  const items = Array.isArray(order?.orderItems) ? order.orderItems : [];
+  const itemsHtml = items.map(item => `
     <tr>
-      <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px;">${item.name} x ${item.qty}</td>
-      <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; text-align: right;">₹${item.price.toLocaleString()}</td>
+      <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px;">${item.name || 'Jewellery Piece'} x ${item.qty || 1}</td>
+      <td style="padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; text-align: right;">₹${(Number(item.price) || 0).toLocaleString('en-IN')}</td>
     </tr>
   `).join('');
+
+  const orderIdStr = order?._id ? order._id.toString().slice(-6).toUpperCase() : 'RECORDED';
+  const totalDisplay = (Number(order?.totalPrice) || 0).toLocaleString('en-IN');
+  const shipAddr = order?.shippingAddress || {};
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -254,25 +259,25 @@ const getOrderConfirmationTemplate = (order, user) => {
           </tr>
           <tr>
             <td style="padding: 35px 0 25px 0;">
-              <p style="font-size: 16px; font-style: italic; color: #333333; margin: 0 0 20px 0;">Hello ${user.name || 'there'},</p>
+              <p style="font-size: 16px; font-style: italic; color: #333333; margin: 0 0 20px 0;">Hello ${user?.name || 'there'},</p>
               <p style="font-size: 14px; line-height: 1.8; color: #555555; margin: 0 0 30px 0;">
                 Your curated selection of archival pieces has been successfully recorded in our registry. Our artisans are now preparing your curation for dispatch.
               </p>
               <div style="margin-bottom: 30px;">
-                <h3 style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 1px solid #1a1a1a; padding-bottom: 10px;">Order Details #${order._id.toString().slice(-6).toUpperCase()}</h3>
+                <h3 style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; border-bottom: 1px solid #1a1a1a; padding-bottom: 10px;">Order Details #${orderIdStr}</h3>
                 <table style="width: 100%; border-collapse: collapse;">
                   ${itemsHtml}
                   <tr>
                     <td style="padding: 20px 0 10px; font-weight: bold; font-size: 16px;">Total Acquisition Value</td>
-                    <td style="padding: 20px 0 10px; font-weight: bold; font-size: 16px; text-align: right;">₹${order.totalPrice.toLocaleString()}</td>
+                    <td style="padding: 20px 0 10px; font-weight: bold; font-size: 16px; text-align: right;">₹${totalDisplay}</td>
                   </tr>
                 </table>
               </div>
               <div style="background-color: #fcfbf9; border: 1px solid #ece7df; border-radius: 6px; padding: 20px; font-size: 12px; color: #666; margin-bottom: 30px;">
                 <strong>Shipping to:</strong><br />
-                ${order.shippingAddress.address}<br />
-                ${order.shippingAddress.city}, ${order.shippingAddress.postalCode}<br />
-                ${order.shippingAddress.country}
+                ${shipAddr.address || 'Standard Registered Address'}<br />
+                ${shipAddr.city ? `${shipAddr.city}, ` : ''}${shipAddr.postalCode || ''}<br />
+                ${shipAddr.country || 'India'}
               </div>
             </td>
           </tr>

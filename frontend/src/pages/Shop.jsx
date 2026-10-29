@@ -97,7 +97,7 @@ const Shop = () => {
     const activeCategoryInfo = categories.find(c => c.id === activeFilter) || categories[0]
 
     return (
-        <div className="pt-16 sm:pt-20 md:pt-32 bg-[#fffcf7] min-h-screen selection:bg-primary/10 relative">
+        <div className="pt-16 sm:pt-20 md:pt-32 bg-[#fffcf7] min-h-screen selection:bg-primary/10 relative w-full max-w-full overflow-x-clip">
             <Helmet>
                 <title>{activeCategoryInfo.id === 'all' ? 'All Pieces | SOVRA' : `${activeCategoryInfo.name} | SOVRA`}</title>
                 <meta name="description" content={`Explore our curated collection of ${activeCategoryInfo.name.toLowerCase()}. ${activeCategoryInfo.subtitle}. Meticulously crafted fine jewellery from Maison SOVRA.`} />
@@ -106,7 +106,7 @@ const Shop = () => {
                 <meta property="og:url" content={`https://sovra-topaz.vercel.app/shop${category ? '/' + category : ''}`} />
             </Helmet>
 
-            <main className="max-w-[1920px] mx-auto px-3 sm:px-6 md:px-12 lg:px-20">
+            <main className="max-w-[1920px] mx-auto px-3 sm:px-6 md:px-12 lg:px-20 w-full min-w-0">
 
                 {/* Search indicator if searching */}
                 {keyword && (
@@ -119,12 +119,12 @@ const Shop = () => {
                 {/* Refined Navigation & Filter Bar */}
                 <div 
                     onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }}
-                    className="sticky top-[54px] sm:top-[60px] md:top-[112px] z-40 bg-[#fffcf7]/95 backdrop-blur-xl border-b border-[#111110]/8 -mx-3 px-3 sm:-mx-6 sm:px-6 md:-mx-12 md:px-12 lg:-mx-20 lg:px-20 mb-3 sm:mb-5 md:mb-8 transition-all duration-300"
+                    className="sticky top-[54px] sm:top-[60px] md:top-[112px] z-40 bg-[#fffcf7]/95 backdrop-blur-xl border-b border-[#111110]/8 -mx-3 px-3 sm:-mx-6 sm:px-6 md:-mx-12 md:px-12 lg:-mx-20 lg:px-20 mb-3 sm:mb-5 md:mb-8 transition-all duration-300 w-[calc(100%+1.5rem)] sm:w-auto max-w-[100vw]"
                 >
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center py-2 sm:py-2.5 md:py-4 gap-2.5 sm:gap-3.5 md:gap-6">
+                    <div className="w-full max-w-full min-w-0 flex flex-col lg:flex-row justify-between items-start lg:items-center py-2 sm:py-2.5 md:py-4 gap-2.5 sm:gap-3.5 md:gap-6">
                         <div 
-                            className="flex items-center gap-4 sm:gap-6 lg:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar w-full md:w-auto py-0.5 sm:py-1"
-                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                            className="flex items-center gap-4 sm:gap-6 lg:gap-10 overflow-x-auto overflow-y-hidden no-scrollbar w-full max-w-full min-w-0 py-0.5 sm:py-1"
+                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
                         >
                             {categories.map((cat) => (
                                 <Link
@@ -144,7 +144,7 @@ const Shop = () => {
                             ))}
                         </div>
 
-                        <div className="flex items-center gap-4 md:gap-8 w-full lg:w-auto justify-between lg:justify-end">
+                        <div className="flex items-center gap-4 md:gap-8 w-full max-w-full min-w-0 lg:w-auto justify-between lg:justify-end">
                             <div className="flex items-center gap-4 md:gap-8">
                                 <div className="hidden lg:flex items-center gap-4">
                                     <span className="font-sans text-[8px] md:text-[9px] tracking-[0.25em] uppercase text-[#7a7670] font-black">{activeCategoryInfo.id === 'all' ? 'All Pieces' : activeCategoryInfo.name} ({products.length})</span>
@@ -319,18 +319,18 @@ const Shop = () => {
                                                     <span className="font-sans text-[7px] sm:text-[8px] tracking-[0.2em] uppercase text-[#7a7670] block font-medium opacity-70 truncate">
                                                         {product.category || 'Collective'} • {product.weight || '18K Gold'}
                                                     </span>
-                                                    <h2 className="font-sans text-xs sm:text-sm md:text-base font-medium text-[#111110] leading-snug group-hover:text-primary transition-colors truncate">
+                                                    <h2 className="font-plex text-xs sm:text-sm md:text-base font-medium text-[#111110] leading-snug group-hover:text-primary transition-colors truncate">
                                                         {product.name}
                                                     </h2>
 
                                                     <div className="flex items-center justify-center gap-2">
                                                         <div className="w-3 sm:w-6 h-[1px] bg-[#111110]/10 transition-all group-hover:w-8 duration-500" />
                                                         <div className="flex items-baseline gap-1.5">
-                                                            <span className="font-sans text-xs sm:text-sm font-semibold text-[#111110]">
+                                                            <span className="font-plex text-xs sm:text-sm font-semibold text-[#111110]">
                                                                 {formatPrice(product.price)}
                                                             </span>
                                                             {Number(product.mrp) > Number(product.price) ? (
-                                                                <span className="font-sans text-[10px] sm:text-xs text-stone-400 line-through">
+                                                                <span className="font-plex text-[10px] sm:text-xs text-stone-400 line-through">
                                                                     {formatPrice(product.mrp)}
                                                                 </span>
                                                             ) : null}
@@ -394,7 +394,7 @@ const Shop = () => {
             </div>
 
             {/* Floating Decorative Elements */}
-            <div className="absolute top-[20%] left-[5%] opacity-[0.03] pointer-events-none">
+            <div className="absolute top-[20%] left-[5%] opacity-[0.03] pointer-events-none hidden sm:block">
                 <svg width="400" height="400" viewBox="0 0 400 400" fill="none">
                     <circle cx="200" cy="200" r="199" stroke="#111110" strokeWidth="1" strokeDasharray="10 10" />
                 </svg>

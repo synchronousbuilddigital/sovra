@@ -46,13 +46,28 @@ const Navbar = () => {
         }
     }
 
-    // Close mobile menu on route change
+    const toggleSearch = () => {
+        setIsSearchOpen((prev) => {
+            const next = !prev
+            if (next && isMobileMenuOpen) setIsMobileMenuOpen(false)
+            return next
+        })
+    }
+
+    const toggleMobileMenu = () => {
+        setIsMobileMenuOpen((prev) => {
+            const next = !prev
+            if (next && isSearchOpen) setIsSearchOpen(false)
+            return next
+        })
+    }
+
+    // Close mobile menu and search on route change
     const [prevPath, setPrevPath] = useState(location.pathname)
     if (prevPath !== location.pathname) {
         setPrevPath(location.pathname)
-        if (isMobileMenuOpen) {
-            setIsMobileMenuOpen(false)
-        }
+        if (isMobileMenuOpen) setIsMobileMenuOpen(false)
+        if (isSearchOpen) setIsSearchOpen(false)
     }
 
     // Do not mount storefront floating navbar within the admin panel
@@ -89,7 +104,7 @@ const Navbar = () => {
                 <div className="flex-initial flex items-center pr-1 md:pr-8 gap-2 md:gap-0">
                     <button
                         className="md:hidden flex items-center text-primary hover:opacity-70 transition-opacity p-1"
-                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        onClick={toggleMobileMenu}
                         aria-label="Toggle Navigation Menu"
                     >
                         <span className="material-symbols-outlined text-[22px]">
@@ -123,7 +138,7 @@ const Navbar = () => {
                         duration: 0.8,
                         ease: [0.22, 1, 0.36, 1]
                     }}
-                    className="flex-auto hidden md:flex items-center justify-center gap-6 lg:gap-8 font-headline tracking-tight"
+                    className="flex-auto hidden md:flex items-center justify-center gap-6 lg:gap-8 font-body tracking-wide"
                 >
                     {navLinks.map((link) => (
                         <Link
@@ -150,28 +165,30 @@ const Navbar = () => {
                     <div className="flex items-center gap-2 sm:gap-3.5 md:gap-6 lg:gap-8">
                         {/* Search Bar */}
                         <div className="flex items-center relative">
-                            <AnimatePresence>
-                                {isSearchOpen && (
-                                    <Motion.form
-                                        initial={{ width: 0, opacity: 0 }}
-                                        animate={{ width: isMobile ? 130 : (isScrolled ? 200 : 250), opacity: 1 }}
-                                        exit={{ width: 0, opacity: 0 }}
-                                        onSubmit={handleSearch}
-                                        className="absolute right-full mr-2 md:mr-4 flex items-center bg-surface/90 rounded-full px-2 py-0.5 border border-primary/20"
-                                    >
-                                        <input
-                                            autoFocus
-                                            type="text"
-                                            placeholder="Search..."
-                                            value={searchKeyword}
-                                            onChange={(e) => setSearchKeyword(e.target.value)}
-                                            className="bg-transparent border-none py-0.5 px-1 text-xs focus:outline-none w-full font-body placeholder:text-[#6e5b44]/40"
-                                        />
-                                    </Motion.form>
-                                )}
-                            </AnimatePresence>
+                            {!isMobile && (
+                                <AnimatePresence>
+                                    {isSearchOpen && (
+                                        <Motion.form
+                                            initial={{ width: 0, opacity: 0 }}
+                                            animate={{ width: isScrolled ? 200 : 250, opacity: 1 }}
+                                            exit={{ width: 0, opacity: 0 }}
+                                            onSubmit={handleSearch}
+                                            className="absolute right-full mr-2 md:mr-4 flex items-center bg-surface/90 rounded-full px-2 py-0.5 border border-primary/20"
+                                        >
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                placeholder="Search..."
+                                                value={searchKeyword}
+                                                onChange={(e) => setSearchKeyword(e.target.value)}
+                                                className="bg-transparent border-none py-0.5 px-1 text-xs focus:outline-none w-full font-body placeholder:text-[#6e5b44]/40"
+                                            />
+                                        </Motion.form>
+                                    )}
+                                </AnimatePresence>
+                            )}
                             <button
-                                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                                onClick={toggleSearch}
                                 className="flex items-center hover:opacity-70 transition-all hover:scale-110 p-0.5"
                                 aria-label="Search"
                             >
@@ -247,12 +264,53 @@ const Navbar = () => {
                             <Link
                                 key={link.name}
                                 to={link.path}
-                                className={`text-lg font-headline tracking-tight transition-colors duration-400 py-2 border-b border-primary/5 ${location.pathname === link.path ? 'text-primary' : 'text-[#656464]'
+                                className={`text-base font-body tracking-wide font-medium transition-colors duration-400 py-2 border-b border-primary/5 ${location.pathname === link.path ? 'text-primary' : 'text-[#656464]'
                                     }`}
                             >
                                 {link.name}
                             </Link>
                         ))}
+                    </Motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Mobile Dedicated Search Overlay Bar */}
+            <AnimatePresence>
+                {isMobile && isSearchOpen && (
+                    <Motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                        className="pointer-events-auto fixed top-[66px] left-3 right-3 bg-[#fffcf7]/98 backdrop-blur-xl border border-primary/15 rounded-2xl p-2.5 shadow-2xl flex items-center gap-2 z-40 md:hidden"
+                    >
+                        <span className="material-symbols-outlined text-[20px] text-[#6e5b44] pl-2">search</span>
+                        <form onSubmit={handleSearch} className="flex-1 flex items-center gap-2">
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder="Search pieces, series, gemstones..."
+                                value={searchKeyword}
+                                onChange={(e) => setSearchKeyword(e.target.value)}
+                                className="bg-transparent border-none py-1.5 px-1 text-xs focus:outline-none w-full font-body text-[#111110] placeholder:text-[#6e5b44]/50"
+                            />
+                            {searchKeyword && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSearchKeyword('')}
+                                    className="p-1 text-[#6e5b44] hover:text-[#111110]"
+                                    aria-label="Clear keyword"
+                                >
+                                    <span className="material-symbols-outlined text-[16px]">close</span>
+                                </button>
+                            )}
+                            <button
+                                type="submit"
+                                className="bg-[#111110] text-[#fffcf7] px-3.5 py-1.5 rounded-full text-[10px] uppercase font-bold tracking-wider font-sans shrink-0 hover:bg-black"
+                            >
+                                Search
+                            </button>
+                        </form>
                     </Motion.div>
                 )}
             </AnimatePresence>

@@ -66,6 +66,22 @@ const createRazorpayOrder = async (req, res) => {
       return res.status(400).json({ message: 'Order total amount must be greater than zero.' });
     }
 
+    // Idempotency: If a Razorpay order was already created for this DB order,
+    // return it immediately instead of creating a new one. This prevents a
+    // double-click from overwriting the stored razorpayOrderId and causing a
+    // "Gateway order reference mismatch" on the verify step.
+    if (order.razorpayOrderId) {
+      logger.info(`Reusing existing Razorpay order ${order.razorpayOrderId} for internal Order: ${order._id}`);
+      return res.status(200).json({
+        success: true,
+        razorpayOrderId: order.razorpayOrderId,
+        amount: amountInPaise,
+        currency: 'INR',
+        orderId: order._id,
+        keyId: getNormalizedKeyId(),
+      });
+    }
+
     const razorpay = getRazorpayInstance();
     const receiptId = `rcpt_${order._id.toString().slice(-14)}`;
 
@@ -203,21 +219,41 @@ const verifyPayment = async (req, res) => {
       });
     }
 
-    // Atomic update of order to paid state
-    order.isPaid = true;
-    order.paidAt = new Date();
-    order.status = 'Processing';
-    order.razorpayOrderId = razorpay_order_id;
-    order.razorpayPaymentId = razorpay_payment_id;
-    order.razorpaySignature = razorpay_signature;
-    order.paymentResult = {
-      id: razorpay_payment_id,
-      status: 'captured',
-      update_time: new Date().toISOString(),
-      email_address: req.user.email || '',
-    };
+    // Atomic update: only succeeds if the order is still unpaid and has no
+    // payment ID. This prevents a replay / double-spend if two verification
+    // requests arrive simultaneously for the same order.
+    const updatedOrder = await Order.findOneAndUpdate(
+      {
+        _id: orderId,
+        isPaid: false,
+        $or: [
+          { razorpayPaymentId: { $exists: false } },
+          { razorpayPaymentId: null },
+        ],
+      },
+      {
+        $set: {
+          isPaid: true,
+          paidAt: new Date(),
+          status: 'Processing',
+          razorpayOrderId: razorpay_order_id,
+          razorpayPaymentId: razorpay_payment_id,
+          razorpaySignature: razorpay_signature,
+          paymentResult: {
+            id: razorpay_payment_id,
+            status: 'captured',
+            update_time: new Date().toISOString(),
+            email_address: req.user.email || '',
+          },
+        },
+      },
+      { new: true }
+    );
 
-    const updatedOrder = await order.save();
+    if (!updatedOrder) {
+      logger.warn(`Order ${orderId} is already settled or in-progress — concurrent request rejected.`);
+      return res.status(409).json({ message: 'Order is already settled or in process.' });
+    }
     logger.info(`Payment verified and captured for Order: ${updatedOrder._id}, Payment: ${razorpay_payment_id}`);
 
     // Atomically clear user cart only upon successful payment verification

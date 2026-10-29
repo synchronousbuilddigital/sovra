@@ -160,12 +160,12 @@ const Wishlist = () => {
 
                                             <h3
                                                 onClick={() => navigate(`/product/${product._id}`)}
-                                                className="font-headline text-lg sm:text-xl text-stone-900 group-hover:text-primary transition-colors cursor-pointer truncate"
+                                                className="font-plex text-base sm:text-lg font-medium text-stone-900 group-hover:text-primary transition-colors cursor-pointer truncate"
                                             >
                                                 {product.name}
                                             </h3>
 
-                                            <p className="font-headline text-xl italic text-stone-900 font-light mt-1">
+                                            <p className="font-plex text-base sm:text-lg font-semibold text-stone-900 mt-1">
                                                 {formatPrice(product.price || 0)}
                                             </p>
                                         </div>

@@ -1,7 +1,8 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { getStoredUser } from '../utils/storage';
 
 const AdminRoute = () => {
-    const userInfo = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null;
+    const userInfo = getStoredUser();
 
     if (!userInfo || !userInfo.isAdmin) {
         return <Navigate to="/login" replace />;

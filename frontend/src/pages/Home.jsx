@@ -299,7 +299,7 @@ const Home = () => {
                                         {/* Real Price and Details from Shop Page */}
                                         <div className="space-y-0.5 sm:space-y-1">
                                             <div className="flex items-baseline gap-1.5 flex-wrap">
-                                                <span className="font-label text-xs sm:text-base font-bold text-primary">
+                                                <span className="font-plex text-xs sm:text-base font-semibold text-primary">
                                                     {formatPrice(product.price)}
                                                 </span>
                                                 {Number(product.mrp) > Number(product.price) ? (
@@ -308,7 +308,7 @@ const Home = () => {
                                                     </span>
                                                 ) : null}
                                             </div>
-                                            <h4 className="text-[11px] sm:text-xs font-medium text-primary/90 truncate group-hover/card:text-primary transition-colors">
+                                            <h4 className="font-plex text-[11px] sm:text-xs font-medium text-primary/90 truncate group-hover/card:text-primary transition-colors">
                                                 {product.name}
                                             </h4>
                                             <p className="text-[9px] sm:text-[10px] text-secondary/60 truncate capitalize">
@@ -353,20 +353,19 @@ const Home = () => {
             </section>
 
             {/* Categories Section */}
-            <section className="pt-5 pb-2 md:py-16 px-3.5 sm:px-6 md:px-12 lg:px-16">
+            <section className="pt-8 sm:pt-12 md:py-16 pb-4 sm:pb-6 px-3.5 sm:px-6 md:px-12 lg:px-16 border-t border-[#111110]/8">
                 <div className="max-w-[1720px] mx-auto">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-2 md:gap-4 mb-6 md:mb-10">
                         <div>
-                            <span className="font-label text-[9px] md:text-[11px] kerning-widest uppercase text-secondary tracking-[0.25em] block mb-1 md:mb-2 opacity-70">
-                                Curated Silhouettes
-                            </span>
+
                             <h2 className="font-headline text-2xl sm:text-4xl md:text-5xl font-light text-primary tracking-tight">
                                 Categories
                             </h2>
+                            <div className="w-10 sm:w-14 h-[1.5px] bg-gradient-to-r from-[#855e23] to-[#855e23]/20 mt-2 sm:mt-2.5" />
                         </div>
                         <Link
                             to="/shop"
-                            className="group inline-flex items-center gap-1.5 md:gap-2 font-label text-[9px] md:text-[11px] kerning-widest uppercase text-primary border-b border-primary/20 pb-0.5 md:pb-1 hover:border-primary transition-all duration-300"
+                            className="group inline-flex items-center gap-1.5 md:gap-2 font-label text-[9px] md:text-[11px] kerning-widest uppercase text-primary border-b border-primary/20 pb-0.5 md:pb-1 hover:border-primary transition-all duration-300 mt-2 md:mt-0"
                         >
                             <span>Explore All Masterpieces</span>
                             <ArrowUpRight size={13} className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 opacity-60 group-hover:opacity-100" />
@@ -427,15 +426,14 @@ const Home = () => {
             </section>
 
             {/* Shop Showcase Section: 3 rows x 4 columns (12 products from Shop) */}
-            <section className="pt-1 sm:pt-2 pb-8 md:py-20 bg-surface-container-low/30 overflow-hidden">
+            <section className="pt-8 sm:pt-12 pb-8 md:py-20 bg-surface-container-low/30 overflow-hidden border-t border-[#111110]/8">
                 <div className="max-w-[1720px] mx-auto px-3 sm:px-6 md:px-12 lg:px-16">
-                    <div className="text-center mb-4 md:mb-14 scroll-reveal">
+                    <div className="text-left mb-4 sm:mb-6 md:mb-10 scroll-reveal">
+
                         <h2 className="font-headline text-2xl sm:text-4xl md:text-5xl font-light italic text-primary tracking-tight">
                             Shop the Collection
                         </h2>
-                        <p className="font-body text-[11px] sm:text-xs md:text-sm text-secondary/70 mt-1 md:mt-2 max-w-lg mx-auto italic px-2">
-                            Handcrafted pieces born from fine precious metals and natural gemstones.
-                        </p>
+                        <div className="w-10 sm:w-14 h-[1.5px] bg-gradient-to-r from-[#855e23] to-[#855e23]/20 mt-2 sm:mt-2.5" />
                     </div>
 
                     {/* 2 rows x 4 columns = 8 items */}
@@ -512,7 +510,7 @@ const Home = () => {
                                             <div className="h-9 md:h-auto flex items-start">
                                                 <Link 
                                                     to={`/product/${product._id || product.id}`} 
-                                                    className="font-sans text-xs sm:text-sm md:text-base font-medium text-[#111110] group-hover:text-primary transition-colors line-clamp-2 leading-snug block"
+                                                    className="font-plex text-xs sm:text-sm md:text-base font-medium text-[#111110] group-hover:text-primary transition-colors line-clamp-2 leading-snug block"
                                                     title={product.name}
                                                 >
                                                     {product.name}
@@ -521,11 +519,11 @@ const Home = () => {
 
                                             {/* Price & MRP */}
                                             <div className="pt-0.5 flex items-baseline gap-2">
-                                                <span className="font-sans text-xs sm:text-sm font-semibold text-[#111110]">
+                                                <span className="font-plex text-xs sm:text-sm font-semibold text-[#111110]">
                                                     {formatPrice(product.price)}
                                                 </span>
                                                 {Number(product.mrp) > Number(product.price) ? (
-                                                    <span className="font-sans text-[10px] sm:text-xs text-stone-400 line-through">
+                                                    <span className="font-plex text-[10px] sm:text-xs text-stone-400 line-through">
                                                         {formatPrice(product.mrp)}
                                                     </span>
                                                 ) : null}

@@ -94,7 +94,7 @@ const Magazine = () => {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                        className="font-plex text-5xl sm:text-7xl md:text-8xl lg:text-9xl text-[#111110] leading-[0.92] mb-5 font-normal tracking-tight"
+                        className="font-headline text-5xl sm:text-7xl md:text-8xl lg:text-9xl text-[#111110] leading-[0.92] mb-5 font-light tracking-tight"
                     >
                         Magazine.
                     </motion.h1>
@@ -102,7 +102,7 @@ const Magazine = () => {
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="max-w-2xl font-plex text-base sm:text-lg md:text-xl leading-relaxed text-[#55524e] font-normal"
+                        className="max-w-2xl font-body text-base sm:text-lg md:text-xl leading-relaxed text-[#55524e] font-light"
                     >
                         A digital journal exploring the intersections of heritage jewellery, contemporary art, and the soul of artisan craftsmanship.
                     </motion.p>
@@ -139,10 +139,10 @@ const Magazine = () => {
                         className="lg:col-span-5 space-y-8"
                     >
                         <span className="font-sans text-[10px] tracking-[0.4em] uppercase text-primary font-bold block">Featured Narrative</span>
-                        <h2 className="font-plex text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#111110] leading-[1.12] font-normal">
+                        <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#111110] leading-[1.12] font-light">
                             {articles[0].title}
                         </h2>
-                        <p className="font-plex text-lg sm:text-xl text-[#55524e] leading-relaxed font-light">
+                        <p className="font-body text-base sm:text-lg text-[#55524e] leading-relaxed font-light">
                             {articles[0].subtitle}
                         </p>
                         <div className="flex items-center gap-8 pt-4">
@@ -190,10 +190,10 @@ const Magazine = () => {
                                         <Share2 size={12} className="text-[#7a7670]/40 hover:text-primary transition-colors cursor-pointer" />
                                     </div>
                                 </div>
-                                <h3 className="font-plex text-2xl sm:text-3xl text-[#111110] leading-snug font-normal group-hover:text-primary transition-colors">
+                                <h3 className="font-headline text-2xl sm:text-3xl text-[#111110] leading-snug font-light group-hover:text-primary transition-colors">
                                     {article.title}
                                 </h3>
-                                <p className="font-plex text-sm sm:text-base text-[#55524e] leading-relaxed font-light line-clamp-2">
+                                <p className="font-body text-sm sm:text-base text-[#55524e] leading-relaxed font-light line-clamp-2">
                                     {article.subtitle}
                                 </p>
                                 <div className="pt-4 border-t border-primary/5 flex justify-between items-center">
@@ -220,7 +220,7 @@ const Magazine = () => {
                      <motion.h2 
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        className="font-plex text-3xl sm:text-5xl md:text-6xl text-[#f5f0e8] font-normal leading-tight max-w-4xl mx-auto"
+                        className="font-headline italic text-3xl sm:text-5xl md:text-6xl text-[#f5f0e8] font-light leading-tight max-w-4xl mx-auto"
                      >
                         "Receive the whispers of our Udaipur studio in your inbox."
                      </motion.h2>

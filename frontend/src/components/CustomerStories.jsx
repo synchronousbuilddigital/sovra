@@ -179,7 +179,7 @@ const CustomerStories = ({ shopProducts = [] }) => {
 
                                     {/* Product Name & Purple Star Rating */}
                                     <div className="min-w-0 flex-1">
-                                        <h4 className="text-[9.5px] sm:text-[12px] font-medium text-[#1a1a1a] truncate group-hover/item:text-[#a88243] transition-colors">
+                                        <h4 className="font-plex text-[9.5px] sm:text-[12px] font-medium text-[#1a1a1a] truncate group-hover/item:text-[#a88243] transition-colors">
                                             {product.name}
                                         </h4>
                                         <div className="flex items-center gap-1 mt-0.5">

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../utils/api';
 import { toast } from 'react-toastify';
+import { getStoredUser } from '../utils/storage';
 
 const ShopContext = createContext();
 
@@ -13,7 +14,7 @@ export const ShopProvider = ({ children }) => {
     const [user, setUser] = useState(null);
 
     // Dynamic userInfo check
-    const getUserInfo = () => localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null;
+    const getUserInfo = () => getStoredUser();
 
     useEffect(() => {
         const currentUser = getUserInfo();

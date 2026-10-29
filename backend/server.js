@@ -17,7 +17,14 @@ const { swaggerUi, swaggerDocs } = require('./config/swagger');
 dotenv.config();
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+  // Start abandoned-order cleanup after DB is ready (runs every 5 minutes)
+  const { cancelExpiredOrders } = require('./jobs/orderExpiryWorker');
+  cancelExpiredOrders(); // run once immediately on startup
+  setInterval(cancelExpiredOrders, 5 * 60 * 1000);
+  logger.info('Order expiry worker started (5-minute interval).');
+});
+
 
 const app = express();
 

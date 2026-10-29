@@ -50,6 +50,7 @@ const reelsData = [
 const TrendingReels = ({ shopProducts = [] }) => {
     const [reels, setReels] = useState(reelsData)
     const [activeIndex, setActiveIndex] = useState(0)
+    const [isPaused, setIsPaused] = useState(false)
 
     useEffect(() => {
         let isMounted = true
@@ -68,6 +69,17 @@ const TrendingReels = ({ shopProducts = [] }) => {
     }, [])
 
     const totalReels = reels.length || 1
+
+    // Auto-scroll reels every 3.5s, pausing when user hovers or touches
+    useEffect(() => {
+        if (isPaused || totalReels <= 1) return
+
+        const timer = setInterval(() => {
+            setActiveIndex((prev) => (prev + 1) % totalReels)
+        }, 3500)
+
+        return () => clearInterval(timer)
+    }, [isPaused, totalReels, activeIndex])
 
     const handlePrev = () => {
         setActiveIndex((prev) => (prev - 1 + totalReels) % totalReels)
@@ -157,7 +169,7 @@ const TrendingReels = ({ shopProducts = [] }) => {
                 
                 {/* Heading: Exactly like reference 'Trending Styles' */}
                 <div className="text-center mb-10 md:mb-14">
-                    <h2 className="font-sans text-2xl sm:text-3xl md:text-[34px] font-normal text-[#111110] tracking-tight mb-2">
+                    <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl font-light text-[#111110] tracking-tight mb-2">
                         Trending Styles
                     </h2>
                     <Link
@@ -170,7 +182,13 @@ const TrendingReels = ({ shopProducts = [] }) => {
                 </div>
 
                 {/* Coverflow 3D Carousel Stage */}
-                <div className="relative w-full max-w-[1280px] mx-auto h-[480px] sm:h-[540px] md:h-[600px] flex items-center justify-center">
+                <div
+                    className="relative w-full max-w-[1280px] mx-auto h-[480px] sm:h-[540px] md:h-[600px] flex items-center justify-center"
+                    onMouseEnter={() => setIsPaused(true)}
+                    onMouseLeave={() => setIsPaused(false)}
+                    onTouchStart={() => setIsPaused(true)}
+                    onTouchEnd={() => setIsPaused(false)}
+                >
                     
                     {/* Left Navigation Arrow */}
                     <button
@@ -244,7 +262,7 @@ const TrendingReels = ({ shopProducts = [] }) => {
                                             className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-4 sm:p-5 flex flex-col items-center text-center z-10"
                                         >
                                             {/* Product Title */}
-                                            <h3 className="text-white text-xs sm:text-[13px] font-medium tracking-wide truncate w-full mb-3 text-shadow">
+                                            <h3 className="font-plex text-white text-xs sm:text-[13.5px] font-medium tracking-wide truncate w-full mb-3 text-shadow">
                                                 {reelTitle}
                                             </h3>
 

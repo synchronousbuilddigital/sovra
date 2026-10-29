@@ -1,7 +1,8 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { getStoredUser } from '../utils/storage';
 
 const PrivateRoute = () => {
-    const userInfo = localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null;
+    const userInfo = getStoredUser();
 
     if (!userInfo) return <Navigate to="/login" replace />;
     if (!userInfo.isVerified) return <Navigate to="/verify-otp" replace />;

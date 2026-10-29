@@ -452,7 +452,19 @@ const updateReturnStatus = async (req, res) => {
       order.returnRequest.adminNotes = adminNotes;
 
       if (status === 'Approved') {
+        const wasAlreadyApproved = order.status === 'Return Approved';
         order.status = 'Return Approved';
+
+        // Return stock to inventory if not already credited
+        if (!wasAlreadyApproved && Array.isArray(order.orderItems)) {
+          for (const item of order.orderItems) {
+            if (item.product) {
+              await Product.findByIdAndUpdate(item.product, {
+                $inc: { stock: Number(item.qty) || 1 }
+              });
+            }
+          }
+        }
       } else if (status === 'Rejected') {
         order.status = 'Return Rejected';
       }

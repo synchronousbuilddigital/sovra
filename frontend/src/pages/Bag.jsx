@@ -178,11 +178,11 @@ const Bag = () => {
                                                 </span>
                                                 <Link
                                                     to={`/product/${piece._id}`}
-                                                    className="font-headline text-base sm:text-xl italic text-stone-900 hover:text-primary transition-colors block truncate"
+                                                    className="font-plex text-base sm:text-lg font-medium text-stone-900 hover:text-primary transition-colors block truncate"
                                                 >
                                                     {piece.name || 'Untitled Piece'}
                                                 </Link>
-                                                <p className="font-mono text-[11px] sm:text-xs text-stone-500">
+                                                <p className="font-plex text-[11.5px] sm:text-xs text-stone-600">
                                                     Unit: {formatPrice(piece.price || 0)}
                                                 </p>
                                                 <div className="flex items-center gap-1.5 pt-0.5">
@@ -223,7 +223,7 @@ const Bag = () => {
 
                                             {/* Line Item Total */}
                                             <div className="text-right min-w-[70px] sm:min-w-[80px]">
-                                                <p className="font-headline text-base sm:text-xl italic text-stone-900 font-light">
+                                                <p className="font-plex text-base sm:text-lg font-semibold text-stone-900">
                                                     {formatPrice(itemTotal)}
                                                 </p>
                                             </div>
@@ -270,7 +270,7 @@ const Bag = () => {
                             <div className="space-y-2.5 sm:space-y-3.5 pt-1.5 sm:pt-2 border-t border-stone-100 font-sans text-xs">
                                 <div className="flex justify-between items-center text-stone-600">
                                     <span className="uppercase tracking-wider font-bold text-[9.5px] sm:text-[10px] text-stone-400">Subtotal</span>
-                                    <span className="font-mono text-xs sm:text-sm font-semibold text-stone-800">{formatPrice(subtotal)}</span>
+                                    <span className="font-plex text-xs sm:text-sm font-semibold text-stone-800">{formatPrice(subtotal)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-stone-600">
                                     <span className="uppercase tracking-wider font-bold text-[9.5px] sm:text-[10px] text-stone-400">Insured Shipping</span>
@@ -280,7 +280,7 @@ const Bag = () => {
                                 </div>
                                 <div className="flex justify-between items-center text-stone-600">
                                     <span className="uppercase tracking-wider font-bold text-[9.5px] sm:text-[10px] text-stone-400">Estimated Taxes (GST 8%)</span>
-                                    <span className="font-mono text-xs sm:text-sm font-semibold text-stone-800">{formatPrice(taxes)}</span>
+                                    <span className="font-plex text-xs sm:text-sm font-semibold text-stone-800">{formatPrice(taxes)}</span>
                                 </div>
                             </div>
 
@@ -292,7 +292,7 @@ const Bag = () => {
                                     </span>
                                     <span className="font-sans text-[9px] sm:text-[10px] text-stone-400">Includes all applicable duties & taxes</span>
                                 </div>
-                                <span className="font-headline text-2xl sm:text-4xl italic text-stone-900 font-light">
+                                <span className="font-plex text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight">
                                     {formatPrice(total)}
                                 </span>
                             </div>

@@ -217,11 +217,11 @@ const Story = () => {
                                             />
                                         </div>
                                         <div>
-                                            <h4 className="font-headline text-xs sm:text-sm font-semibold text-[#111110] dark:text-[#eae9de] line-clamp-1 group-hover:text-[#6e5b44] dark:group-hover:text-[#ead0b3] transition-colors">
+                                            <h4 className="font-plex text-xs sm:text-sm font-medium text-[#111110] dark:text-[#eae9de] line-clamp-1 group-hover:text-[#6e5b44] dark:group-hover:text-[#ead0b3] transition-colors">
                                                 {item.name}
                                             </h4>
                                             <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-[#111110]/5 dark:border-[#eae9de]/5">
-                                                <span className="text-xs font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                                <span className="font-plex text-xs font-semibold text-[#6e5b44] dark:text-[#ead0b3]">
                                                     {formatPrice(item.price)}
                                                 </span>
                                                 <span className="text-[10px] font-bold text-[#111110] dark:text-[#eae9de] group-hover:text-[#6e5b44] dark:group-hover:text-[#ead0b3] transition-colors flex items-center gap-0.5">

@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { useParams, Link } from 'react-router-dom'
-import { motion as Motion } from 'framer-motion'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { useShop } from '../context/ShopContext'
-import { ArrowLeft, Sparkles, Heart, Minus, Plus, ShoppingBag, X, Check } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Heart, Minus, Plus, ShoppingBag, X, ChevronDown, Sparkles } from 'lucide-react'
 import api from '../utils/api'
 import { formatPrice } from '../utils/currency'
 import { getOptimizedImage } from '../utils/imageUtils'
@@ -13,13 +13,57 @@ import { trackAddToCart, trackWishlist, trackViewItem } from '../utils/analytics
 
 const ProductDetail = () => {
     const { id } = useParams()
+    const navigate = useNavigate()
     const { cart, addToCart, addToWishlist, wishlist, removeFromWishlist } = useShop();
     const [product, setProduct] = useState(null)
     const [loading, setLoading] = useState(true)
     const [quantity, setQuantity] = useState(1)
     const [selectedImage, setSelectedImage] = useState(null)
+    const [activeImageIndex, setActiveImageIndex] = useState(0)
+    const [isMobilePaused, setIsMobilePaused] = useState(false)
     const [similarProducts, setSimilarProducts] = useState([])
     const [loadingSimilar, setLoadingSimilar] = useState(true)
+    const mobileSliderRef = useRef(null)
+
+    const displayImages = product 
+        ? Array.from(new Set([product.img || product.image, ...(product.images || [])].filter(Boolean))) 
+        : []
+
+    // Mobile carousel auto-advance every 2 seconds
+    useEffect(() => {
+        if (isMobilePaused || displayImages.length <= 1) return
+
+        const timer = setInterval(() => {
+            setActiveImageIndex((prev) => {
+                const next = (prev + 1) % displayImages.length
+                if (mobileSliderRef.current) {
+                    const width = mobileSliderRef.current.offsetWidth
+                    if (width > 0) {
+                        mobileSliderRef.current.scrollTo({
+                            left: next * width,
+                            behavior: 'smooth'
+                        })
+                    }
+                }
+                return next
+            })
+        }, 2000)
+
+        return () => clearInterval(timer)
+    }, [isMobilePaused, displayImages.length])
+
+    const scrollToImage = (index) => {
+        setActiveImageIndex(index)
+        if (mobileSliderRef.current) {
+            const width = mobileSliderRef.current.offsetWidth
+            if (width > 0) {
+                mobileSliderRef.current.scrollTo({
+                    left: index * width,
+                    behavior: 'smooth'
+                })
+            }
+        }
+    }
 
     // Review States
     const [rating, setRating] = useState(5)
@@ -28,14 +72,30 @@ const ProductDetail = () => {
     const [submittingReview, setSubmittingReview] = useState(false)
     const [showReviewForm, setShowReviewForm] = useState(false)
 
+    // Luxury Accordion State (Cartier / Tiffany & Co. Style)
+    const [openAccordion, setOpenAccordion] = useState('specs')
+    const toggleAccordion = (section) => {
+        setOpenAccordion(prev => prev === section ? null : section)
+    }
+
     const isWishlisted = wishlist.some(item => (item._id || item) === id);
     const cartItem = cart.find(item => (item.product?._id || item.product) === id);
     const currentInCart = cartItem ? cartItem.qty : 0;
     const isOutOfStock = !product || Number(product.stock) <= 0;
     const availableToAdd = product && !isOutOfStock ? Math.max(0, Number(product.stock) - currentInCart) : 0;
 
+    const handleBuyNow = async () => {
+        if (isOutOfStock) return;
+        if (availableToAdd > 0) {
+            await addToCart(product._id, quantity);
+            trackAddToCart(product, quantity);
+        }
+        navigate('/checkout');
+    };
+
     useEffect(() => {
         window.scrollTo(0, 0)
+        setActiveImageIndex(0)
         fetchProduct()
         trackView()
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -68,21 +128,7 @@ const ProductDetail = () => {
             trackViewItem(data)
         } catch (error) {
             console.error('Fetch failed:', error)
-            setProduct({
-                _id: id,
-                name: "Nova Heart Necklace",
-                series: "Celestial Body",
-                price: 1250.00,
-                description: '"A delicate and timeless heart silhouette, meticulously crafted for the modern romantic. The Nova Heart Necklace combines effortless elegance with everyday resilience."',
-                material: "Stainless Steel",
-                plating: "Gold 18K PVD Plating",
-                stone: "Natural",
-                length: "46 cm",
-                weight: "6g",
-                features: ["Sweatproof", "Anti Tarnish", "Water proof", "Hypoallergenic"],
-                images: ["https://images.unsplash.com/photo-1599643477877-530eb83abc8e?q=80&w=2070&auto=format&fit=crop"],
-                reviews: []
-            })
+            setProduct(null)
         } finally {
             setLoading(false)
         }
@@ -135,11 +181,16 @@ const ProductDetail = () => {
         <div className="pt-16 sm:pt-20 md:pt-28 pb-12 md:pb-20 bg-[#fffcf7] min-h-screen">
             <main className="max-w-[1600px] mx-auto px-3.5 sm:px-6 md:px-10 lg:px-12">
                 <div className="flex flex-col lg:flex-row gap-6 md:gap-10 xl:gap-14 items-start">
-                    {/* Gallery Skeleton: 2-Column Grid */}
-                    <div className="w-full lg:w-[60%] xl:w-[62%] grid grid-cols-2 gap-2 sm:gap-4 md:gap-5">
-                        {[1, 2, 3, 4].map(i => (
-                            <Skeleton key={i} height="auto" className="aspect-[4/5] rounded-xl sm:rounded-2xl" />
-                        ))}
+                    {/* Gallery Skeleton: 1 card on mobile, 2-column grid on desktop */}
+                    <div className="w-full lg:w-[60%] xl:w-[62%]">
+                        <div className="lg:hidden">
+                            <Skeleton height="auto" className="aspect-[4/5] w-full rounded-2xl" />
+                        </div>
+                        <div className="hidden lg:grid grid-cols-2 gap-4 md:gap-5">
+                            {[1, 2, 3, 4].map(i => (
+                                <Skeleton key={i} height="auto" className="aspect-[4/5] rounded-xl sm:rounded-2xl" />
+                            ))}
+                        </div>
                     </div>
                     {/* Content Skeleton: Sticky Info Panel */}
                     <div className="w-full lg:w-[40%] xl:w-[38%] space-y-7">
@@ -178,10 +229,8 @@ const ProductDetail = () => {
         </div>
     )
 
-    const displayImages = Array.from(new Set([product.img || product.image, ...(product.images || [])].filter(Boolean)));
-
     return (
-        <div className="product-page pt-16 sm:pt-20 md:pt-28 pb-12 md:pb-20 bg-[#fffcf7] min-h-screen selection:bg-primary/10">
+        <div className="product-page pt-16 sm:pt-20 md:pt-28 pb-12 md:pb-20 bg-[#fffcf7] min-h-screen selection:bg-primary/10 w-full max-w-full overflow-x-clip">
             {product && (
                 <Helmet>
                     <title>{`${product.name} | SOVRA SOVRA`}</title>
@@ -194,7 +243,7 @@ const ProductDetail = () => {
                     <meta name="twitter:card" content="summary_large_image" />
                 </Helmet>
             )}
-            <main className="max-w-[1600px] mx-auto px-3.5 sm:px-6 md:px-10 lg:px-12">
+            <main className="max-w-[1600px] mx-auto px-3.5 sm:px-6 md:px-10 lg:px-12 w-full min-w-0">
 
                 {/* Editorial Top Navigation */}
                 <Link to="/shop" className="inline-flex items-center gap-2 sm:gap-3 font-sans text-[8.5px] sm:text-[9px] tracking-[0.3em] sm:tracking-[0.35em] uppercase text-[#7a7670] mb-3 sm:mb-5 md:mb-8 hover:text-[#111110] transition-colors group font-bold">
@@ -204,9 +253,92 @@ const ProductDetail = () => {
 
                 <div className="flex flex-col lg:flex-row gap-6 md:gap-10 xl:gap-14 items-start">
 
-                    {/* GALLERY: Responsive Product Images Grid */}
+                    {/* GALLERY: Responsive Product Images (Swipeable 2s Auto Slider on Mobile, 2-Col Grid on Desktop) */}
                     <div className="w-full lg:w-[60%] xl:w-[62%]">
-                        <div className={`grid ${displayImages.length === 1 ? 'grid-cols-1 max-w-lg mx-auto' : 'grid-cols-2'} gap-2 sm:gap-4 md:gap-5`}>
+                        {/* MOBILE GALLERY: Single-image height swipeable carousel with 2s auto-change & thumbnails */}
+                        <div className="lg:hidden relative">
+                            <div 
+                                ref={mobileSliderRef}
+                                onMouseEnter={() => setIsMobilePaused(true)}
+                                onMouseLeave={() => setIsMobilePaused(false)}
+                                onTouchStart={() => setIsMobilePaused(true)}
+                                onTouchEnd={() => setTimeout(() => setIsMobilePaused(false), 3000)}
+                                className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none rounded-2xl relative shadow-lux-sm border border-[#111110]/5 bg-[#fbf9f6]"
+                                onScroll={(e) => {
+                                    const width = e.currentTarget.offsetWidth;
+                                    if (width > 0) {
+                                        const idx = Math.round(e.currentTarget.scrollLeft / width);
+                                        setActiveImageIndex(idx);
+                                    }
+                                }}
+                            >
+                                {displayImages.map((img, i) => (
+                                    <div
+                                        key={i}
+                                        onClick={() => setSelectedImage(img)}
+                                        className="w-full min-w-full aspect-[4/5] snap-center relative cursor-zoom-in"
+                                    >
+                                        <img
+                                            src={getOptimizedImage(img, 1200)}
+                                            alt={`${product.name} perspective ${i + 1}`}
+                                            className="w-full h-full object-cover select-none"
+                                            draggable="false"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Wishlist Button Pinned on Top Right of Mobile Image */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleWishlist()
+                                }}
+                                aria-label="Toggle Wishlist"
+                                className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md transition-all duration-300 z-10 ${
+                                    isWishlisted 
+                                        ? 'bg-primary text-white shadow-lux' 
+                                        : 'bg-white/75 text-[#111110]/80 hover:bg-white hover:text-[#111110] border border-white/50 shadow-xs'
+                                }`}
+                            >
+                                <Heart size={16} className={isWishlisted ? 'fill-current' : ''} />
+                            </button>
+
+
+
+                            {/* Mobile Clickable Thumbnails Row (All Images Visible At Once) */}
+                            {displayImages.length > 1 && (
+                                <div className="flex items-center gap-2 pt-2.5 overflow-x-auto scrollbar-none py-1">
+                                    {displayImages.map((img, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => {
+                                                scrollToImage(idx)
+                                                setIsMobilePaused(true)
+                                                setTimeout(() => setIsMobilePaused(false), 3000)
+                                            }}
+                                            className={`relative w-12 h-14 sm:w-14 sm:h-16 rounded-xl overflow-hidden shrink-0 transition-all duration-300 ${
+                                                activeImageIndex === idx 
+                                                    ? 'ring-2 ring-[#111110] shadow-sm scale-105 opacity-100' 
+                                                    : 'border border-[#111110]/15 opacity-55 hover:opacity-90'
+                                            }`}
+                                            aria-label={`Select image ${idx + 1}`}
+                                        >
+                                            <img
+                                                src={getOptimizedImage(img, 200)}
+                                                alt={`Thumbnail ${idx + 1}`}
+                                                className="w-full h-full object-cover select-none"
+                                                draggable="false"
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* DESKTOP GALLERY: 2-Column Grid (Only on lg+) */}
+                        <div className={`hidden lg:grid ${displayImages.length === 1 ? 'grid-cols-1 max-w-lg mx-auto' : 'grid-cols-2'} gap-4 md:gap-5`}>
                             {displayImages.map((img, i) => (
                                 <Motion.div
                                     key={i}
@@ -274,90 +406,82 @@ const ProductDetail = () => {
                                         {formatPrice(product.mrp)}
                                     </span>
                                 ) : null}
-                                <span className="font-sans text-[10px] sm:text-[11px] text-[#78736a] uppercase tracking-wider font-medium">
+                                <span className="font-sans text-[11px] sm:text-[11.5px] text-[#4a463f] uppercase tracking-wider font-semibold">
                                     • Taxes Included
                                 </span>
-                                <span className="font-sans text-[9.5px] sm:text-[10.5px] text-[#15803d] font-semibold bg-[#eef8f1] px-2 sm:px-2.5 py-0.5 rounded-full border border-[#d1ebd7]">
+                                <span className="font-sans text-[10px] sm:text-[11px] text-[#166534] font-bold bg-[#eef8f1] px-2.5 sm:px-3 py-0.5 rounded-full border border-[#bbf7d0]">
                                     Free Insured Delivery
                                 </span>
                             </div>
 
-                            <p className="font-plex text-[13.5px] sm:text-[15px] text-[#3d3a35] leading-relaxed font-normal">
+                            <p className="font-plex text-[14px] sm:text-[15.5px] text-[#24221f] leading-relaxed font-normal">
                                 {product.description || product.details}
                             </p>
                         </header>
 
-                        {/* Elevated Atelier Specifications & Standards Card */}
-                        <div className="bg-[#faf8f4] rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-[#e8e3d8] shadow-[0_2px_16px_rgba(0,0,0,0.02)] space-y-3 sm:space-y-4">
-                            <div className="flex items-center justify-between border-b border-[#111110]/8 pb-2">
-                                <div className="flex items-center gap-1.5 sm:gap-2">
-                                    <Sparkles size={12} className="text-[#a88243]" />
-                                    <span className="font-sans text-[9.5px] sm:text-[10.5px] tracking-[0.18em] sm:tracking-[0.2em] uppercase text-[#615c54] font-bold">
-                                        Atelier Specifications
-                                    </span>
-                                </div>
-                                <span className="font-sans text-[8.5px] sm:text-[9px] uppercase tracking-wider text-[#a88243] font-bold bg-[#a88243]/10 px-2 py-0.5 rounded">
-                                    18K PVD Certified
-                                </span>
-                            </div>
-
-                            {/* 2-Column Specification Micro-Tiles */}
-                            <div className="grid grid-cols-2 gap-1.5 sm:gap-2.5">
-                                {[
-                                    { label: 'Material', value: product.material || 'Stainless Steel' },
-                                    { label: 'Plating', value: product.plating || 'Gold 18K PVD Plating' },
-                                    { label: 'Stone / Pearl', value: product.stone || 'Natural' },
-                                    { label: 'Length', value: product.length || '46 cm' },
-                                    { label: 'Weight', value: product.weight || '5g/pair' }
-                                ].map(spec => (
-                                    <div key={spec.label} className="bg-white/95 rounded-lg sm:rounded-xl px-2.5 sm:px-3.5 py-2 sm:py-2.5 border border-[#111110]/6 flex flex-col justify-center">
-                                        <span className="font-sans text-[8.5px] sm:text-[9.5px] tracking-[0.15em] uppercase text-[#7a756c] font-semibold block mb-0.5">
-                                            {spec.label}
-                                        </span>
-                                        <span className="font-plex text-[12px] sm:text-[14px] text-[#1c1b18] font-medium tracking-tight truncate">
-                                            {spec.value}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Maison Quality Standards Hallmarks */}
-                            <div className="pt-2 sm:pt-3 border-t border-[#111110]/8">
-                                <span className="font-sans text-[9.5px] sm:text-[10px] tracking-[0.16em] uppercase text-[#615c54] font-bold block mb-1.5 sm:mb-2">
-                                    Maison Quality Standards
-                                </span>
-                                <div className="flex flex-wrap gap-1 sm:gap-1.5">
-                                    {(product.features || ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic']).map(feature => (
-                                        <div 
-                                            key={feature} 
-                                            className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-white border border-[#e2dcd0] shadow-xs text-[#1c1b18]"
-                                        >
-                                            <Check size={10} className="text-[#a88243]" strokeWidth={2.5} />
-                                            <span className="font-sans text-[9px] sm:text-[10px] tracking-wider uppercase font-semibold">
-                                                {feature}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Action Area (Quantity + Add to Bag + Wishlist) */}
-                        <div className="space-y-2.5 sm:space-y-3.5 pt-0.5 sm:pt-1">
-                            <div className="flex items-center justify-between text-[9.5px] sm:text-[10.5px] tracking-wider uppercase text-[#615c54] font-bold px-1">
+                        {/* Action Area (Quantity + Buy Now + Wishlist) - Placed Prominently Below Description */}
+                        <div className="space-y-2.5 sm:space-y-3.5 pt-1 pb-3">
+                            {/* Desktop Stock Line */}
+                            <div className="hidden sm:flex items-center justify-between text-[11px] sm:text-[11.5px] tracking-wider uppercase text-[#33302b] font-bold px-1">
                                 <span className="inline-flex items-center gap-1.5">
-                                    <span className={`w-2 h-2 rounded-full ${isOutOfStock ? 'bg-rose-500' : 'bg-emerald-500 animate-pulse'}`} />
+                                    <span className={`w-2 h-2 rounded-full ${isOutOfStock ? 'bg-rose-500' : 'bg-emerald-600 animate-pulse'}`} />
                                     {isOutOfStock ? 'Out of Stock' : (availableToAdd > 0 ? 'In Stock' : 'In Bag')}
                                 </span>
                                 {!isOutOfStock && Number(product.stock) < 10 && (
-                                    <span className="text-[#a88243] font-bold">
+                                    <span className="text-[#855e23] font-bold">
                                         {availableToAdd > 0 ? `${availableToAdd} units left` : 'All in your bag'}
                                     </span>
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className="flex items-center border border-[#111110]/15 rounded-full px-2.5 sm:px-3.5 h-11 sm:h-13.5 bg-white/80 backdrop-blur-sm shrink-0 shadow-xs">
+                            {/* Mobile Stock Line + Quantity & Wishlist in One Elegant Row */}
+                            <div className="flex sm:hidden items-center justify-between text-[10.5px] font-bold tracking-wider uppercase text-[#33302b] px-0.5 pb-1">
+                                <div className="inline-flex items-center gap-1.5">
+                                    <span className={`w-2 h-2 rounded-full ${isOutOfStock ? 'bg-rose-500' : 'bg-emerald-600 animate-pulse'}`} />
+                                    <span>{isOutOfStock ? 'Out of Stock' : (availableToAdd > 0 ? 'In Stock' : 'In Bag')}</span>
+                                    {!isOutOfStock && Number(product.stock) < 10 && (
+                                        <span className="text-[#855e23] font-semibold text-[9.5px]">({availableToAdd > 0 ? `${availableToAdd} left` : 'in bag'})</span>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <div className="flex items-center border border-[#111110]/15 rounded-full px-2 h-9 bg-white/95 backdrop-blur-sm shadow-2xs">
+                                        <button
+                                            disabled={isOutOfStock || availableToAdd === 0}
+                                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                            className="p-0.5 hover:opacity-50 transition-opacity disabled:opacity-20"
+                                            aria-label="Decrease quantity"
+                                        >
+                                            <Minus size={11} />
+                                        </button>
+                                        <span className="px-2 font-sans font-bold text-xs text-[#111110] min-w-[14px] text-center select-none">
+                                            {isOutOfStock ? 0 : (availableToAdd === 0 ? 0 : quantity)}
+                                        </span>
+                                        <button
+                                            disabled={isOutOfStock || availableToAdd === 0 || quantity >= availableToAdd}
+                                            onClick={() => setQuantity(Math.min(availableToAdd, quantity + 1))}
+                                            className="p-0.5 hover:opacity-50 transition-opacity disabled:opacity-20"
+                                            aria-label="Increase quantity"
+                                        >
+                                            <Plus size={11} />
+                                        </button>
+                                    </div>
+
+                                    <button
+                                        onClick={handleWishlist}
+                                        aria-label="Wishlist item"
+                                        className={`h-9 w-9 rounded-full border border-[#111110]/15 flex items-center justify-center transition-all duration-300 shrink-0 ${isWishlisted ? 'bg-primary/10 border-primary/30 text-error shadow-inner' : 'bg-white hover:bg-[#111110] text-[#111110] hover:text-white shadow-2xs'
+                                            }`}
+                                    >
+                                        <Heart size={14} className={isWishlisted ? 'fill-current' : ''} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* The Two Main Action Buttons Side-by-Side in ONE Line on All Devices */}
+                            <div className="flex items-center gap-2 sm:gap-2.5 w-full">
+                                {/* Desktop Quantity Selector */}
+                                <div className="hidden sm:flex items-center border border-[#111110]/15 rounded-full px-2.5 sm:px-3 h-11 sm:h-12.5 bg-white/90 backdrop-blur-sm shrink-0 shadow-xs">
                                     <button
                                         disabled={isOutOfStock || availableToAdd === 0}
                                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -366,7 +490,7 @@ const ProductDetail = () => {
                                     >
                                         <Minus size={12} />
                                     </button>
-                                    <span className="px-2 sm:px-4 font-sans font-bold text-xs text-[#111110]">
+                                    <span className="px-1.5 sm:px-2.5 font-sans font-bold text-xs sm:text-sm text-[#111110] min-w-[14px] text-center select-none">
                                         {isOutOfStock ? 0 : (availableToAdd === 0 ? 0 : quantity)}
                                     </span>
                                     <button
@@ -379,36 +503,187 @@ const ProductDetail = () => {
                                     </button>
                                 </div>
 
+                                {/* Button 1: Add to Bag */}
                                 <button
                                     disabled={isOutOfStock || availableToAdd === 0}
                                     onClick={() => {
                                         if (isOutOfStock) return;
                                         addToCart(product._id, quantity)
-                                        // GA4: add_to_cart
                                         trackAddToCart(product, quantity)
                                     }}
-                                    className={`flex-1 h-11 sm:h-13.5 ${
+                                    className={`flex-1 h-11.5 sm:h-12.5 ${
                                         isOutOfStock
                                             ? 'bg-stone-200 text-stone-500 border border-stone-300 cursor-not-allowed shadow-none'
                                             : (availableToAdd === 0
                                                 ? 'bg-[#111110]/20 text-stone-400 cursor-not-allowed'
                                                 : 'bg-[#111110] hover:bg-black text-[#f5f0e8] shadow-lux-sm active:scale-[0.99]')
-                                    } px-3 sm:px-6 text-[10px] sm:text-[11px] tracking-[0.16em] sm:tracking-[0.2em] uppercase font-sans font-bold flex items-center justify-center gap-2 sm:gap-3 transition-all rounded-full disabled:cursor-not-allowed`}
+                                    } px-3 sm:px-5 text-[10.5px] sm:text-[11px] tracking-[0.14em] sm:tracking-[0.16em] uppercase font-sans font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all rounded-full disabled:cursor-not-allowed whitespace-nowrap min-w-0`}
                                 >
-                                    <ShoppingBag size={14} />
+                                    <ShoppingBag size={14} className="shrink-0" />
                                     <span>
-                                        {isOutOfStock ? 'Out of Stock' : (availableToAdd === 0 ? 'In Bag' : 'Buy Now')}
+                                        {isOutOfStock ? 'Out of Stock' : (availableToAdd === 0 ? 'In Bag' : 'Add to Bag')}
                                     </span>
                                 </button>
 
+                                {/* Button 2: Buy Now */}
+                                {!isOutOfStock && (
+                                    <button
+                                        onClick={handleBuyNow}
+                                        className="flex-1 h-11.5 sm:h-12.5 bg-[#855e23] hover:bg-[#6e4e1d] text-white text-[10.5px] sm:text-[11px] tracking-[0.14em] sm:tracking-[0.16em] uppercase font-sans font-bold flex items-center justify-center gap-1.5 sm:gap-2 rounded-full transition-all shadow-lux-sm active:scale-[0.99] whitespace-nowrap min-w-0"
+                                    >
+                                        <span>Buy Now</span>
+                                        <ArrowRight size={14} className="shrink-0" />
+                                    </button>
+                                )}
+
+                                {/* Desktop Wishlist Button */}
                                 <button
                                     onClick={handleWishlist}
                                     aria-label="Wishlist item"
-                                    className={`h-11 w-11 sm:h-13.5 sm:w-13.5 rounded-full border border-[#111110]/15 flex items-center justify-center transition-all duration-300 shrink-0 ${isWishlisted ? 'bg-primary/10 border-primary/30 text-error shadow-inner' : 'bg-white hover:bg-[#111110] text-[#111110] hover:text-white shadow-xs'
+                                    className={`hidden sm:flex h-11 w-11 sm:h-12.5 sm:w-12.5 rounded-full border border-[#111110]/15 items-center justify-center transition-all duration-300 shrink-0 ${isWishlisted ? 'bg-primary/10 border-primary/30 text-error shadow-inner' : 'bg-white hover:bg-[#111110] text-[#111110] hover:text-white shadow-xs'
                                         }`}
                                 >
-                                    <Heart size={15} className={isWishlisted ? 'fill-current' : ''} />
+                                    <Heart size={14} className={isWishlisted ? 'fill-current' : ''} />
                                 </button>
+                            </div>
+                        </div>
+
+
+                        {/* Atelier Specifications: Open Architectural Ledger */}
+                        <div className="pt-2">
+                            <div className="flex items-center justify-between pb-3 border-b border-[#111110]/15">
+                                <h2 className="font-sans text-[11px] sm:text-[12px] tracking-[0.22em] uppercase font-bold text-[#111110]">
+                                    Atelier Specifications
+                                </h2>
+                                <span className="font-sans text-[9.5px] sm:text-[10.5px] uppercase tracking-wider text-[#855e23] font-bold border border-[#855e23]/35 bg-[#fbf6ec] px-3 py-0.5 rounded-full shadow-2xs">
+                                    18K PVD Certified
+                                </span>
+                            </div>
+
+                            {/* Hairline Specification Rows */}
+                            <div className="divide-y divide-[#111110]/10">
+                                {[
+                                    { label: 'Material', value: product.material || 'Stainless Steel' },
+                                    { label: 'Plating Finish', value: product.plating || 'Gold 18K PVD Plating' },
+                                    { label: 'Stone / Pearl', value: product.stone || 'Natural Gemstone' },
+                                    { label: 'Length / Dimensions', value: product.length || '46 cm' },
+                                    { label: 'Weight', value: product.weight || '21g/pair' }
+                                ].map(spec => (
+                                    <div key={spec.label} className="py-3 flex items-center justify-between gap-4">
+                                        <span className="font-sans text-[10.5px] sm:text-[11.5px] tracking-[0.16em] uppercase text-[#3d3a35] font-bold shrink-0">
+                                            {spec.label}
+                                        </span>
+                                        <span className="font-plex text-[14px] sm:text-[15.5px] text-[#111110] font-semibold tracking-tight text-right">
+                                            {spec.value}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Inline Quality Standards Hallmarks (Clean Typographic Text - No Emojis) */}
+                            <div className="pt-3.5 pb-1 flex flex-wrap items-center gap-x-3.5 gap-y-2 border-t border-[#111110]/10">
+                                {(product.features || ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic']).map((feature, idx) => (
+                                    <span 
+                                        key={feature} 
+                                        className="inline-flex items-center gap-2 font-sans text-[10px] sm:text-[11px] tracking-wider uppercase text-[#1c1b18] font-bold"
+                                    >
+                                        {idx > 0 && <span className="text-[#855e23]">•</span>}
+                                        <span>{feature}</span>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Collapsible Maison Service Drawers */}
+                        <div className="border-t border-[#111110]/15 divide-y divide-[#111110]/10 pt-1">
+                            {/* Drawer: Delivery & Atelier Packaging */}
+                            <div className="py-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleAccordion('shipping')}
+                                    className="w-full py-3.5 flex items-center justify-between text-left group transition-colors"
+                                >
+                                    <span className="font-sans text-[11px] sm:text-[12px] tracking-[0.18em] uppercase font-bold text-[#111110] group-hover:text-[#855e23] transition-colors">
+                                        Complimentary Delivery & Assurance
+                                    </span>
+                                    <ChevronDown
+                                        size={15}
+                                        className={`text-[#4a463f] transition-transform duration-300 ${openAccordion === 'shipping' ? 'rotate-180 text-[#111110]' : ''}`}
+                                    />
+                                </button>
+
+                                <AnimatePresence initial={false}>
+                                    {openAccordion === 'shipping' && (
+                                        <Motion.div
+                                            key="shipping-drawer"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="pb-3.5 pt-1 space-y-2 font-sans text-[12px] sm:text-[13px] text-[#33302b] leading-relaxed">
+                                                <p className="flex items-center gap-2.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#966c2d] shrink-0" />
+                                                    <span><strong>Free Insured Express Courier</strong> across India with real-time tracking.</span>
+                                                </p>
+                                                <p className="flex items-center gap-2.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#966c2d] shrink-0" />
+                                                    <span>Includes signature SOVRA luxury gift packaging & protective travel pouch.</span>
+                                                </p>
+                                                <p className="flex items-center gap-2.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#966c2d] shrink-0" />
+                                                    <span>Official certificate of authenticity included with each piece.</span>
+                                                </p>
+                                            </div>
+                                        </Motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Drawer: Maison Care & Durability */}
+                            <div className="py-0.5">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleAccordion('care')}
+                                    className="w-full py-3.5 flex items-center justify-between text-left group transition-colors"
+                                >
+                                    <span className="font-sans text-[11px] sm:text-[12px] tracking-[0.18em] uppercase font-bold text-[#111110] group-hover:text-[#855e23] transition-colors">
+                                        Maison Care & Durability Guide
+                                    </span>
+                                    <ChevronDown
+                                        size={15}
+                                        className={`text-[#4a463f] transition-transform duration-300 ${openAccordion === 'care' ? 'rotate-180 text-[#111110]' : ''}`}
+                                    />
+                                </button>
+
+                                <AnimatePresence initial={false}>
+                                    {openAccordion === 'care' && (
+                                        <Motion.div
+                                            key="care-drawer"
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                                            className="overflow-hidden"
+                                        >
+                                            <div className="pb-3.5 pt-1 space-y-2 font-sans text-[12px] sm:text-[13px] text-[#33302b] leading-relaxed">
+                                                <p className="flex items-center gap-2.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#966c2d] shrink-0" />
+                                                    <span>Engineered with multi-layer 18K PVD vacuum deposition for continuous daily wear.</span>
+                                                </p>
+                                                <p className="flex items-center gap-2.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#966c2d] shrink-0" />
+                                                    <span>100% resistant to water, heat, and sweat. Shower and workout safe.</span>
+                                                </p>
+                                                <p className="flex items-center gap-2.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-[#966c2d] shrink-0" />
+                                                    <span>To restore peak mirror brilliance, gently wipe with the included SOVRA microfiber cloth.</span>
+                                                </p>
+                                            </div>
+                                        </Motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
                     </div>

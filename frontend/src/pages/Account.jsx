@@ -260,12 +260,12 @@ const Account = () => {
 
     // Navigation Tabs Configuration (Styled exactly as in Admin.jsx)
     const tabs = [
-        { id: 'dashboard', name: 'Overview', icon: LayoutDashboard },
-        { id: 'orders', name: 'My Orders', icon: ShoppingBag, count: myOrders.length },
-        { id: 'addresses', name: 'Saved Addresses', icon: MapPin, count: addresses.length },
-        { id: 'wishlist', name: 'Wishlist', icon: Heart, count: wishlist.length },
-        { id: 'details', name: 'Personal Details', icon: User },
-        { id: 'password', name: 'Security & Access', icon: ShieldCheck }
+        { id: 'dashboard', name: 'Overview', shortName: 'Overview', icon: LayoutDashboard },
+        { id: 'orders', name: 'My Orders', shortName: 'Orders', icon: ShoppingBag, count: myOrders.length },
+        { id: 'addresses', name: 'Saved Addresses', shortName: 'Addresses', icon: MapPin, count: addresses.length },
+        { id: 'wishlist', name: 'Wishlist', shortName: 'Wishlist', icon: Heart, count: wishlist.length },
+        { id: 'details', name: 'Personal Details', shortName: 'Profile', icon: User },
+        { id: 'password', name: 'Security & Access', shortName: 'Security', icon: ShieldCheck }
     ]
 
     const userInitial = userInfo.name ? userInfo.name.trim().charAt(0).toUpperCase() : 'U'
@@ -290,33 +290,26 @@ const Account = () => {
                 iconBg: 'bg-rose-500/10 text-rose-700',
                 trend: wishlist.length > 0 ? 'Saved Vault' : 'Empty',
                 trendColor: wishlist.length > 0 ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-stone-50 text-stone-600 border-stone-200',
-                subtext: 'Handpicked jewelry favorites'
+                subtext: wishlist.length > 0 ? 'Curated favorites' : 'No saved items yet'
             }
         ]
 
         return (
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-8">
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-3.5 sm:space-y-6 md:space-y-8">
                 {/* Header Section */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-2 border-b border-[#111110]/8">
+                <div className="flex justify-between items-center pb-2.5 sm:pb-3 border-b border-[#111110]/8">
                     <div>
-                        <div className="flex items-center gap-2.5 mb-1">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-emerald-700">Client Vault Active</span>
-                        </div>
-                        <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">
+                        <h1 className="font-plex text-xl sm:text-3xl md:text-4xl text-[#111110] font-light leading-tight">
                             Welcome Back, <span className="font-normal">{userInfo.name?.split(' ')[0]}</span>
                         </h1>
-                        <p className="font-sans text-xs text-[#7a7670] mt-1">Review your recent orders, curated wishlist, delivery addresses, and personal profile</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Link
-                            to="/shop"
-                            className="bg-[#111110] text-[#fffcf7] hover:bg-[#6e5b44] transition-all px-5 py-2.5 rounded-xl font-sans text-xs tracking-wider uppercase font-bold flex items-center gap-2 shadow-sm active:scale-98"
-                        >
-                            <CartIcon size={15} />
-                            <span>Explore Store</span>
-                        </Link>
-                    </div>
+                    <Link
+                        to="/shop"
+                        className="bg-[#111110] text-[#fffcf7] hover:bg-[#6e5b44] transition-all px-3 py-1.5 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl font-sans text-[10px] sm:text-xs tracking-wider uppercase font-bold flex items-center gap-1.5 shadow-sm active:scale-98 shrink-0"
+                    >
+                        <CartIcon size={13} className="sm:w-[15px] sm:h-[15px]" />
+                        <span>Explore Store</span>
+                    </Link>
                 </div>
 
                 {/* 2 Precision Metric Cards */}
@@ -326,20 +319,20 @@ const Account = () => {
                         return (
                             <div
                                 key={stat.label}
-                                className="bg-white rounded-2xl p-3.5 sm:p-5 border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)] hover:shadow-[0_8px_30px_rgba(110,91,68,0.1)] transition-all duration-300 flex flex-col justify-between"
+                                className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)] hover:shadow-[0_8px_30px_rgba(110,91,68,0.1)] transition-all duration-300 flex flex-col justify-between"
                             >
-                                <div className="flex justify-between items-start mb-2.5 sm:mb-4">
-                                    <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center ${stat.iconBg}`}>
-                                        <Icon size={18} className="sm:w-5 sm:h-5" strokeWidth={1.8} />
+                                <div className="flex justify-between items-start mb-2 sm:mb-4">
+                                    <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center ${stat.iconBg}`}>
+                                        <Icon size={16} className="sm:w-5 sm:h-5" strokeWidth={1.8} />
                                     </div>
-                                    <span className={`font-sans text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full border ${stat.trendColor} truncate max-w-[85px] sm:max-w-none`}>
+                                    <span className={`font-sans text-[8px] sm:text-[10px] font-bold px-1.5 py-0.5 sm:px-2 rounded-full border ${stat.trendColor} truncate max-w-[70px] sm:max-w-none`}>
                                         {stat.trend}
                                     </span>
                                 </div>
                                 <div>
-                                    <p className="font-sans text-[9px] sm:text-[10px] uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[#7a7670] font-bold mb-0.5 sm:mb-1 truncate">{stat.label}</p>
+                                    <p className="font-sans text-[8.5px] sm:text-[10px] uppercase tracking-wider sm:tracking-[0.2em] text-[#7a7670] font-bold mb-0.5 sm:mb-1 truncate">{stat.label}</p>
                                     <h3 className="font-plex text-lg sm:text-2xl md:text-3xl font-light text-[#111110] tracking-tight mb-1 sm:mb-2">{stat.value}</h3>
-                                    <p className="font-sans text-[10px] sm:text-[11px] text-[#7a7670]/80 font-medium border-t border-[#111110]/5 pt-1.5 sm:pt-2 flex items-center justify-between">
+                                    <p className="font-sans text-[9px] sm:text-[11px] text-[#7a7670]/80 font-medium border-t border-[#111110]/5 pt-1.5 sm:pt-2 flex items-center justify-between">
                                         <span className="truncate">{stat.subtext}</span>
                                     </p>
                                 </div>
@@ -349,47 +342,46 @@ const Account = () => {
                 </div>
 
                 {/* Recent Purchases Section */}
-                <div className="bg-white p-4 sm:p-6 md:p-8 rounded-2xl border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)]">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6 pb-4 border-b border-[#111110]/5">
+                <div className="bg-white p-3.5 sm:p-6 md:p-8 rounded-xl sm:rounded-2xl border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)]">
+                    <div className="flex justify-between items-center gap-2 mb-3 sm:mb-6 pb-2.5 sm:pb-4 border-b border-[#111110]/5">
                         <div>
-                            <h2 className="font-plex text-2xl text-[#111110]">Recent Purchases</h2>
-                            <p className="font-sans text-xs text-[#7a7670]">Latest acquisitions from the SOVRA atelier</p>
+                            <h2 className="font-plex text-lg sm:text-2xl text-[#111110]">Recent Purchases</h2>
                         </div>
                         <button
                             onClick={() => setActiveTab('orders')}
-                            className="font-sans text-xs font-bold text-primary hover:text-[#111110] flex items-center gap-1.5 transition-colors uppercase tracking-wider"
+                            className="font-sans text-[10px] sm:text-xs font-bold text-primary hover:text-[#111110] flex items-center gap-1 sm:gap-1.5 transition-colors uppercase tracking-wider shrink-0"
                         >
                             <span>View All Orders</span>
-                            <ArrowRight size={14} />
+                            <ArrowRight size={12} className="sm:w-3.5 sm:h-3.5" />
                         </button>
                     </div>
 
                     {ordersLoading ? (
-                        <div className="space-y-4">
+                        <div className="space-y-3 sm:space-y-4">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="flex justify-between items-center p-4 bg-stone-50/60 rounded-xl">
-                                    <div className="flex gap-4 items-center">
-                                        <Skeleton width="56px" height="56px" className="rounded-lg" />
-                                        <div className="space-y-2">
-                                            <Skeleton width="140px" height="14px" />
-                                            <Skeleton width="180px" height="10px" />
+                                <div key={i} className="flex justify-between items-center p-3 sm:p-4 bg-stone-50/60 rounded-xl">
+                                    <div className="flex gap-3 sm:gap-4 items-center">
+                                        <Skeleton width="48px" height="48px" className="rounded-lg sm:w-14 sm:h-14" />
+                                        <div className="space-y-1.5 sm:space-y-2">
+                                            <Skeleton width="120px" height="12px" />
+                                            <Skeleton width="160px" height="10px" />
                                         </div>
                                     </div>
-                                    <Skeleton width="90px" height="24px" className="rounded-full" />
+                                    <Skeleton width="70px" height="20px" className="rounded-full" />
                                 </div>
                             ))}
                         </div>
                     ) : myOrders.length === 0 ? (
-                        <div className="py-16 text-center border border-dashed border-[#111110]/10 rounded-2xl bg-[#fffcf7]/60">
-                            <ShoppingBag className="w-10 h-10 text-stone-300 mx-auto mb-3" />
-                            <h3 className="font-plex text-xl text-stone-700 mb-1">No Orders Recorded Yet</h3>
-                            <p className="font-sans text-xs text-stone-400 mb-5 max-w-sm mx-auto">Explore our exclusive collections and start curating your personal archive today.</p>
+                        <div className="py-12 sm:py-16 text-center border border-dashed border-[#111110]/10 rounded-xl sm:rounded-2xl bg-[#fffcf7]/60">
+                            <ShoppingBag className="w-8 h-8 sm:w-10 sm:h-10 text-stone-300 mx-auto mb-2 sm:mb-3" />
+                            <h3 className="font-plex text-lg sm:text-xl text-stone-700 mb-1">No Orders Recorded Yet</h3>
+                            <p className="font-sans text-[11px] sm:text-xs text-stone-400 mb-4 sm:mb-5 max-w-sm mx-auto px-4">Explore our exclusive collections and start curating your personal archive today.</p>
                             <Link
                                 to="/shop"
-                                className="inline-flex items-center gap-2 bg-[#111110] text-[#fffcf7] hover:bg-primary transition-all px-6 py-2.5 rounded-xl font-sans text-xs uppercase tracking-wider font-bold shadow-sm"
+                                className="inline-flex items-center gap-2 bg-[#111110] text-[#fffcf7] hover:bg-primary transition-all px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl font-sans text-[11px] sm:text-xs uppercase tracking-wider font-bold shadow-sm"
                             >
                                 <span>Browse Shop</span>
-                                <ArrowRight size={14} />
+                                <ArrowRight size={13} />
                             </Link>
                         </div>
                     ) : (
@@ -398,44 +390,52 @@ const Account = () => {
                                 <div
                                     key={order._id}
                                     onClick={() => navigate(`/order/${order._id}`)}
-                                    className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-stone-50/70 p-3 rounded-xl transition-all cursor-pointer group"
+                                    className="py-3.5 first:pt-0 last:pb-0 hover:bg-stone-50/70 p-2 sm:p-3 rounded-xl transition-all cursor-pointer group"
                                 >
-                                    <div className="flex gap-4 items-center">
-                                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-100 flex-shrink-0 border border-black/5">
+                                    <div className="flex gap-3 items-center">
+                                        {/* Thumbnail */}
+                                        <div className="w-13 h-13 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-stone-100 flex-shrink-0 border border-black/5">
                                             <img
                                                 src={order.orderItems?.[0]?.image}
                                                 alt={order.orderItems?.[0]?.name || 'Product'}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                             />
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-mono text-[10px] text-stone-400 font-semibold">#{order._id.slice(-6).toUpperCase()}</span>
-                                                <span className="text-stone-300">•</span>
-                                                <span className="font-sans text-[11px] text-stone-500">{new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+
+                                        {/* Content */}
+                                        <div className="min-w-0 flex-1">
+                                            {/* Row 1: Product Name & Price */}
+                                            <div className="flex items-start justify-between gap-2">
+                                                <h4 className="font-plex text-sm sm:text-base text-stone-900 font-medium group-hover:text-primary transition-colors line-clamp-1">
+                                                    {order.orderItems?.[0]?.name}
+                                                    {order.orderItems?.length > 1 && (
+                                                        <span className="font-sans text-[10px] sm:text-xs text-stone-400 font-normal ml-1">+{order.orderItems.length - 1}</span>
+                                                    )}
+                                                </h4>
+                                                <p className="font-plex text-sm sm:text-base text-stone-900 font-semibold flex-shrink-0">
+                                                    {formatPrice(order.totalPrice)}
+                                                </p>
                                             </div>
-                                            <h4 className="font-plex text-base text-stone-900 group-hover:text-primary transition-colors">
-                                                {order.orderItems?.[0]?.name}
-                                                {order.orderItems?.length > 1 && (
-                                                    <span className="font-sans text-xs text-stone-500 font-normal ml-1">+{order.orderItems.length - 1} more</span>
-                                                )}
-                                            </h4>
+
+                                            {/* Row 2: Order Date & Status Badge */}
+                                            <div className="flex items-center justify-between gap-2 mt-1.5">
+                                                <div className="flex items-center gap-1.5 text-stone-500 text-[10px] sm:text-[11px] font-sans truncate">
+                                                    <span className="font-mono text-stone-400 font-semibold">#{order._id.slice(-6).toUpperCase()}</span>
+                                                    <span className="text-stone-300">•</span>
+                                                    <span className="truncate">{new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                                </div>
+
+                                                <span className={`inline-block font-sans text-[8.5px] sm:text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 whitespace-nowrap ${
+                                                    order.status === 'Cancelled' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                                    order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                    order.status === 'Shipped' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                    order.status === 'Return Requested' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                    'bg-stone-100 text-stone-700 border-stone-200'
+                                                }`}>
+                                                    {order.status === 'Cancelled' ? 'Cancelled' : (order.status || (order.isPaid ? 'Paid' : 'Pending Payment'))}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 self-end sm:self-center">
-                                        <div className="text-right">
-                                            <p className="font-plex text-lg text-stone-900 font-light">{formatPrice(order.totalPrice)}</p>
-                                            <span className={`inline-block font-sans text-[9px] uppercase tracking-wider font-bold px-2.5 py-0.5 rounded-full border ${
-                                                order.status === 'Cancelled' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                                                order.status === 'Delivered' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                order.status === 'Shipped' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                order.status === 'Return Requested' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                'bg-stone-100 text-stone-700 border-stone-200'
-                                            }`}>
-                                                {order.status === 'Cancelled' ? 'Cancelled' : (order.status || (order.isPaid ? 'Paid' : 'Pending Payment'))}
-                                            </span>
-                                        </div>
-                                        <ChevronRight size={18} className="text-stone-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                     </div>
                                 </div>
                             ))}
@@ -444,14 +444,13 @@ const Account = () => {
                 </div>
 
                 {/* 2-Column Split: Personal Details & Curated Wishlist Preview */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                     {/* Left: Personal Details Snapshot */}
                     <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)] flex flex-col justify-between">
                         <div>
                             <div className="flex justify-between items-center pb-4 mb-6 border-b border-[#111110]/5">
                                 <div>
                                     <h3 className="font-plex text-2xl text-[#111110]">Profile Snapshot</h3>
-                                    <p className="font-sans text-xs text-[#7a7670]">Personal information & preferences</p>
                                 </div>
                                 <button
                                     onClick={() => setActiveTab('details')}
@@ -504,7 +503,6 @@ const Account = () => {
                             <div className="flex justify-between items-center pb-4 mb-6 border-b border-[#111110]/5">
                                 <div>
                                     <h3 className="font-plex text-2xl text-[#111110]">Curated Wishlist</h3>
-                                    <p className="font-sans text-xs text-[#7a7670]">Saved pieces in your private vault</p>
                                 </div>
                                 <span className="font-sans text-xs font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
                                     {wishlist.length} {wishlist.length === 1 ? 'Item' : 'Items'}
@@ -562,11 +560,7 @@ const Account = () => {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-2 border-b border-[#111110]/8">
                     <div>
-                        <div className="flex items-center gap-2.5 mb-1">
-                            <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-primary">Orders Archive</span>
-                        </div>
-                        <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">My Order History</h1>
-                        <p className="font-sans text-xs text-[#7a7670] mt-1">Track and review all purchases, logistical status, invoices, and returns</p>
+                        <h1 className="font-plex text-2xl sm:text-3xl md:text-4xl text-[#111110] font-light">My Order History</h1>
                     </div>
                     <div className="flex items-center gap-3">
                         <Link
@@ -787,11 +781,7 @@ const Account = () => {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-2 border-b border-[#111110]/8">
                     <div>
-                        <div className="flex items-center gap-2.5 mb-1">
-                            <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-primary">Logistics Vault</span>
-                        </div>
-                        <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">Saved Addresses</h1>
-                        <p className="font-sans text-xs text-[#7a7670] mt-1">Manage delivery destinations for swift and discreet courier fulfillment</p>
+                        <h1 className="font-plex text-2xl sm:text-3xl md:text-4xl text-[#111110] font-light">Saved Addresses</h1>
                     </div>
                     {!showAddressForm && (
                         <button
@@ -1017,11 +1007,7 @@ const Account = () => {
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-2 border-b border-[#111110]/8">
                     <div>
-                        <div className="flex items-center gap-2.5 mb-1">
-                            <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-rose-600">Curated Atelier</span>
-                        </div>
-                        <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">My Wishlist</h1>
-                        <p className="font-sans text-xs text-[#7a7670] mt-1">Handpicked jewelry pieces saved in your personal archive</p>
+                        <h1 className="font-plex text-2xl sm:text-3xl md:text-4xl text-[#111110] font-light">My Wishlist</h1>
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="font-sans text-xs font-bold px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
@@ -1111,11 +1097,7 @@ const Account = () => {
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-8 max-w-3xl">
                 {/* Header Section */}
                 <div className="pb-2 border-b border-[#111110]/8">
-                    <div className="flex items-center gap-2.5 mb-1">
-                        <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-primary">Member Identity</span>
-                    </div>
-                    <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">Personal Details</h1>
-                    <p className="font-sans text-xs text-[#7a7670] mt-1">Update your client records, communication preferences, and shopping profile</p>
+                    <h1 className="font-plex text-2xl sm:text-3xl md:text-4xl text-[#111110] font-light">Personal Details</h1>
                 </div>
 
                 <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)]">
@@ -1199,11 +1181,7 @@ const Account = () => {
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-8 max-w-3xl">
                 {/* Header Section */}
                 <div className="pb-2 border-b border-[#111110]/8">
-                    <div className="flex items-center gap-2.5 mb-1">
-                        <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-bold text-primary">Security & Access</span>
-                    </div>
-                    <h1 className="font-plex text-3xl md:text-4xl text-[#111110] font-light">Change Password</h1>
-                    <p className="font-sans text-xs text-[#7a7670] mt-1">Manage authentication credentials and keep your account secured</p>
+                    <h1 className="font-plex text-2xl sm:text-3xl md:text-4xl text-[#111110] font-light">Change Password</h1>
                 </div>
 
                 <div className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-[#111110]/8 shadow-[0_4px_20px_rgba(110,91,68,0.05)]">
@@ -1267,40 +1245,9 @@ const Account = () => {
     }
 
     return (
-        <div className="account-panel font-plex flex flex-col lg:flex-row bg-[#fffcf7] min-h-screen selection:bg-primary-container text-stone-900 pt-16 sm:pt-20 lg:pt-0" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
+        <div className="account-panel font-plex flex flex-col lg:flex-row bg-[#fffcf7] min-h-screen selection:bg-primary-container text-stone-900 pt-14 sm:pt-20 lg:pt-0" style={{ fontFamily: "'IBM Plex Serif', Georgia, serif" }}>
             {/* Mobile / Tablet Top Navigation Bar */}
-            <div className="lg:hidden sticky top-[54px] sm:top-[60px] lg:top-0 z-30 bg-[#fffcf7]/95 backdrop-blur-xl border-b border-[#111110]/8 px-3.5 sm:px-6 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-300">
-                <div className="flex items-center justify-between mb-2.5 px-0.5">
-                    <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="font-mono text-[10px] tracking-widest text-primary/70 font-semibold uppercase">
-                            Client Vault • {userInfo.name?.split(' ')[0]}
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        {userInfo.isAdmin && (
-                            <>
-                                <Link to="/admin" className="text-[10px] font-sans uppercase tracking-widest text-primary bg-primary/10 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 hover:bg-primary hover:text-white transition-all">
-                                    <ShieldCheck className="w-3 h-3 text-amber-500" />
-                                    <span>Admin</span>
-                                </Link>
-                                <span className="text-stone-300 text-xs">•</span>
-                            </>
-                        )}
-                        <Link to="/shop" className="text-[10px] font-sans uppercase tracking-widest text-primary font-bold flex items-center gap-1 hover:underline">
-                            <span>Shop</span>
-                            <ExternalLink className="w-3 h-3" />
-                        </Link>
-                        <span className="text-stone-300 text-xs">•</span>
-                        <button
-                            onClick={handleLogout}
-                            className="text-[10px] font-sans uppercase tracking-widest text-stone-500 hover:text-red-600 font-bold flex items-center gap-1 transition-colors"
-                        >
-                            <LogOut className="w-3 h-3" />
-                            <span>Sign Out</span>
-                        </button>
-                    </div>
-                </div>
+            <div className="lg:hidden sticky top-[54px] sm:top-[60px] lg:top-0 z-30 bg-[#fffcf7]/95 backdrop-blur-xl border-b border-[#111110]/8 px-3 sm:px-6 py-2 shadow-[0_2px_10px_rgba(0,0,0,0.02)] transition-all duration-300">
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                     {tabs.map(tab => {
                         const Icon = tab.icon
@@ -1309,22 +1256,42 @@ const Account = () => {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-sans uppercase tracking-wider font-bold whitespace-nowrap transition-all ${
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-sans font-medium whitespace-nowrap transition-all ${
                                     isActive
-                                        ? 'bg-primary text-white shadow-sm'
-                                        : 'bg-white/90 text-stone-600 border border-black/5 hover:bg-stone-100'
+                                        ? 'bg-primary text-white shadow-sm font-semibold'
+                                        : 'bg-white/95 text-stone-600 border border-stone-200/80 hover:bg-stone-100'
                                 }`}
                             >
                                 <Icon className="w-3.5 h-3.5" />
-                                <span>{tab.name}</span>
+                                <span>{tab.shortName || tab.name}</span>
                                 {tab.count !== undefined && tab.count > 0 && (
-                                    <span className={`text-[8px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-white/25 text-white' : 'bg-black/5 text-stone-600'}`}>
+                                    <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-white/25 text-white' : 'bg-black/5 text-stone-600'}`}>
                                         {tab.count}
                                     </span>
                                 )}
                             </button>
                         )
                     })}
+
+                    {/* Admin Switcher for Administrators */}
+                    {userInfo.isAdmin && (
+                        <Link
+                            to="/admin"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-sans font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 whitespace-nowrap transition-all"
+                        >
+                            <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Admin</span>
+                        </Link>
+                    )}
+
+                    {/* Sign Out Action Pill */}
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-sans font-medium text-red-600 bg-red-50/70 hover:bg-red-100 border border-red-200/60 whitespace-nowrap transition-all"
+                    >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Sign Out</span>
+                    </button>
                 </div>
             </div>
 
@@ -1332,10 +1299,6 @@ const Account = () => {
             <aside className="hidden lg:flex lg:w-72 xl:w-80 lg:fixed lg:top-0 lg:bottom-0 border-r border-[#6e5b44]/10 flex-col pt-28 pb-8 px-6 bg-white/70 backdrop-blur-2xl z-20">
                 {/* Brand / Client Header */}
                 <div className="px-3 mb-6">
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary/70 font-semibold">SOVRA CLIENT PORTAL</span>
-                    </div>
                     <h1 className="font-plex text-3xl font-light text-primary tracking-tight">My Account</h1>
 
                     {/* Member Profile Card Widget */}
@@ -1430,7 +1393,7 @@ const Account = () => {
             </aside>
 
             {/* Main Content Area (Identical right-side output canvas to Admin.jsx) */}
-            <main className="flex-1 lg:ml-72 xl:ml-80 pt-4 sm:pt-6 lg:pt-28 pb-20 sm:pb-32 px-3.5 sm:px-8 md:px-14 lg:px-16 min-h-screen">
+            <main className="flex-1 lg:ml-72 xl:ml-80 pt-3 sm:pt-6 lg:pt-28 pb-16 sm:pb-32 px-3 sm:px-8 md:px-14 lg:px-16 min-h-screen">
                 <div className="max-w-[1400px] mx-auto">
                     <AnimatePresence mode="wait">
                         {activeTab === 'dashboard' && renderDashboard()}
