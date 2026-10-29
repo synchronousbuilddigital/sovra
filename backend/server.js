@@ -25,7 +25,10 @@ app.use(compression());
 
 // --- PRODUCTION CORS GATEWAY (GLOBAL AUTHORIZATION) ---
 app.use((req, res, next) => {
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000,https://sovrajewellery.com,https://www.sovrajewellery.com').split(',');
+  const defaultOrigins = 'http://localhost:5173,http://localhost:3000,https://sovrajewellery.com,https://www.sovrajewellery.com,https://sovra.in,https://www.sovra.in';
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || defaultOrigins)
+    .split(',')
+    .map((o) => o.trim());
   const origin = req.headers.origin;
   
   // Allow explicit origins or any Vercel deployment preview domain (*.vercel.app)
