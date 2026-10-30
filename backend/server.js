@@ -62,7 +62,7 @@ app.use(helmet({
 // Global Rate Limiting (A4: Insecure Design)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 1000,
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,

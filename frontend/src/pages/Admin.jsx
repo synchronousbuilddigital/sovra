@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import api from '../utils/api'
 import Skeleton from '../components/Skeleton'
 import { getOptimizedImage } from '../utils/imageUtils'
+import { compressImage } from '../utils/imageCompressor'
 import { useShop } from '../context/ShopContext'
 import {
     LayoutDashboard, Package, ShoppingBag, ShoppingCart, Tag, Users, Settings,
@@ -41,7 +42,8 @@ const Admin = () => {
         plating: 'Gold 18K PVD Plating',
         stone: 'Natural',
         length: '46 cm',
-        weight: '6g',
+        weight: '18g',
+        certification: '18K PVD Certified',
         features: ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic'],
         stock: 0,
         img: '',
@@ -325,7 +327,7 @@ const Admin = () => {
         setEditMode(false)
         setCurrentProduct({
             name: '', category: 'Necklaces', price: '', mrp: '', showOnHome: false, details: '', material: 'Stainless Steel',
-            plating: 'Gold 18K PVD Plating', stone: 'Natural', length: '46 cm', weight: '6g',
+            plating: 'Gold 18K PVD Plating', stone: 'Natural', length: '46 cm', weight: '18g', certification: '18K PVD Certified',
             features: ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic'],
             stock: 0, img: '', images: ['', '', '', ''], hero: false
         })
@@ -343,6 +345,13 @@ const Admin = () => {
             stock: Math.max(0, Number(product.stock) || 0),
             price: product.price ?? '',
             mrp: product.mrp && Number(product.mrp) > 0 ? product.mrp : '',
+            certification: product.certification || '18K PVD Certified',
+            material: product.material || 'Stainless Steel',
+            plating: product.plating || 'Gold 18K PVD Plating',
+            stone: product.stone || 'Natural',
+            length: product.length || '46 cm',
+            weight: product.weight || '18g',
+            features: Array.isArray(product.features) && product.features.length > 0 ? product.features : ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic'],
             showOnHome: Boolean(product.showOnHome),
             images: gallery
         })
@@ -383,27 +392,39 @@ const Admin = () => {
     }
 
     const handleFileUpload = async (e, idx = null) => {
-        const file = e.target.files[0]
+        const file = e.target.files?.[0]
         if (!file) return
-        const formData = new FormData()
-        formData.append('image', file)
+        const slot = idx === null ? 'main' : idx
         try {
-            setUploadingIdx(idx === null ? 'main' : idx)
+            setUploadingIdx(slot)
+            // Client-side image optimization: compresses 5MB-20MB photos to ~200KB in ms
+            const optimizedFile = await compressImage(file, {
+                maxWidth: 1600,
+                maxHeight: 1600,
+                quality: 0.82
+            })
+            const formData = new FormData()
+            formData.append('image', optimizedFile)
             const { data } = await api.post('/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
             if (idx === null) {
-                setCurrentProduct({ ...currentProduct, img: data.url })
+                setCurrentProduct(prev => ({ ...prev, img: data.url }))
             } else {
-                const newImages = [...(currentProduct.images || ['', '', ''])]
-                newImages[idx] = data.url
-                setCurrentProduct({ ...currentProduct, images: newImages })
+                setCurrentProduct(prev => {
+                    const gallery = Array.isArray(prev.images) ? [...prev.images] : ['', '', '', '']
+                    gallery[idx] = data.url
+                    return { ...prev, images: gallery }
+                })
             }
             toast.success('Image uploaded successfully.')
         } catch (error) {
-            toast.error('Upload failed.')
+            console.error('Image upload failed:', error)
+            const errorMsg = error.response?.data?.message || error.message || 'Image upload failed. Please try again.'
+            toast.error(errorMsg)
         } finally {
             setUploadingIdx(null)
+            if (e.target) e.target.value = ''
         }
     }
 
@@ -530,21 +551,25 @@ const Admin = () => {
     }
 
     const handleReelImageUpload = async (e) => {
-        const file = e.target.files[0]
+        const file = e.target.files?.[0]
         if (!file) return
-        const formData = new FormData()
-        formData.append('image', file)
         try {
             setUploadingReelImg(true)
+            const optimizedFile = await compressImage(file, { maxWidth: 1200, maxHeight: 1920, quality: 0.85 })
+            const formData = new FormData()
+            formData.append('image', optimizedFile)
             const { data } = await api.post('/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
             setCurrentReel(prev => ({ ...prev, image: data.url }))
             toast.success('Reel image uploaded successfully.')
         } catch (error) {
-            toast.error('Image upload failed.')
+            console.error('Reel image upload failed:', error)
+            const errorMsg = error.response?.data?.message || error.message || 'Image upload failed.'
+            toast.error(errorMsg)
         } finally {
             setUploadingReelImg(false)
+            if (e.target) e.target.value = ''
         }
     }
 
@@ -760,12 +785,13 @@ const Admin = () => {
     }
 
     const handleCategoryHomeImageUpload = async (e) => {
-        const file = e.target.files[0]
+        const file = e.target.files?.[0]
         if (!file) return
-        const formData = new FormData()
-        formData.append('image', file)
         try {
             setUploadingHomeImg(true)
+            const optimizedFile = await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 })
+            const formData = new FormData()
+            formData.append('image', optimizedFile)
             const { data } = await api.post('/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
@@ -776,19 +802,23 @@ const Admin = () => {
             }))
             toast.success('Home Screen image uploaded successfully.')
         } catch (error) {
-            toast.error('Home image upload failed.')
+            console.error('Category home image upload failed:', error)
+            const errorMsg = error.response?.data?.message || error.message || 'Home image upload failed.'
+            toast.error(errorMsg)
         } finally {
             setUploadingHomeImg(false)
+            if (e.target) e.target.value = ''
         }
     }
 
     const handleCategoryCollectionImageUpload = async (e) => {
-        const file = e.target.files[0]
+        const file = e.target.files?.[0]
         if (!file) return
-        const formData = new FormData()
-        formData.append('image', file)
         try {
             setUploadingCollectionImg(true)
+            const optimizedFile = await compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 })
+            const formData = new FormData()
+            formData.append('image', optimizedFile)
             const { data } = await api.post('/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             })
@@ -798,9 +828,12 @@ const Admin = () => {
             }))
             toast.success('Collection image uploaded successfully.')
         } catch (error) {
-            toast.error('Collection image upload failed.')
+            console.error('Category collection image upload failed:', error)
+            const errorMsg = error.response?.data?.message || error.message || 'Collection image upload failed.'
+            toast.error(errorMsg)
         } finally {
             setUploadingCollectionImg(false)
+            if (e.target) e.target.value = ''
         }
     }
 
@@ -2748,79 +2781,205 @@ const Admin = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 md:gap-12 border-t border-black/5 pt-6 md:pt-10">
-                                <div className="space-y-4">
-                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Product SKU</label>
-                                    <input type="text" value={currentProduct.sku} onChange={(e) => setCurrentProduct({ ...currentProduct, sku: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="TG-2026..." />
+                            {/* Inventory SKU & Stock */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 border-t border-black/8 pt-6">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Product SKU</label>
+                                    <input 
+                                        type="text" 
+                                        value={currentProduct.sku || ''} 
+                                        onChange={(e) => setCurrentProduct({ ...currentProduct, sku: e.target.value })} 
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:border-primary transition-colors" 
+                                        placeholder="e.g. TG-2026-NEC (Auto-generated if blank)" 
+                                    />
                                 </div>
-                                <div className="space-y-4">
-                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Base Material</label>
-                                    <input type="text" value={currentProduct.material} onChange={(e) => setCurrentProduct({ ...currentProduct, material: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="22K Gold..." />
-                                </div>
-                                <div className="space-y-4">
-                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Stone/Pearl</label>
-                                    <input type="text" value={currentProduct.stone} onChange={(e) => setCurrentProduct({ ...currentProduct, stone: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="Emerald..." />
-                                </div>
-                                <div className="space-y-4">
-                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Net Weight</label>
-                                    <input type="text" value={currentProduct.weight} onChange={(e) => setCurrentProduct({ ...currentProduct, weight: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="14.5g..." />
-                                </div>
-                                <div className="space-y-4">
-                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Length / Size</label>
-                                    <input type="text" value={currentProduct.length} onChange={(e) => setCurrentProduct({ ...currentProduct, length: e.target.value })} className="w-full bg-transparent border-b border-black/10 py-2 text-sm outline-none focus:border-primary" placeholder="18-inch..." />
-                                </div>
-                                <div className="space-y-4">
-                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Stock Quantity</label>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Stock Quantity *</label>
                                     <input 
                                         type="number" 
                                         min="0"
+                                        required
                                         value={currentProduct.stock} 
                                         onChange={(e) => {
                                             const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
                                             setCurrentProduct({ ...currentProduct, stock: val });
                                         }} 
-                                        className="w-full bg-transparent border-b border-black/10 py-2 text-sm font-black outline-none focus:border-primary" 
+                                        className="w-full bg-white border border-stone-200 rounded-xl px-4 py-2.5 text-xs text-stone-800 font-bold focus:outline-none focus:border-primary transition-colors" 
+                                        placeholder="Available units..."
                                     />
-                                </div>
-                                <div className="flex items-end pb-2 gap-4">
-                                    <label className="text-[9px] uppercase tracking-widest opacity-40">Featured Hero</label>
-                                    <input type="checkbox" checked={currentProduct.isHero} onChange={(e) => setCurrentProduct({ ...currentProduct, isHero: e.target.checked })} className="w-4 h-4 accent-primary" />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
+                            {/* Product Specifications Section */}
+                            <div className="rounded-2xl border border-stone-200 bg-[#fffcf7] p-5 sm:p-6 space-y-5 shadow-xs">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-200/80">
+                                    <div>
+                                        <span className="text-[9px] uppercase tracking-widest text-[#855e23] font-bold">Product Details</span>
+                                        <h3 className="font-sans text-xs sm:text-sm tracking-[0.2em] uppercase font-bold text-stone-900 mt-0.5">
+                                            Product Specifications
+                                        </h3>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold">Certification:</span>
+                                        <input 
+                                            type="text" 
+                                            value={currentProduct.certification !== undefined ? currentProduct.certification : '18K PVD Certified'} 
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, certification: e.target.value })}
+                                            placeholder="18K PVD Certified"
+                                            className="font-sans text-[10px] uppercase tracking-wider text-[#855e23] font-bold border border-[#855e23]/40 bg-[#fbf6ec] px-3 py-1 rounded-full outline-none focus:border-[#855e23] text-center shadow-2xs"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Hairline Specification Grid */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Material</label>
+                                        <input 
+                                            type="text" 
+                                            value={currentProduct.material || ''} 
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, material: e.target.value })} 
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-800 focus:outline-none focus:border-primary transition-colors" 
+                                            placeholder="e.g. Stainless Steel" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Plating Finish</label>
+                                        <input 
+                                            type="text" 
+                                            value={currentProduct.plating || ''} 
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, plating: e.target.value })} 
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-800 focus:outline-none focus:border-primary transition-colors" 
+                                            placeholder="e.g. Gold 18K PVD Plating" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Stone / Pearl</label>
+                                        <input 
+                                            type="text" 
+                                            value={currentProduct.stone || ''} 
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, stone: e.target.value })} 
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-800 focus:outline-none focus:border-primary transition-colors" 
+                                            placeholder="e.g. Natural Gemstone" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Length / Dimensions</label>
+                                        <input 
+                                            type="text" 
+                                            value={currentProduct.length || ''} 
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, length: e.target.value })} 
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-800 focus:outline-none focus:border-primary transition-colors" 
+                                            placeholder="e.g. 46 cm" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Weight</label>
+                                        <input 
+                                            type="text" 
+                                            value={currentProduct.weight || ''} 
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, weight: e.target.value })} 
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-800 focus:outline-none focus:border-primary transition-colors" 
+                                            placeholder="e.g. 18g" 
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Quality Standards & Hallmarks Toggles */}
+                                <div className="pt-3 border-t border-stone-200/80 space-y-2.5">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                        <label className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">
+                                            Quality Standards & Hallmarks (Click to toggle)
+                                        </label>
+                                        <span className="text-[10px] text-stone-400">Displayed below specifications on live product page</span>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic', 'Nickel Free', 'Lead Free', 'Lifetime Color Warranty'].map((tag) => {
+                                            const active = Array.isArray(currentProduct.features) && currentProduct.features.includes(tag);
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={tag}
+                                                    onClick={() => {
+                                                        const current = Array.isArray(currentProduct.features) ? [...currentProduct.features] : [];
+                                                        const updated = active ? current.filter(t => t !== tag) : [...current, tag];
+                                                        setCurrentProduct({ ...currentProduct, features: updated });
+                                                    }}
+                                                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                                                        active
+                                                            ? 'bg-primary text-white border-primary shadow-2xs'
+                                                            : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                                                    }`}
+                                                >
+                                                    {active ? '✓ ' : '+ '}{tag}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                                 {[0, 1, 2, 3, 4].map((idx) => {
                                     const isMain = idx === 0;
                                     const url = isMain ? currentProduct.img : (currentProduct.images && currentProduct.images[idx - 1]);
+                                    const isUploading = uploadingIdx === (isMain ? 'main' : idx - 1);
+                                    const slotLabel = isMain ? 'Cover Image' : `Gallery ${idx}`;
                                     return (
-                                        <div key={idx} className="aspect-[4/5] border border-dashed border-primary/20 bg-primary/5 flex flex-col items-center justify-center relative overflow-hidden group">
+                                        <div key={idx} className="aspect-[4/5] border border-dashed border-primary/20 bg-primary/5 rounded-xl flex flex-col items-center justify-center relative overflow-hidden group">
+                                            {/* Slot Label Badge */}
+                                            <div className="absolute top-2 left-2 z-10">
+                                                <span className="px-2 py-0.5 rounded text-[8px] uppercase tracking-wider font-bold bg-white/90 text-stone-700 shadow-xs border border-stone-200/60 backdrop-blur-xs">
+                                                    {slotLabel}
+                                                </span>
+                                            </div>
+
                                             {url ? (
                                                 <>
-                                                    <img src={url} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110" />
+                                                    <img src={url} alt={slotLabel} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" />
                                                     <button
                                                         type="button"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            if (isMain) setCurrentProduct({ ...currentProduct, img: '' });
-                                                            else {
-                                                                const newImgs = [...currentProduct.images];
-                                                                newImgs.splice(idx - 1, 1);
-                                                                setCurrentProduct({ ...currentProduct, images: newImgs });
-                                                            }
+                                                            setCurrentProduct(prev => {
+                                                                if (isMain) return { ...prev, img: '' };
+                                                                const updated = Array.isArray(prev.images) ? [...prev.images] : [];
+                                                                updated[idx - 1] = '';
+                                                                return { ...prev, images: updated };
+                                                            });
                                                         }}
-                                                        className="absolute top-2 right-2 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-md"
+                                                        className="absolute top-2 right-2 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-md hover:bg-rose-700"
+                                                        title="Remove Image"
                                                     >
                                                         <X className="w-3.5 h-3.5" />
                                                     </button>
                                                 </>
                                             ) : (
-                                                <div className="flex flex-col items-center gap-2 opacity-40 group-hover:opacity-70 transition-opacity">
-                                                    <ImagePlus className="w-6 h-6 text-primary" />
+                                                <div className="flex flex-col items-center gap-1.5 opacity-50 group-hover:opacity-90 transition-opacity p-2 text-center">
+                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-1">
+                                                        <ImagePlus className="w-4 h-4" />
+                                                    </div>
                                                     <span className="text-[9px] uppercase tracking-widest font-black text-primary">Upload</span>
+                                                    <span className="text-[8px] text-stone-400">JPG, PNG, WebP</span>
                                                 </div>
                                             )}
-                                            {uploadingIdx === (isMain ? 'main' : idx - 1) && <div className="absolute inset-0 bg-white/80 flex items-center justify-center animate-spin z-20"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full" /></div>}
-                                            <input type="file" onChange={(e) => handleFileUpload(e, isMain ? null : idx - 1)} className="absolute inset-0 opacity-0 cursor-pointer z-5" />
+
+                                            {/* Clean Loading Overlay */}
+                                            {isUploading && (
+                                                <div className="absolute inset-0 bg-white/90 backdrop-blur-xs flex flex-col items-center justify-center gap-2 z-20">
+                                                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                                    <span className="text-[9px] uppercase tracking-wider font-bold text-primary">Uploading...</span>
+                                                </div>
+                                            )}
+
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                disabled={uploadingIdx !== null}
+                                                onChange={(e) => handleFileUpload(e, isMain ? null : idx - 1)}
+                                                className="absolute inset-0 opacity-0 cursor-pointer z-5 disabled:cursor-not-allowed"
+                                                title="Choose an image"
+                                            />
                                         </div>
                                     )
                                 })}

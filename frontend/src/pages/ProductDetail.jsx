@@ -549,14 +549,14 @@ const ProductDetail = () => {
                         </div>
 
 
-                        {/* Atelier Specifications: Open Architectural Ledger */}
+                        {/* Product Specifications: Open Architectural Ledger */}
                         <div className="pt-2">
                             <div className="flex items-center justify-between pb-3 border-b border-[#111110]/15">
                                 <h2 className="font-sans text-[11px] sm:text-[12px] tracking-[0.22em] uppercase font-bold text-[#111110]">
-                                    Atelier Specifications
+                                    Product Specifications
                                 </h2>
                                 <span className="font-sans text-[9.5px] sm:text-[10.5px] uppercase tracking-wider text-[#855e23] font-bold border border-[#855e23]/35 bg-[#fbf6ec] px-3 py-0.5 rounded-full shadow-2xs">
-                                    18K PVD Certified
+                                    {product.certification || '18K PVD Certified'}
                                 </span>
                             </div>
 

@@ -210,7 +210,7 @@ const getProductById = async (req, res) => {
  */
 const createProduct = async (req, res) => {
   try {
-    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, hero } = req.body;
+    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, certification, hero } = req.body;
 
     if (showOnHome) {
       const homeCount = await Product.countDocuments({ showOnHome: true });
@@ -239,6 +239,7 @@ const createProduct = async (req, res) => {
       stone: stone || 'Natural',
       length: length || '46 cm',
       weight: weight || '6g',
+      certification: certification || '18K PVD Certified',
       features: features || ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic'],
       hero: hero || false
     });
@@ -255,7 +256,7 @@ const createProduct = async (req, res) => {
 // @access  Private/Admin
 const updateProduct = async (req, res) => {
   try {
-    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, hero } = req.body;
+    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, certification, hero } = req.body;
 
     const product = await Product.findById(req.params.id);
 
@@ -284,6 +285,7 @@ const updateProduct = async (req, res) => {
       product.length = length || product.length;
       product.weight = weight || product.weight;
       product.features = features || product.features;
+      if (certification !== undefined) product.certification = certification;
       product.hero = hero !== undefined ? hero : product.hero;
 
       const updatedProduct = await product.save();
