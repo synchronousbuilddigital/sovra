@@ -57,6 +57,7 @@ app.use((req, res, next) => {
 // Set security HTTP headers
 app.use(helmet({
   crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
 }));
 
 // Global Rate Limiting (A4: Insecure Design)

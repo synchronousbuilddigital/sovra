@@ -9,6 +9,7 @@ const GoogleAuthButton = ({ text = 'continue_with', label = 'Continue with Googl
     const navigate = useNavigate();
     const { refreshProfile } = useShop();
     const googleButtonRef = useRef(null);
+    const initializedRef = useRef(false);
     const [loading, setLoading] = useState(false);
     const [scriptReady, setScriptReady] = useState(false);
 
@@ -21,12 +22,15 @@ const GoogleAuthButton = ({ text = 'continue_with', label = 'Continue with Googl
         const initGoogle = () => {
             if (window.google?.accounts?.id && googleButtonRef.current) {
                 try {
-                    window.google.accounts.id.initialize({
-                        client_id: clientId,
-                        callback: handleGoogleSuccess,
-                        auto_select: false,
-                        cancel_on_tap_outside: true,
-                    });
+                    if (!initializedRef.current) {
+                        window.google.accounts.id.initialize({
+                            client_id: clientId,
+                            callback: handleGoogleSuccess,
+                            auto_select: false,
+                            cancel_on_tap_outside: true,
+                        });
+                        initializedRef.current = true;
+                    }
 
                     // Clear any previous render
                     googleButtonRef.current.innerHTML = '';

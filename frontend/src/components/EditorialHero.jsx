@@ -48,7 +48,7 @@ const EditorialHero = () => {
                             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                             src={getOptimizedImage(activeTab.image, 800)}
                             alt={activeTab.name}
-                            fetchpriority="high"
+                            fetchPriority="high"
                             loading="eager"
                             className="w-full h-full object-cover object-[center_top]"
                         />
@@ -231,7 +231,7 @@ const EditorialHero = () => {
                             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
                             src={getOptimizedImage(activeTab.image, 1200)}
                             alt={activeTab.name}
-                            fetchpriority="high"
+                            fetchPriority="high"
                             loading="eager"
                             className="w-full h-full object-cover object-[center_top]"
                         />
