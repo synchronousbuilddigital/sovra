@@ -12,7 +12,8 @@ import {
     Mail,
     Globe,
     Calendar,
-    AlertCircle
+    AlertCircle,
+    MessageSquare
 } from 'lucide-react'
 
 const TermsOfService = () => {
@@ -179,6 +180,26 @@ const TermsOfService = () => {
                                     </p>
                                 </div>
                             ))}
+                        </div>
+                    </section>
+
+                    {/* Section: Communications & Authorization */}
+                    <section className="relative z-10 border-b border-[#111110]/6 dark:border-[#eae9de]/8 pb-10 md:pb-12">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="font-label text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-[#6e5b44] dark:text-[#ead0b3]">
+                                — Communications & Authorization
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-4">
+                            <MessageSquare size={22} className="text-[#6e5b44] dark:text-[#ead0b3]" />
+                            <h2 className="font-headline text-2xl md:text-3xl text-[#111110] dark:text-[#eae9de] font-normal tracking-tight">
+                                Consent for Communication
+                            </h2>
+                        </div>
+                        <div className="p-4 md:p-5 rounded-xl bg-[#faf8f2] dark:bg-[#1f1f1d] border-l-4 border-[#6e5b44] dark:border-[#ead0b3] border border-[#111110]/5 dark:border-[#eae9de]/5">
+                            <p className="font-body text-xs md:text-sm text-[#4a4947] dark:text-[#d4d3cc] leading-relaxed font-medium">
+                                I authorize CBIS INDIA PVT LIMITED and its affiliates to contact me via WhatsApp, SMS, Email and RCS on my registered number.
+                            </p>
                         </div>
                     </section>
 
