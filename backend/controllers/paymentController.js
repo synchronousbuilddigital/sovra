@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
 const { sendEmail, getOrderConfirmationTemplate } = require('../utils/sendEmail');
 
 const getNormalizedKeyId = () => {
-  let key = (process.env.RAZORPAY_KEY_ID || '').trim();
+  let key = (process.env.RAZORPAY_KEY_ID || '').trim().replace(/^["']|["']$/g, '');
   if (key.startsWith('zp_')) key = 'r' + key;
   return key;
 };
@@ -112,9 +112,10 @@ const createRazorpayOrder = async (req, res) => {
     });
   } catch (error) {
     logger.error('Error creating Razorpay order:', error);
+    const rzpDetails = error.error?.description || error.description || error.message || 'Payment gateway configuration issue';
     res.status(500).json({
-      message: 'Failed to initialize payment gateway order.',
-      error: process.env.NODE_ENV === 'production' ? null : error.message,
+      message: `Failed to initialize payment gateway order: ${rzpDetails}`,
+      error: rzpDetails,
     });
   }
 };
