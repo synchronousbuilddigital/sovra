@@ -42,4 +42,35 @@ const upload = multer({
   },
 });
 
-module.exports = { cloudinary, upload };
+// Storage for Customer Exchange Unboxing Videos and Photos (up to 100MB)
+const videoStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const isVideo = file.mimetype && file.mimetype.startsWith('video/');
+    return {
+      folder: 'sovra_unboxing_videos',
+      resource_type: isVideo ? 'video' : 'image',
+      allowed_formats: isVideo
+        ? ['mp4', 'mov', 'webm', 'mkv', 'avi', 'm4v', 'MP4', 'MOV', 'WEBM']
+        : ['jpg', 'png', 'jpeg', 'webp', 'avif', 'heic'],
+    };
+  },
+});
+
+const videoFileFilter = (req, file, cb) => {
+  if (file.mimetype && (file.mimetype.startsWith('video/') || file.mimetype.startsWith('image/'))) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Please upload an unboxing video (MP4, MOV, WEBM) or photos.'), false);
+  }
+};
+
+const videoUpload = multer({
+  storage: videoStorage,
+  fileFilter: videoFileFilter,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB max file size for unboxing videos
+  },
+});
+
+module.exports = { cloudinary, upload, videoUpload };

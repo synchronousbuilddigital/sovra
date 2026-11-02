@@ -14,8 +14,8 @@ const Bag = () => {
     const { cart, removeFromCart, updateCartQty, loading } = useShop()
 
     const subtotal = cart.reduce((acc, item) => acc + ((item.product?.price || 0) * (item.qty || 0)), 0)
-    const taxes = (subtotal || 0) * 0.08
-    const total = (subtotal || 0) + (taxes || 0)
+    const taxes = 0
+    const total = subtotal
     const totalItems = cart.reduce((acc, item) => acc + (item.qty || 1), 0)
 
     const handleRemoveItem = (piece, qty) => {
@@ -278,10 +278,6 @@ const Bag = () => {
                                         Free Delivery
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center text-stone-600">
-                                    <span className="uppercase tracking-wider font-bold text-[9.5px] sm:text-[10px] text-stone-400">Estimated Taxes (GST 8%)</span>
-                                    <span className="font-plex text-xs sm:text-sm font-semibold text-stone-800">{formatPrice(taxes)}</span>
-                                </div>
                             </div>
 
                             {/* Total Line */}
@@ -290,7 +286,7 @@ const Bag = () => {
                                     <span className="font-sans text-[11px] sm:text-xs uppercase tracking-[0.18em] sm:tracking-[0.2em] font-bold text-stone-900 block">
                                         Estimated Total
                                     </span>
-                                    <span className="font-sans text-[9px] sm:text-[10px] text-stone-400">Includes all applicable duties & taxes</span>
+                                    <span className="font-sans text-[9px] sm:text-[10px] text-stone-400">All taxes & insured delivery included</span>
                                 </div>
                                 <span className="font-plex text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight">
                                     {formatPrice(total)}

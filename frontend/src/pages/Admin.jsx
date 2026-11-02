@@ -8,6 +8,7 @@ import { getOptimizedImage } from '../utils/imageUtils'
 import { compressImage } from '../utils/imageCompressor'
 import { useShop } from '../context/ShopContext'
 import {
+    Truck, Printer, RefreshCw,
     LayoutDashboard, Package, ShoppingBag, ShoppingCart, Tag, Users, Settings,
     ShieldCheck, TrendingUp, Plus, Search, Eye, Edit3, Trash2, ExternalLink,
     CheckCircle2, AlertCircle, ArrowUpRight, RotateCcw,
@@ -90,6 +91,24 @@ const Admin = () => {
     const [isSavingPromo, setIsSavingPromo] = useState(false)
 
     // Reels Management States
+    // Ad2Ship Logistics States
+    const [isShipModalOpen, setIsShipModalOpen] = useState(false)
+    const [shippingOrder, setShippingOrder] = useState(null)
+    const [shippingRates, setShippingRates] = useState([])
+    const [loadingRates, setLoadingRates] = useState(false)
+    const [selectedCourier, setSelectedCourier] = useState(null)
+    const [shippingDimensions, setShippingDimensions] = useState({
+        weight: 0.5,
+        length: 10,
+        breadth: 10,
+        height: 5
+    })
+    const [bookingShipment, setBookingShipment] = useState(false)
+    const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false)
+    const [trackingModalOrder, setTrackingModalOrder] = useState(null)
+    const [trackingData, setTrackingData] = useState(null)
+    const [loadingTracking, setLoadingTracking] = useState(false)
+
     const [reels, setReels] = useState([])
     const [isReelModalOpen, setIsReelModalOpen] = useState(false)
     const [editReelMode, setEditReelMode] = useState(false)
@@ -253,6 +272,154 @@ const Admin = () => {
         return () => clearInterval(interval)
     }, [activeTab])
 
+    // Ad2Ship Logistics Handlers
+    const fetchShippingRates = async (order, dims = shippingDimensions) => {
+        if (!order) return;
+        setLoadingRates(true);
+        setShippingRates([]);
+        setSelectedCourier(null);
+        try {
+            const { data } = await api.post(`/shipping/order/${order._id}/rates`, {
+                weight: dims.weight,
+                length: dims.length,
+                breadth: dims.breadth,
+                height: dims.height,
+            });
+            const partners = data?.data?.partners || [];
+            setShippingRates(partners);
+            if (partners.length > 0) {
+                // Auto-select cheapest courier partner
+                const sorted = [...partners].sort((a, b) => (a.total_charge || 0) - (b.total_charge || 0));
+                setSelectedCourier(sorted[0]);
+            }
+        } catch (error) {
+            console.error('Fetch shipping rates failed:', error);
+            toast.error(error.response?.data?.message || 'Could not fetch courier rates.');
+        } finally {
+            setLoadingRates(false);
+        }
+    };
+
+    const openShipModal = (order) => {
+        setShippingOrder(order);
+        setIsShipModalOpen(true);
+        fetchShippingRates(order, shippingDimensions);
+    };
+
+    const handleConfirmShipment = async () => {
+        if (!shippingOrder || !selectedCourier) {
+            toast.error('Please select a courier partner to ship with.');
+            return;
+        }
+
+        setBookingShipment(true);
+        try {
+            const { data } = await api.post(`/shipping/order/${shippingOrder._id}/ship`, {
+                courierPartnerId: selectedCourier.id,
+                courierName: selectedCourier.name,
+                weight: shippingDimensions.weight,
+                length: shippingDimensions.length,
+                breadth: shippingDimensions.breadth,
+                height: shippingDimensions.height,
+            });
+
+            toast.success(`Order shipped via ${data.shipment?.courier}! AWB: ${data.shipment?.awbNumber}`);
+
+            // Update order in state
+            const updatedOrder = data.order || {
+                ...shippingOrder,
+                status: 'Shipped',
+                trackingNumber: data.shipment?.awbNumber,
+                carrier: data.shipment?.courier,
+                ad2ship: {
+                    ...shippingOrder.ad2ship,
+                    awbNumber: data.shipment?.awbNumber,
+                    courierName: data.shipment?.courier,
+                    labelUrl: data.shipment?.labelUrl,
+                    totalCharges: data.shipment?.charges
+                }
+            };
+
+            setOrders(prev => prev.map(o => o._id === shippingOrder._id ? updatedOrder : o));
+            if (selectedOrder && selectedOrder._id === shippingOrder._id) {
+                setSelectedOrder(updatedOrder);
+            }
+
+            // If label generated, offer to open it
+            if (data.shipment?.labelUrl) {
+                window.open(data.shipment.labelUrl, '_blank');
+            }
+
+            setIsShipModalOpen(false);
+            setShippingOrder(null);
+        } catch (error) {
+            console.error('Shipment booking failed:', error);
+            toast.error(error.response?.data?.message || 'Failed to ship order with Ad2Ship.');
+        } finally {
+            setBookingShipment(false);
+        }
+    };
+
+    const handleDownloadLabel = async (order) => {
+        try {
+            if (order.ad2ship?.labelUrl) {
+                window.open(order.ad2ship.labelUrl, '_blank');
+                return;
+            }
+            toast.info('Generating printable shipping label...');
+            const { data } = await api.get(`/shipping/order/${order._id}/label`);
+            if (data.labelUrl) {
+                setOrders(prev => prev.map(o => o._id === order._id ? {
+                    ...o,
+                    ad2ship: { ...(o.ad2ship || {}), labelUrl: data.labelUrl }
+                } : o));
+                if (selectedOrder && selectedOrder._id === order._id) {
+                    setSelectedOrder(prev => ({
+                        ...prev,
+                        ad2ship: { ...(prev.ad2ship || {}), labelUrl: data.labelUrl }
+                    }));
+                }
+                window.open(data.labelUrl, '_blank');
+            } else {
+                toast.warn('Label generated without direct URL.');
+            }
+        } catch (error) {
+            console.error('Label download error:', error);
+            toast.error(error.response?.data?.message || 'Could not fetch shipping label.');
+        }
+    };
+
+    const handleGenerateManifest = async (order) => {
+        try {
+            toast.info('Generating pickup manifest...');
+            const { data } = await api.post(`/shipping/order/${order._id}/manifest`);
+            toast.success(data.message || 'Manifest generated successfully.');
+            setOrders(prev => prev.map(o => o._id === order._id ? {
+                ...o,
+                ad2ship: { ...(o.ad2ship || {}), manifestGenerated: true }
+            } : o));
+        } catch (error) {
+            console.error('Manifest generation error:', error);
+            toast.error(error.response?.data?.message || 'Could not generate manifest.');
+        }
+    };
+
+    const openTrackingModal = async (order) => {
+        setTrackingModalOrder(order);
+        setIsTrackingModalOpen(true);
+        setLoadingTracking(true);
+        setTrackingData(null);
+        try {
+            const { data } = await api.get(`/shipping/order/${order._id}/track`);
+            setTrackingData(data);
+        } catch (error) {
+            console.error('Tracking fetch failed:', error);
+            toast.error(error.response?.data?.message || 'Failed to fetch live tracking.');
+        } finally {
+            setLoadingTracking(false);
+        }
+    };
+
     const handleUpdateOrderStatus = async (id, status) => {
         try {
             await api.put(`/orders/${id}/status`, {
@@ -329,7 +496,7 @@ const Admin = () => {
             name: '', category: 'Necklaces', price: '', mrp: '', showOnHome: false, details: '', material: 'Stainless Steel',
             plating: 'Gold 18K PVD Plating', stone: 'Natural', length: '46 cm', weight: '18g', certification: '18K PVD Certified',
             features: ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic'],
-            stock: 0, img: '', images: ['', '', '', ''], hero: false
+            stock: 0, img: '', images: ['', '', '', ''], hero: false, shippingWeight: 0.2, shippingLength: 10, shippingBreadth: 10, shippingHeight: 5
         })
         setIsModalOpen(true)
     }
@@ -1557,6 +1724,12 @@ const Admin = () => {
                                                 COD / Unpaid
                                             </span>
                                         )}
+                                        {(o.ad2ship?.awbNumber || o.trackingNumber) && (
+                                            <span className="text-[10px] font-mono font-bold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-md border border-sky-200/80 flex items-center gap-1.5">
+                                                <Truck className="w-3 h-3 text-sky-600" />
+                                                <span>{o.ad2ship?.courierName || o.carrier || 'Courier'}: {o.ad2ship?.awbNumber || o.trackingNumber}</span>
+                                            </span>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center gap-3 pt-1">
@@ -1596,6 +1769,40 @@ const Admin = () => {
 
                                 {/* Right Actions */}
                                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 justify-end w-full sm:w-auto">
+                                    {/* Ad2Ship Quick Shipping Actions */}
+                                    {(o.ad2ship?.awbNumber || o.trackingNumber) ? (
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownloadLabel(o)}
+                                                className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border border-stone-200/80 cursor-pointer"
+                                                title="Print Shipping Label"
+                                            >
+                                                <Printer className="w-3.5 h-3.5 text-stone-700" />
+                                                <span className="hidden sm:inline">Label</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => openTrackingModal(o)}
+                                                className="px-3 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/80 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                                                title="Live Courier Tracking"
+                                            >
+                                                <Truck className="w-3.5 h-3.5 text-sky-600" />
+                                                <span className="hidden sm:inline">Track</span>
+                                            </button>
+                                        </div>
+                                    ) : (o.status !== 'Shipped' && o.status !== 'Delivered' && o.status !== 'Cancelled') ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => openShipModal(o)}
+                                            className="px-4 py-2 bg-stone-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer group"
+                                            title="Ship with Ad2Ship Courier"
+                                        >
+                                            <Truck className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                                            <span>Ship</span>
+                                        </button>
+                                    ) : null}
+
                                     <select
                                         value={o.status}
                                         onChange={(e) => handleUpdateOrderStatus(o._id, e.target.value)}
@@ -2497,6 +2704,332 @@ const Admin = () => {
     )
 
 
+    {/* Ad2Ship Shipment Booking Modal */}
+    const renderShippingModal = () => (
+        <AnimatePresence>
+            {isShipModalOpen && shippingOrder && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-6">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => !bookingShipment && setIsShipModalOpen(false)}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="relative w-full max-w-2xl bg-[#fffcf7] rounded-3xl shadow-2xl border border-stone-200/80 p-6 sm:p-8 overflow-y-auto max-h-[90vh] no-scrollbar space-y-6"
+                    >
+                        {/* Header */}
+                        <div className="flex items-start justify-between border-b border-stone-200/60 pb-4">
+                            <div>
+                                <span className="text-[10px] uppercase font-bold tracking-widest text-primary flex items-center gap-1.5">
+                                    <Truck className="w-3.5 h-3.5" /> Ad2Ship Courier Aggregation
+                                </span>
+                                <h3 className="text-xl sm:text-2xl font-bold text-stone-900 mt-1">
+                                    Ship Order #{shippingOrder._id.slice(-6).toUpperCase()}
+                                </h3>
+                                <p className="text-xs text-stone-500 mt-0.5">
+                                    Destination: {shippingOrder.shippingAddress?.city}, {shippingOrder.shippingAddress?.state} ({shippingOrder.shippingAddress?.postalCode})
+                                </p>
+                            </div>
+                            <button
+                                disabled={bookingShipment}
+                                onClick={() => setIsShipModalOpen(false)}
+                                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Package Dimensions & Weight */}
+                        <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/70 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] uppercase font-bold tracking-wider text-stone-500">Package Specifications</span>
+                                    <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                                        Auto-calculated from ordered pieces
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => fetchShippingRates(shippingOrder, shippingDimensions)}
+                                    disabled={loadingRates || bookingShipment}
+                                    className="text-xs font-semibold text-primary hover:text-black flex items-center gap-1"
+                                >
+                                    <RefreshCw className={`w-3 h-3 ${loadingRates ? 'animate-spin' : ''}`} />
+                                    <span>Recalculate Rates</span>
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-4 gap-2 text-xs">
+                                <div>
+                                    <label className="block text-[9px] uppercase font-bold text-stone-400 mb-1">Weight (kg)</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        min="0.1"
+                                        value={shippingDimensions.weight}
+                                        onChange={e => setShippingDimensions(prev => ({ ...prev, weight: parseFloat(e.target.value) || 0.5 }))}
+                                        className="w-full bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 font-semibold text-stone-800 outline-none focus:border-primary"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[9px] uppercase font-bold text-stone-400 mb-1">Length (cm)</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={shippingDimensions.length}
+                                        onChange={e => setShippingDimensions(prev => ({ ...prev, length: parseFloat(e.target.value) || 10 }))}
+                                        className="w-full bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 font-semibold text-stone-800 outline-none focus:border-primary"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[9px] uppercase font-bold text-stone-400 mb-1">Breadth (cm)</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={shippingDimensions.breadth}
+                                        onChange={e => setShippingDimensions(prev => ({ ...prev, breadth: parseFloat(e.target.value) || 10 }))}
+                                        className="w-full bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 font-semibold text-stone-800 outline-none focus:border-primary"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[9px] uppercase font-bold text-stone-400 mb-1">Height (cm)</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={shippingDimensions.height}
+                                        onChange={e => setShippingDimensions(prev => ({ ...prev, height: parseFloat(e.target.value) || 5 }))}
+                                        className="w-full bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 font-semibold text-stone-800 outline-none focus:border-primary"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Available Courier Partners */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-[10px] uppercase font-bold tracking-wider text-stone-500">Available Courier Partners</span>
+                                <span className="text-[10px] font-semibold text-stone-400">{shippingRates.length} Couriers available</span>
+                            </div>
+
+                            {loadingRates ? (
+                                <div className="py-12 text-center space-y-3 bg-stone-50/60 rounded-2xl border border-stone-200/50">
+                                    <RefreshCw className="w-6 h-6 animate-spin text-primary mx-auto" />
+                                    <p className="text-xs font-semibold text-stone-500">Comparing live rates from Delhivery, DTDC, Ekart, BlueDart...</p>
+                                </div>
+                            ) : shippingRates.length === 0 ? (
+                                <div className="py-10 text-center bg-stone-50 rounded-2xl border border-stone-200/60 p-4">
+                                    <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+                                    <p className="text-xs font-bold text-stone-700">No courier partner rates returned for this pincode.</p>
+                                    <p className="text-[11px] text-stone-400 mt-1">Please check the destination pincode ({shippingOrder.shippingAddress?.postalCode}) or try recalculating.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                                    {shippingRates.map((partner) => {
+                                        const isSelected = selectedCourier && selectedCourier.id === partner.id;
+                                        return (
+                                            <div
+                                                key={partner.id}
+                                                onClick={() => setSelectedCourier(partner)}
+                                                className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                                                    isSelected
+                                                        ? 'bg-primary/5 border-primary shadow-xs ring-1 ring-primary/20'
+                                                        : 'bg-white border-stone-200 hover:border-stone-300'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                                                        isSelected ? 'border-primary bg-primary' : 'border-stone-300'
+                                                    }`}>
+                                                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-bold text-stone-900">{partner.name}</p>
+                                                        <p className="text-[10px] text-stone-400">
+                                                            Freight: ₹{partner.freight_charge} • GST: ₹{partner.gst_charge}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-bold text-stone-900">₹{partner.total_charge}</p>
+                                                    <span className="text-[9px] uppercase tracking-wider font-semibold text-emerald-600">Live Rate</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer / Confirm */}
+                        <div className="border-t border-stone-200/60 pt-4 flex items-center justify-between gap-3">
+                            <div>
+                                {selectedCourier && (
+                                    <div>
+                                        <p className="text-[10px] uppercase font-bold text-stone-400">Selected</p>
+                                        <p className="text-xs font-bold text-stone-800">{selectedCourier.name} (₹{selectedCourier.total_charge})</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    disabled={bookingShipment}
+                                    onClick={() => setIsShipModalOpen(false)}
+                                    className="px-4 py-2 text-xs font-bold text-stone-600 hover:bg-stone-100 rounded-xl transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={!selectedCourier || bookingShipment}
+                                    onClick={handleConfirmShipment}
+                                    className="px-6 py-2.5 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {bookingShipment ? (
+                                        <>
+                                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                            <span>Booking & Generating AWB...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Truck className="w-3.5 h-3.5 text-amber-400" />
+                                            <span>Confirm & Book Shipment</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+
+    {/* Live Courier Tracking Modal for Admin */}
+    const renderTrackingModal = () => (
+        <AnimatePresence>
+            {isTrackingModalOpen && trackingModalOrder && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsTrackingModalOpen(false)}
+                        className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+                    />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        className="relative w-full max-w-lg bg-[#fffcf7] rounded-3xl shadow-2xl border border-stone-200/80 p-6 sm:p-8 overflow-y-auto max-h-[85vh] no-scrollbar space-y-5"
+                    >
+                        <div className="flex items-start justify-between border-b border-stone-200/60 pb-4">
+                            <div>
+                                <span className="text-[10px] uppercase font-bold tracking-widest text-primary flex items-center gap-1.5">
+                                    <Truck className="w-3.5 h-3.5" /> Ad2Ship Tracking
+                                </span>
+                                <h3 className="text-xl font-bold text-stone-900 mt-1">
+                                    {trackingModalOrder.ad2ship?.courierName || trackingModalOrder.carrier || 'Express Courier'}
+                                </h3>
+                                <p className="text-xs font-mono text-stone-500 mt-0.5">
+                                    AWB: {trackingModalOrder.ad2ship?.awbNumber || trackingModalOrder.trackingNumber}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setIsTrackingModalOpen(false)}
+                                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {loadingTracking ? (
+                                <div className="py-12 text-center space-y-3">
+                                    <RefreshCw className="w-6 h-6 animate-spin text-primary mx-auto" />
+                                    <p className="text-xs font-semibold text-stone-500">Fetching live courier scans...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-stone-400">Current Status</p>
+                                            <p className="text-sm font-bold text-stone-900 mt-0.5">
+                                                {trackingData?.status || trackingModalOrder.ad2ship?.shipmentStatus || trackingModalOrder.status}
+                                            </p>
+                                        </div>
+                                        <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] uppercase font-bold tracking-wider text-stone-400">Scan History</p>
+                                        {trackingData?.data?.scans && trackingData.data.scans.length > 0 ? (
+                                            <div className="relative pl-6 space-y-5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
+                                                {trackingData.data.scans.map((scan, idx) => (
+                                                    <div key={idx} className="relative space-y-1">
+                                                        <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary/10" />
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <p className="text-xs font-bold text-stone-800">{scan.status || scan.activity}</p>
+                                                            <span className="text-[10px] text-stone-400 font-mono">{scan.date || scan.time || ''}</span>
+                                                        </div>
+                                                        {scan.location && (
+                                                            <p className="text-[11px] text-stone-500">{scan.location}</p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : trackingModalOrder.ad2ship?.trackingHistory && trackingModalOrder.ad2ship.trackingHistory.length > 0 ? (
+                                            <div className="relative pl-6 space-y-5 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
+                                                {trackingModalOrder.ad2ship.trackingHistory.map((scan, idx) => (
+                                                    <div key={idx} className="relative space-y-1">
+                                                        <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary/10" />
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <p className="text-xs font-bold text-stone-800">{scan.status || scan.statusDescription}</p>
+                                                            <span className="text-[10px] text-stone-400 font-mono">{scan.eventDate}</span>
+                                                        </div>
+                                                        {scan.location && (
+                                                            <p className="text-[11px] text-stone-500">{scan.location}</p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 bg-stone-50 rounded-2xl border border-stone-200/60">
+                                                <p className="text-xs text-stone-600 font-medium">Registered with courier partner.</p>
+                                                <p className="text-[11px] text-stone-400 mt-0.5">Scans will appear once package is picked up by courier driver.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="pt-3 border-t border-stone-200/60 flex items-center justify-between gap-2">
+                            <button
+                                onClick={() => openTrackingModal(trackingModalOrder)}
+                                disabled={loadingTracking}
+                                className="text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-1.5"
+                            >
+                                <RefreshCw className={`w-3.5 h-3.5 ${loadingTracking ? 'animate-spin' : ''}`} />
+                                <span>Refresh</span>
+                            </button>
+                            <button
+                                onClick={() => setIsTrackingModalOpen(false)}
+                                className="px-5 py-2 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
+    );
+
     const renderOrderModal = () => (
         <AnimatePresence>
             {isOrderModalOpen && selectedOrder && (
@@ -2529,7 +3062,7 @@ const Admin = () => {
                                     {selectedOrder.returnRequest?.isRequested && (
                                         <div className="mt-8 pt-6 border-t border-amber-500/20 bg-amber-500/[0.04] p-6 border border-amber-500/10 space-y-6 animate-in fade-in slide-in-from-top-4">
                                             <div className="flex justify-between items-start">
-                                                <h4 className="text-[9px] uppercase font-black text-amber-600">Return Request</h4>
+                                                <h4 className="text-[9px] uppercase font-black text-amber-600">Exchange Request (48h Window)</h4>
                                                 <span className={`text-[8px] uppercase tracking-widest font-black px-3 py-1 border ${
                                                     selectedOrder.returnRequest.status === 'Approved' ? 'border-green-500 text-green-600 bg-green-50' :
                                                     selectedOrder.returnRequest.status === 'Rejected' ? 'border-red-500 text-red-600 bg-red-50' :
@@ -2545,6 +3078,35 @@ const Admin = () => {
                                             <div className="space-y-1">
                                                 <p className="text-[10px] uppercase font-black opacity-40">Customer Note</p>
                                                 <p className="text-[11px] opacity-70 leading-relaxed">{selectedOrder.returnRequest.details || 'No additional details.'}</p>
+                                            </div>
+
+                                            {/* Unboxing Video Preview for Admin */}
+                                            <div className="space-y-2 pt-2 border-t border-amber-500/10">
+                                                <p className="text-[10px] uppercase font-black opacity-40">Customer Unboxing Video</p>
+                                                {selectedOrder.returnRequest.video ? (
+                                                    <div className="space-y-2">
+                                                        <div className="rounded-xl overflow-hidden bg-black max-w-md border border-black/10 shadow-sm">
+                                                            <video 
+                                                                src={selectedOrder.returnRequest.video} 
+                                                                controls 
+                                                                className="w-full max-h-[280px] object-contain"
+                                                                preload="metadata"
+                                                            />
+                                                        </div>
+                                                        <a 
+                                                            href={selectedOrder.returnRequest.video} 
+                                                            target="_blank" 
+                                                            rel="noreferrer" 
+                                                            className="inline-flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 font-bold underline"
+                                                        >
+                                                            <span>↗ Open video in high-res / new tab</span>
+                                                        </a>
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-medium">
+                                                        ⚠️ No unboxing video was uploaded for this request.
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {selectedOrder.returnRequest.status === 'Pending' && (
@@ -2582,6 +3144,85 @@ const Admin = () => {
 
                                     {/* Logistical Inputs */}
                                     <div className="pt-6 space-y-4 border-t border-black/5">
+                                        {/* Ad2Ship Logistics Dispatch */}
+                                        {(selectedOrder.ad2ship?.awbNumber || selectedOrder.trackingNumber) ? (
+                                            <div className="p-4 bg-gradient-to-br from-stone-50 to-amber-50/20 border border-stone-200/80 rounded-2xl space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] uppercase font-bold tracking-wider text-primary flex items-center gap-1.5">
+                                                        <Truck className="w-3.5 h-3.5" /> Ad2Ship Logistics
+                                                    </span>
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                        {selectedOrder.ad2ship?.shipmentStatus || selectedOrder.status}
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div>
+                                                        <p className="text-[10px] uppercase text-stone-400 font-bold">Courier</p>
+                                                        <p className="font-semibold text-stone-800">{selectedOrder.ad2ship?.courierName || selectedOrder.carrier || 'Ad2Ship Express'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] uppercase text-stone-400 font-bold">AWB Number</p>
+                                                        <p className="font-mono font-semibold text-stone-800">{selectedOrder.ad2ship?.awbNumber || selectedOrder.trackingNumber}</p>
+                                                    </div>
+                                                    {selectedOrder.ad2ship?.totalCharges > 0 && (
+                                                        <div>
+                                                            <p className="text-[10px] uppercase text-stone-400 font-bold">Shipping Charge</p>
+                                                            <p className="font-semibold text-stone-800">₹{selectedOrder.ad2ship.totalCharges}</p>
+                                                        </div>
+                                                    )}
+                                                    {selectedOrder.ad2ship?.shippedAt && (
+                                                        <div>
+                                                            <p className="text-[10px] uppercase text-stone-400 font-bold">Shipped At</p>
+                                                            <p className="text-stone-700">{new Date(selectedOrder.ad2ship.shippedAt).toLocaleDateString('en-IN')}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-stone-200/60">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDownloadLabel(selectedOrder)}
+                                                        className="flex-1 px-3 py-2 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                                                    >
+                                                        <Printer className="w-3.5 h-3.5" />
+                                                        <span>Print Label</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleGenerateManifest(selectedOrder)}
+                                                        className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                                                    >
+                                                        <span>Manifest</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openTrackingModal(selectedOrder)}
+                                                        className="px-3 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                                                    >
+                                                        <Truck className="w-3.5 h-3.5" />
+                                                        <span>Live Track</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (selectedOrder.status !== 'Cancelled') ? (
+                                            <div className="p-4 bg-amber-50/50 border border-amber-200/80 rounded-2xl space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] uppercase font-bold tracking-wider text-stone-800 flex items-center gap-1.5">
+                                                        <Truck className="w-3.5 h-3.5 text-primary" /> Automated Dispatch
+                                                    </span>
+                                                    <span className="text-[9px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">Ad2Ship Ready</span>
+                                                </div>
+                                                <p className="text-[11px] text-stone-600">Compare live courier partner rates and book automated shipment with 1 click.</p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setIsOrderModalOpen(false); openShipModal(selectedOrder); }}
+                                                    className="w-full py-2.5 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                                                >
+                                                    <Truck className="w-3.5 h-3.5 text-amber-400" />
+                                                    <span>Ship with Ad2Ship</span>
+                                                </button>
+                                            </div>
+                                        ) : null}
+
                                         <label className="block text-[9px] uppercase font-black opacity-40">Update Order Status</label>
                                         <select
                                             value={selectedOrder.status}
@@ -2915,6 +3556,85 @@ const Admin = () => {
                                                 </button>
                                             );
                                         })}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Shipping & Logistics Dimensions (Admin / Courier Only - Hidden from Storefront) */}
+                            <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/40 to-stone-50 p-5 sm:p-6 space-y-4 shadow-xs">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-amber-200/60">
+                                    <div>
+                                        <span className="text-[9px] uppercase tracking-widest text-[#855e23] font-bold flex items-center gap-1.5">
+                                            <Truck className="w-3.5 h-3.5" /> Courier Logistics
+                                        </span>
+                                        <h3 className="font-sans text-xs sm:text-sm tracking-[0.2em] uppercase font-bold text-stone-900 mt-0.5">
+                                            Package Shipping Dimensions (Admin Only)
+                                        </h3>
+                                    </div>
+                                    <span className="text-[10px] text-amber-800 bg-amber-100/80 border border-amber-300 px-2.5 py-0.5 rounded-full font-medium">
+                                        Hidden from customer storefront
+                                    </span>
+                                </div>
+                                <p className="text-[11px] text-stone-600">
+                                    These package dimensions are used to automatically calculate live courier rates and book shipments on Ad2Ship with zero manual entry.
+                                </p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <div>
+                                        <label className="text-[10px] uppercase tracking-wider font-bold text-stone-700 block mb-1">
+                                            Dead Weight (kg)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.05"
+                                            min="0.05"
+                                            value={currentProduct.shippingWeight ?? 0.2}
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, shippingWeight: parseFloat(e.target.value) || 0.2 })}
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold text-stone-800 outline-none focus:border-primary"
+                                            placeholder="0.2"
+                                        />
+                                        <span className="text-[9px] text-stone-400 mt-0.5 block">e.g. 0.2 kg (200g)</span>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] uppercase tracking-wider font-bold text-stone-700 block mb-1">
+                                            Length (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={currentProduct.shippingLength ?? 10}
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, shippingLength: parseFloat(e.target.value) || 10 })}
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold text-stone-800 outline-none focus:border-primary"
+                                            placeholder="10"
+                                        />
+                                        <span className="text-[9px] text-stone-400 mt-0.5 block">Box length</span>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] uppercase tracking-wider font-bold text-stone-700 block mb-1">
+                                            Breadth (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={currentProduct.shippingBreadth ?? 10}
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, shippingBreadth: parseFloat(e.target.value) || 10 })}
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold text-stone-800 outline-none focus:border-primary"
+                                            placeholder="10"
+                                        />
+                                        <span className="text-[9px] text-stone-400 mt-0.5 block">Box breadth</span>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] uppercase tracking-wider font-bold text-stone-700 block mb-1">
+                                            Height (cm)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={currentProduct.shippingHeight ?? 5}
+                                            onChange={(e) => setCurrentProduct({ ...currentProduct, shippingHeight: parseFloat(e.target.value) || 5 })}
+                                            className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold text-stone-800 outline-none focus:border-primary"
+                                            placeholder="5"
+                                        />
+                                        <span className="text-[9px] text-stone-400 mt-0.5 block">Box height</span>
                                     </div>
                                 </div>
                             </div>
@@ -4048,6 +4768,8 @@ const Admin = () => {
             {renderInventoryModal()}
             {renderCategoryModal()}
             {renderOrderModal()}
+            {renderShippingModal()}
+            {renderTrackingModal()}
             {renderCustomerModal()}
             {renderPromoModal()}
             {renderReelModal()}

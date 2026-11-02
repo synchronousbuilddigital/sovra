@@ -121,6 +121,7 @@ const promoRoutes = require('./routes/promoRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const reelRoutes = require('./routes/reelRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const shippingRoutes = require('./routes/shippingRoutes');
 
 
 app.use('/api/products', productRoutes);
@@ -135,6 +136,7 @@ app.use('/api/promos', promoRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/reels', reelRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/shipping', shippingRoutes);
 
 
 const PORT = process.env.PORT || 5000;

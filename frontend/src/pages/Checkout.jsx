@@ -12,7 +12,7 @@ import {
     MapPin, Phone, User, Check, Plus, ShieldCheck, Truck, Lock,
     ArrowRight, ArrowLeft, Tag, ShoppingBag, CreditCard,
     QrCode, AlertCircle, CheckCircle2, ChevronRight, X, Building, Mail,
-    Sparkles, Ticket
+    Sparkles, Ticket, Loader2
 } from 'lucide-react'
 
 const INDIAN_STATES = [
@@ -45,8 +45,56 @@ const Checkout = () => {
     const [address, setAddress] = useState('')
     const [city, setCity] = useState('')
     const [state, setState] = useState('Maharashtra')
-    const [postalCode, setPostalCode] = useState('')
+    const [postalCode, setPostalCode] = useState(() => localStorage.getItem('sovra_pincode') || '')
     const [country, setCountry] = useState('India')
+
+    // Pincode Verification & Auto-fill State
+    const [pincodeStatus, setPincodeStatus] = useState('idle') // 'idle' | 'loading' | 'verified' | 'invalid'
+    const [pincodeError, setPincodeError] = useState('')
+    const [isLookingUpPincode, setIsLookingUpPincode] = useState(false)
+
+    // Normalize State Name to match INDIAN_STATES dropdown
+    const normalizeIndianState = (returnedState) => {
+        if (!returnedState) return 'Maharashtra'
+        const clean = returnedState.toLowerCase().trim()
+        if (clean.includes('delhi')) return 'Delhi (NCR)'
+        if (clean.includes('jammu')) return 'Jammu & Kashmir'
+        const matched = INDIAN_STATES.find(s => s.toLowerCase() === clean || clean.includes(s.toLowerCase()))
+        return matched || returnedState
+    }
+
+    const fetchPincodeDetails = async (pin) => {
+        const cleanPin = String(pin || '').replace(/\D/g, '')
+        if (!cleanPin || cleanPin.length !== 6 || !/^[1-9][0-9]{5}$/.test(cleanPin)) {
+            setPincodeStatus('invalid')
+            setPincodeError('Please enter a valid 6-digit Indian postal code.')
+            return
+        }
+
+        setIsLookingUpPincode(true)
+        setPincodeStatus('loading')
+        setPincodeError('')
+
+        try {
+            const { data } = await api.post('/shipping/lookup-pincode', { pincode: cleanPin })
+            if (data && data.valid) {
+                setCity(data.city || data.district || '')
+                if (data.state) {
+                    setState(normalizeIndianState(data.state))
+                }
+                setPincodeStatus('verified')
+                setPincodeError('')
+            } else {
+                setPincodeStatus('invalid')
+                setPincodeError(data?.message || 'Invalid or non-existent postal pincode.')
+            }
+        } catch (err) {
+            setPincodeStatus('invalid')
+            setPincodeError(err.response?.data?.message || 'Invalid or non-existent postal pincode.')
+        } finally {
+            setIsLookingUpPincode(false)
+        }
+    }
 
     // Payment Method
     const [paymentMethod, setPaymentMethod] = useState('UPI / QR')
@@ -65,8 +113,8 @@ const Checkout = () => {
         calculated = maxDiscountLimit
     }
     const discountAmount = calculated
-    const taxes = (subtotal - discountAmount) * 0.08
-    const total = subtotal - discountAmount + taxes
+    const taxes = 0
+    const total = Math.max(0, subtotal - discountAmount)
 
     // Fetch active/available promos for the customer
     useEffect(() => {
@@ -109,14 +157,28 @@ const Checkout = () => {
         fetchAddresses()
     }, [])
 
+    // Auto-verify pre-loaded pincode from product detail check
+    useEffect(() => {
+        const savedPin = localStorage.getItem('sovra_pincode')
+        if (savedPin && savedPin.length === 6 && !city) {
+            setPostalCode(savedPin)
+            fetchPincodeDetails(savedPin)
+        }
+    }, [])
+
     const applySavedAddress = (addr) => {
         setSelectedAddressId(addr._id)
         setIsCustomAddress(false)
         setAddress(addr.address || '')
         setCity(addr.city || '')
-        setPostalCode(String(addr.postalCode || ''))
+        const pin = String(addr.postalCode || '').replace(/\D/g, '').slice(0, 6)
+        setPostalCode(pin)
         setCountry(addr.country || 'India')
-        if (addr.state) setState(addr.state)
+        if (addr.state) setState(normalizeIndianState(addr.state))
+        if (pin.length === 6) {
+            setPincodeStatus('verified')
+            setPincodeError('')
+        }
     }
 
     const handleSelectCustomAddress = () => {
@@ -126,6 +188,8 @@ const Checkout = () => {
         setCity('')
         setPostalCode('')
         setCountry('India')
+        setPincodeStatus('idle')
+        setPincodeError('')
     }
 
     // Phone: only numeric digits (max 10 digits for Indian numbers)
@@ -134,10 +198,16 @@ const Checkout = () => {
         setPhone(numeric)
     }
 
-    // Pincode: only numeric digits (max 6 digits for Indian PIN codes)
+    // Pincode: only numeric digits (max 6 digits for Indian PIN codes) with auto-lookup
     const handlePincodeChange = (e) => {
         const numeric = e.target.value.replace(/\D/g, '').slice(0, 6)
         setPostalCode(numeric)
+        if (numeric.length === 6) {
+            fetchPincodeDetails(numeric)
+        } else {
+            setPincodeStatus('idle')
+            setPincodeError('')
+        }
     }
 
     const handleApplyPromo = async (codeOverride) => {
@@ -181,12 +251,12 @@ const Checkout = () => {
             return toast.error('Please provide a street address for delivery.')
         }
 
-        if (!city.trim()) {
-            return toast.error('Please enter delivery city.')
+        if (!postalCode || postalCode.length !== 6 || pincodeStatus === 'invalid') {
+            return toast.error('Please enter a valid, verified 6-digit Indian delivery PIN code.')
         }
 
-        if (!postalCode || postalCode.length < 6) {
-            return toast.error('Please enter a valid 6-digit postal PIN code.')
+        if (!city.trim()) {
+            return toast.error('Please enter a valid PIN code to verify delivery city and state.')
         }
 
         try {
@@ -538,16 +608,77 @@ const Checkout = () => {
                                         />
                                     </div>
 
-                                    {/* City & State */}
+                                    {/* Postal PIN Code (Auto-fetches City & State) & Country */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                                <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">
+                                                    PIN Code <span className="text-red-500">*</span>
+                                                </label>
+                                                {pincodeStatus === 'verified' && (
+                                                    <span className="font-sans text-[10px] font-bold text-emerald-700 flex items-center gap-1">
+                                                        <CheckCircle2 size={12} className="text-emerald-600" />
+                                                        Verified
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="relative flex items-center">
+                                                <input
+                                                    required
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    maxLength={6}
+                                                    pattern="[0-9]*"
+                                                    placeholder="Enter 6-digit PIN (e.g. 110001)"
+                                                    value={postalCode}
+                                                    onChange={handlePincodeChange}
+                                                    className={`w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-800 font-mono text-xs focus:outline-none focus:ring-2 transition-all ${
+                                                        pincodeStatus === 'invalid'
+                                                            ? 'border-red-400 focus:ring-red-200 focus:border-red-500'
+                                                            : (pincodeStatus === 'verified' ? 'border-emerald-400 focus:ring-emerald-200 focus:border-emerald-500' : 'border-stone-200 focus:ring-primary/20 focus:border-primary')
+                                                    }`}
+                                                />
+                                                {isLookingUpPincode && (
+                                                    <Loader2 size={14} className="animate-spin text-stone-400 absolute right-3" />
+                                                )}
+                                            </div>
+                                            {pincodeError && (
+                                                <p className="text-[11px] text-red-600 font-sans flex items-start gap-1 pt-0.5">
+                                                    <AlertCircle size={13} className="shrink-0 mt-0.5" />
+                                                    <span>{pincodeError}</span>
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-1.5">
                                             <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">
-                                                City / Town <span className="text-red-500">*</span>
+                                                Country
                                             </label>
                                             <input
                                                 required
                                                 type="text"
-                                                placeholder="e.g. Mumbai, Jaipur, Bengaluru"
+                                                readOnly
+                                                value={country}
+                                                className="w-full px-4 py-3 bg-stone-100/70 border border-stone-200 rounded-xl text-stone-600 font-sans text-xs focus:outline-none cursor-not-allowed"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* City & State (Auto-filled from verified postal PIN Code) */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center justify-between">
+                                                <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">
+                                                    City / District <span className="text-red-500">*</span>
+                                                </label>
+                                                {pincodeStatus === 'verified' && (
+                                                    <span className="font-sans text-[9px] text-emerald-600 font-medium">Auto-filled</span>
+                                                )}
+                                            </div>
+                                            <input
+                                                required
+                                                type="text"
+                                                placeholder={isLookingUpPincode ? 'Detecting city...' : 'Auto-filled from PIN Code'}
                                                 value={city}
                                                 onChange={e => setCity(e.target.value)}
                                                 className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 font-sans text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
@@ -555,9 +686,14 @@ const Checkout = () => {
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">
-                                                State / Province <span className="text-red-500">*</span>
-                                            </label>
+                                            <div className="flex items-center justify-between">
+                                                <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">
+                                                    State / Province <span className="text-red-500">*</span>
+                                                </label>
+                                                {pincodeStatus === 'verified' && (
+                                                    <span className="font-sans text-[9px] text-emerald-600 font-medium">Auto-detected</span>
+                                                )}
+                                            </div>
                                             <select
                                                 required
                                                 value={state}
@@ -568,38 +704,6 @@ const Checkout = () => {
                                                     <option key={s} value={s}>{s}</option>
                                                 ))}
                                             </select>
-                                        </div>
-                                    </div>
-
-                                    {/* Postal PIN Code (Integer only) & Country */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">
-                                                PIN Code / Postal Code <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                required
-                                                type="text"
-                                                inputMode="numeric"
-                                                pattern="[0-9]*"
-                                                placeholder="6-digit postal code"
-                                                value={postalCode}
-                                                onChange={handlePincodeChange}
-                                                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                            />
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">
-                                                Country
-                                            </label>
-                                            <input
-                                                required
-                                                type="text"
-                                                value={country}
-                                                onChange={e => setCountry(e.target.value)}
-                                                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 font-sans text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                            />
                                         </div>
                                     </div>
 
@@ -891,11 +995,6 @@ const Checkout = () => {
                                                 Free Delivery
                                             </span>
                                         </div>
-
-                                        <div className="flex justify-between items-center text-stone-600">
-                                            <span className="uppercase tracking-wider font-bold text-[10px] text-stone-400">Estimated Taxes (GST 8%)</span>
-                                            <span className="font-plex text-sm font-semibold text-stone-800">{formatPrice(taxes)}</span>
-                                        </div>
                                     </div>
 
                                     {/* Grand Total */}
@@ -904,7 +1003,7 @@ const Checkout = () => {
                                             <span className="font-sans text-xs uppercase tracking-[0.2em] font-bold text-stone-900 block">
                                                 Total Value
                                             </span>
-                                            <span className="font-sans text-[10px] text-stone-400">Final amount inclusive of taxes</span>
+                                            <span className="font-sans text-[10px] text-stone-400">All taxes & insured delivery included</span>
                                         </div>
                                         <span className="font-plex text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight">
                                             {formatPrice(total)}

@@ -245,7 +245,7 @@ const ReturnsPolicy = () => {
                         <div className="space-y-3.5 mb-8">
                             {[
                                 "Record your unboxing video at the moment you open your package.",
-                                "Email us at support@sovra.in within 48 hours of delivery.",
+                                "Email us at support@sovra.in or submit via your account within 48 hours of delivery.",
                                 "Include your order number, a brief description of the issue and attach the unboxing video.",
                                 "Our team will review your request within 2 business days and respond with next steps.",
                                 "If your request is approved, we will arrange a reverse pickup at no extra cost to you.",

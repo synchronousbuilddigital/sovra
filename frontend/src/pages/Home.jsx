@@ -255,21 +255,41 @@ const Home = () => {
                     </div>
 
                     {/* Right: Live Shop Products Carousel */}
-                    <div className="w-full lg:w-[58%] p-3.5 sm:p-6 md:p-8 flex flex-col justify-between bg-[#f8f5ee] border-t lg:border-t-0 lg:border-l border-[#111110]/8">
+                    <div className="relative w-full lg:w-[58%] p-3.5 sm:p-6 md:p-8 flex flex-col justify-center bg-[#f8f5ee] border-t lg:border-t-0 lg:border-l border-[#111110]/8 group">
+
+                        {/* Middle Side Arrow - Left */}
+                        <button
+                            type="button"
+                            onClick={() => scrollCarousel('left')}
+                            aria-label="Scroll left"
+                            className="absolute left-1.5 sm:left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#111110]/85 hover:bg-[#111110] text-[#f5f0e8] flex items-center justify-center transition-all duration-300 shadow-md hover:scale-110 cursor-pointer backdrop-blur-xs"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+
+                        {/* Middle Side Arrow - Right */}
+                        <button
+                            type="button"
+                            onClick={() => scrollCarousel('right')}
+                            aria-label="Scroll right"
+                            className="absolute right-1.5 sm:right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#111110]/85 hover:bg-[#111110] text-[#f5f0e8] flex items-center justify-center transition-all duration-300 shadow-md hover:scale-110 cursor-pointer backdrop-blur-xs"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
 
                         {/* Products Horizontal Slider (Shop Page Products Only) */}
                         <div
                             ref={carouselRef}
-                            className="flex gap-2.5 sm:gap-4 overflow-x-auto scroll-smooth py-0.5 px-0.5"
+                            className="flex gap-3 sm:gap-4 overflow-x-auto scroll-smooth py-1 px-1 sm:px-2"
                             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                         >
                             {loadingProducts && shopProducts.length === 0 ? (
                                 [1, 2, 3, 4].map((i) => (
                                     <div
                                         key={`carousel-skel-${i}`}
-                                        className="shrink-0 w-[145px] sm:w-[185px] md:w-[210px] bg-white rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#111110]/8 animate-pulse"
+                                        className="shrink-0 w-[195px] sm:w-[235px] md:w-[265px] bg-white rounded-2xl p-3.5 sm:p-4 flex flex-col justify-between shadow-[0_2px_10px_rgba(0,0,0,0.03)] border border-[#111110]/8 animate-pulse"
                                     >
-                                        <div className="w-full aspect-square rounded-lg bg-[#faf8f4] p-1 sm:p-1.5 flex items-center justify-center mb-2 sm:mb-3">
+                                        <div className="w-full aspect-square rounded-lg bg-[#faf8f4] p-1.5 sm:p-2 flex items-center justify-center mb-2 sm:mb-3">
                                             <Skeleton height="100%" className="w-full h-full rounded-md" />
                                         </div>
                                         <div className="space-y-1.5 sm:space-y-2">
@@ -284,12 +304,12 @@ const Home = () => {
                                     <Link
                                         key={product._id || product.id}
                                         to={`/product/${product._id || product.id}`}
-                                        className="group/card shrink-0 w-[145px] sm:w-[185px] md:w-[210px] bg-white rounded-xl p-2.5 sm:p-3.5 flex flex-col justify-between shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-all duration-300 border border-[#111110]/8 hover:border-[#111110]/25"
+                                        className="group/card shrink-0 w-[195px] sm:w-[235px] md:w-[265px] bg-white rounded-2xl p-3 sm:p-4 flex flex-col justify-between shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.1)] transition-all duration-300 border border-[#111110]/8 hover:border-[#111110]/30"
                                     >
                                         {/* Product Image from Shop Page */}
-                                        <div className="w-full aspect-square rounded-lg bg-[#faf8f4] p-1 sm:p-1.5 flex items-center justify-center overflow-hidden mb-2 sm:mb-2.5">
+                                        <div className="w-full aspect-square rounded-xl bg-[#faf8f4] p-1 sm:p-1.5 flex items-center justify-center overflow-hidden mb-2.5 sm:mb-3">
                                             <img
-                                                src={getOptimizedImage(product.img || product.image || (product.images && product.images[0]), 360)}
+                                                src={getOptimizedImage(product.img || product.image || (product.images && product.images[0]), 600)}
                                                 alt={product.name}
                                                 loading="lazy"
                                                 className="w-full h-full object-cover rounded-md transition-transform duration-500 ease-out group-hover/card:scale-105"
@@ -318,35 +338,6 @@ const Home = () => {
                                     </Link>
                                 ))
                             )}
-                        </div>
-
-                        {/* Bottom Controls Row: Minimalist Luxury Arrows + Shop Now Button */}
-                        <div className="flex items-center justify-between pt-2.5 sm:pt-4 mt-2 sm:mt-3 border-t border-[#111110]/8">
-                            {/* Navigation Arrows */}
-                            <div className="flex items-center gap-1.5 sm:gap-2">
-                                <button
-                                    onClick={() => scrollCarousel('left')}
-                                    aria-label="Scroll left"
-                                    className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#111110] hover:bg-black text-[#f5f0e8] flex items-center justify-center transition-all duration-300 shadow-sm hover:scale-105"
-                                >
-                                    <ChevronLeft size={14} />
-                                </button>
-                                <button
-                                    onClick={() => scrollCarousel('right')}
-                                    aria-label="Scroll right"
-                                    className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#111110] hover:bg-black text-[#f5f0e8] flex items-center justify-center transition-all duration-300 shadow-sm hover:scale-105"
-                                >
-                                    <ChevronRight size={14} />
-                                </button>
-                            </div>
-
-                            {/* Shop Now Primary Button */}
-                            <Link
-                                to="/shop"
-                                className="px-4 sm:px-6 py-1.5 sm:py-2.5 bg-[#111110] hover:bg-black text-[#f5f0e8] rounded-md font-sans text-[10px] sm:text-[11px] tracking-wider sm:tracking-widest uppercase font-semibold transition-all duration-300 shadow-sm hover:shadow-md hover:scale-[1.02]"
-                            >
-                                Shop Now
-                            </Link>
                         </div>
                     </div>
                 </div>

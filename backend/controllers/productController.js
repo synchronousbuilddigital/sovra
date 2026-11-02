@@ -210,7 +210,7 @@ const getProductById = async (req, res) => {
  */
 const createProduct = async (req, res) => {
   try {
-    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, certification, hero } = req.body;
+    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, certification, hero, shippingWeight, shippingLength, shippingBreadth, shippingHeight } = req.body;
 
     if (showOnHome) {
       const homeCount = await Product.countDocuments({ showOnHome: true });
@@ -241,7 +241,11 @@ const createProduct = async (req, res) => {
       weight: weight || '6g',
       certification: certification || '18K PVD Certified',
       features: features || ['Sweatproof', 'Anti Tarnish', 'Water proof', 'Hypoallergenic'],
-      hero: hero || false
+      hero: hero || false,
+      shippingWeight: shippingWeight !== undefined ? (Number(shippingWeight) || 0.2) : 0.2,
+      shippingLength: shippingLength !== undefined ? (Number(shippingLength) || 10) : 10,
+      shippingBreadth: shippingBreadth !== undefined ? (Number(shippingBreadth) || 10) : 10,
+      shippingHeight: shippingHeight !== undefined ? (Number(shippingHeight) || 5) : 5
     });
 
     const createdProduct = await product.save();
@@ -256,7 +260,7 @@ const createProduct = async (req, res) => {
 // @access  Private/Admin
 const updateProduct = async (req, res) => {
   try {
-    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, certification, hero } = req.body;
+    const { name, price, mrp, showOnHome, details, img, images, category, stock, material, plating, stone, length, weight, features, certification, hero, shippingWeight, shippingLength, shippingBreadth, shippingHeight } = req.body;
 
     const product = await Product.findById(req.params.id);
 
@@ -287,6 +291,10 @@ const updateProduct = async (req, res) => {
       product.features = features || product.features;
       if (certification !== undefined) product.certification = certification;
       product.hero = hero !== undefined ? hero : product.hero;
+      if (shippingWeight !== undefined) product.shippingWeight = Number(shippingWeight) || 0.2;
+      if (shippingLength !== undefined) product.shippingLength = Number(shippingLength) || 10;
+      if (shippingBreadth !== undefined) product.shippingBreadth = Number(shippingBreadth) || 10;
+      if (shippingHeight !== undefined) product.shippingHeight = Number(shippingHeight) || 5;
 
       const updatedProduct = await product.save();
       res.json(updatedProduct);

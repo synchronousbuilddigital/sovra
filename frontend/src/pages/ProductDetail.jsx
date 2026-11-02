@@ -19,7 +19,12 @@ import {
     Sparkles, 
     FileText, 
     Truck, 
-    Maximize2 
+    Maximize2,
+    MapPin,
+    CheckCircle2,
+    AlertCircle,
+    Loader2,
+    ShieldCheck
 } from 'lucide-react'
 import api from '../utils/api'
 import { formatPrice } from '../utils/currency'
@@ -69,6 +74,51 @@ const ProductDetail = () => {
     const [openAccordion, setOpenAccordion] = useState('specs')
     const toggleAccordion = (section) => {
         setOpenAccordion(prev => prev === section ? null : section)
+    }
+
+    // Delivery / Pincode EDD State
+    const [pincode, setPincode] = useState(() => localStorage.getItem('sovra_pincode') || '')
+    const [eddResult, setEddResult] = useState(() => {
+        try {
+            const saved = localStorage.getItem('sovra_edd_result')
+            return saved ? JSON.parse(saved) : null
+        } catch {
+            return null
+        }
+    })
+    const [checkingPincode, setCheckingPincode] = useState(false)
+    const [pincodeError, setPincodeError] = useState('')
+    const [isChangingPincode, setIsChangingPincode] = useState(false)
+
+    const handleCheckPincode = async (e) => {
+        if (e) e.preventDefault()
+        const cleanPin = String(pincode || '').trim().replace(/\D/g, '')
+        if (!cleanPin || cleanPin.length !== 6 || !/^[1-9][0-9]{5}$/.test(cleanPin)) {
+            setPincodeError('Please enter a valid 6-digit Indian delivery pincode')
+            return
+        }
+
+        setCheckingPincode(true)
+        setPincodeError('')
+
+        try {
+            const res = await api.post('/shipping/check-pincode', { pincode: cleanPin })
+            if (res.data && res.data.success) {
+                setEddResult(res.data)
+                setIsChangingPincode(false)
+                localStorage.setItem('sovra_pincode', cleanPin)
+                localStorage.setItem('sovra_edd_result', JSON.stringify(res.data))
+                if (!res.data.serviceable) {
+                    setPincodeError(res.data.message || 'Delivery is currently unavailable to this pincode.')
+                }
+            } else {
+                setPincodeError(res.data?.message || 'Unable to check pincode serviceability.')
+            }
+        } catch (err) {
+            setPincodeError(err.response?.data?.message || 'Failed to verify pincode. Please try again.')
+        } finally {
+            setCheckingPincode(false)
+        }
     }
 
     const isWishlisted = wishlist.some(item => (item._id || item) === id)
@@ -403,7 +453,7 @@ const ProductDetail = () => {
                             <span className="font-sans text-[11px] sm:text-xs tracking-[0.25em] uppercase text-[#855e23] font-bold block mb-1.5">
                                 {product.category || product.series || 'Fine Jewellery'}
                             </span>
-                            <h1 className="font-serif text-3xl sm:text-4xl lg:text-[40px] text-[#1c1917] font-normal tracking-tight leading-[1.15] mb-3">
+                            <h1 className="font-serif lining-nums text-3xl sm:text-4xl lg:text-[40px] text-[#1c1917] font-normal tracking-tight leading-[1.15] mb-3">
                                 {product.name}
                             </h1>
 
@@ -546,6 +596,129 @@ const ProductDetail = () => {
                             </div>
                         </div>
 
+                        {/* ESTIMATED DELIVERY DATE (EDD) / PINCODE SERVICEABILITY CHECKER */}
+                        <div className="my-5 p-4 rounded-2xl bg-[#fbf9f5] border border-[#e6ded3] shadow-xs">
+                            <div className="flex items-center justify-between gap-2 mb-2.5">
+                                <div className="flex items-center gap-2">
+                                    <Truck size={16} className="text-[#855e23]" />
+                                    <span className="font-sans text-[11px] sm:text-xs uppercase tracking-wider font-bold text-stone-900">
+                                        Estimated Delivery & Service
+                                    </span>
+                                </div>
+                                {eddResult && eddResult.serviceable && !isChangingPincode && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsChangingPincode(true)
+                                            setPincodeError('')
+                                        }}
+                                        className="text-[11px] font-sans font-bold text-[#855e23] hover:text-[#5e4218] underline underline-offset-2 transition-colors cursor-pointer"
+                                    >
+                                        Change PIN
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Input Form if not yet checked OR when user clicks 'Change PIN' */}
+                            {(!eddResult || isChangingPincode) ? (
+                                <form onSubmit={handleCheckPincode} className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative flex-1">
+                                            <MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={6}
+                                                value={pincode}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                                                    setPincode(val)
+                                                    if (pincodeError) setPincodeError('')
+                                                }}
+                                                placeholder="Enter 6-digit delivery pincode"
+                                                className="w-full h-11 pl-9.5 pr-3 rounded-xl border border-stone-300/90 bg-white text-xs sm:text-[13px] font-sans text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#855e23]/30 focus:border-[#855e23] transition-all"
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={checkingPincode || pincode.length !== 6}
+                                            className="h-11 px-4 sm:px-5 rounded-xl bg-[#241e17] hover:bg-[#120f0c] text-white text-xs font-sans font-bold uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1.5 shrink-0"
+                                        >
+                                            {checkingPincode ? (
+                                                <>
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                    <span>Checking...</span>
+                                                </>
+                                            ) : (
+                                                <span>Check</span>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {pincodeError && (
+                                        <div className="flex items-start gap-1.5 pt-1 text-[11px] sm:text-xs text-rose-600 font-sans">
+                                            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                                            <span>{pincodeError}</span>
+                                        </div>
+                                    )}
+                                </form>
+                            ) : (
+                                /* Verified EDD Display */
+                                <div className="space-y-2.5">
+                                    {eddResult.serviceable ? (
+                                        <div className="bg-white/90 rounded-xl p-3 border border-[#dfd6c8] space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] sm:text-xs font-sans text-stone-600 flex items-center gap-1.5">
+                                                    <MapPin size={13} className="text-[#855e23]" />
+                                                    Delivering to <strong className="text-stone-900 font-bold">{eddResult.pincode}</strong>
+                                                </span>
+                                                <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                                    Serviceable
+                                                </span>
+                                            </div>
+
+                                            <div className="pt-0.5">
+                                                <div className="text-sm sm:text-[15px] font-sans font-bold text-stone-900 flex items-center gap-1.5">
+                                                    <Sparkles size={14} className="text-[#855e23]" />
+                                                    <span>Delivery by <span className="text-[#855e23]">{eddResult.estimatedDeliveryDate}</span></span>
+                                                </div>
+                                                <p className="text-[11px] font-sans text-stone-500 mt-0.5">
+                                                    Standard delivery in {eddResult.estimatedDays} via {eddResult.fastestCourier || 'Express Air Courier'}.
+                                                </p>
+                                            </div>
+
+                                            <div className="pt-2 border-t border-stone-200/70 flex items-center gap-1.5 text-[11px] font-sans text-stone-700">
+                                                <CheckCircle2 size={13} className="text-emerald-700 shrink-0" />
+                                                <span>Free Insured Express Shipping across India</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-rose-50/90 rounded-xl p-3 border border-rose-200 text-xs font-sans text-rose-800 flex items-start justify-between gap-2">
+                                            <div className="flex items-start gap-2">
+                                                <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="font-bold">Not Serviceable for {eddResult.pincode}</p>
+                                                    <p className="text-[11px] text-rose-700 mt-0.5">
+                                                        Courier delivery is currently unavailable for this pincode.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsChangingPincode(true)
+                                                    setPincodeError('')
+                                                }}
+                                                className="text-xs font-bold text-rose-900 underline shrink-0 cursor-pointer"
+                                            >
+                                                Try Another
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         {/* Collapsible Accordions: Product Specifications, Delivery & Returns, Product Care */}
                         <div className="border-t border-stone-200/80 divide-y divide-stone-200/80 pt-2">
                             
@@ -662,7 +835,7 @@ const ProductDetail = () => {
                                                 </p>
                                                 <p className="flex items-start gap-2.5">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-[#855e23] shrink-0 mt-1.5" />
-                                                    <span>Hassle-free 7-day return policy and doorstep exchange assurance.</span>
+                                                    <span>Handcrafted pieces sealed in tamper-evident security packaging before dispatch.</span>
                                                 </p>
                                             </div>
                                         </Motion.div>

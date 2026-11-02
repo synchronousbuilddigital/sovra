@@ -17,7 +17,10 @@ import {
     XCircle,
     ExternalLink,
     ShieldCheck,
-    RotateCcw
+    RotateCcw,
+    RefreshCw,
+    Copy,
+    Check
 } from 'lucide-react';
 
 const OrderDetail = () => {
@@ -32,6 +35,80 @@ const OrderDetail = () => {
     const [showReturnForm, setShowReturnForm] = useState(false);
     const [returnReason, setReturnReason] = useState('');
     const [submittingReturn, setSubmittingReturn] = useState(false);
+    const [returnDetails, setReturnDetails] = useState('');
+    const [hasUnboxingVideo, setHasUnboxingVideo] = useState(false);
+    const [unboxingVideoUrl, setUnboxingVideoUrl] = useState('');
+    const [uploadingVideo, setUploadingVideo] = useState(false);
+
+    const handleVideoUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('video/')) {
+            return toast.error('Please select a valid video file (MP4, MOV, WebM).');
+        }
+
+        if (file.size > 100 * 1024 * 1024) {
+            return toast.error('Video size must be less than 100MB.');
+        }
+
+        const formData = new FormData();
+        formData.append('media', file);
+
+        try {
+            setUploadingVideo(true);
+            const { data } = await api.post('/upload/exchange-media', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setUnboxingVideoUrl(data.url);
+            setHasUnboxingVideo(true);
+            toast.success('Unboxing video uploaded successfully!');
+        } catch (err) {
+            console.error('Video upload error:', err);
+            toast.error(err.response?.data?.message || 'Video upload failed. Please try again.');
+        } finally {
+            setUploadingVideo(false);
+        }
+    };
+
+    const isWithin48Hours = () => {
+        if (!order || (!order.isDelivered && order.status !== 'Delivered')) return false;
+        const deliveryDate = order.deliveredAt || order.updatedAt;
+        const diffHours = (Date.now() - new Date(deliveryDate).getTime()) / (1000 * 60 * 60);
+        return diffHours <= 48;
+    };
+
+    const getRemainingHours = () => {
+        if (!order) return 0;
+        const deliveryDate = order.deliveredAt || order.updatedAt;
+        const diffHours = (Date.now() - new Date(deliveryDate).getTime()) / (1000 * 60 * 60);
+        return Math.max(0, Math.ceil(48 - diffHours));
+    };
+    const [showTrackingModal, setShowTrackingModal] = useState(false);
+    const [trackingData, setTrackingData] = useState(null);
+    const [loadingTracking, setLoadingTracking] = useState(false);
+    const [copiedAwb, setCopiedAwb] = useState(false);
+
+    const handleOpenTracking = async () => {
+        setShowTrackingModal(true);
+        setLoadingTracking(true);
+        try {
+            const { data } = await api.get(`/shipping/order/${order._id}/track`);
+            setTrackingData(data);
+        } catch (err) {
+            console.error('Tracking fetch error:', err);
+            toast.error(err.response?.data?.message || 'Could not fetch live tracking.');
+        } finally {
+            setLoadingTracking(false);
+        }
+    };
+
+    const handleCopyAwb = (awb) => {
+        navigator.clipboard.writeText(awb);
+        setCopiedAwb(true);
+        toast.success('AWB copied to clipboard');
+        setTimeout(() => setCopiedAwb(false), 2000);
+    };
 
     useEffect(() => {
         fetchOrder();
@@ -124,14 +201,25 @@ const OrderDetail = () => {
 
     const handleReturnOrder = async (e) => {
         e.preventDefault();
+        if (!unboxingVideoUrl) {
+            return toast.error('Please upload your continuous uncut unboxing video as required by Sovra policy.');
+        }
+        if (!hasUnboxingVideo) {
+            return toast.error('You must confirm having a continuous uncut unboxing video as required by Sovra policy.');
+        }
         try {
             setSubmittingReturn(true);
-            const { data } = await api.post(`/orders/${id}/return`, { reason: returnReason });
+            const { data } = await api.post(`/orders/${id}/return`, {
+                reason: returnReason || 'Damaged in transit',
+                details: returnDetails,
+                video: unboxingVideoUrl,
+                hasUnboxingVideo: true,
+            });
             setOrder(data);
             setShowReturnForm(false);
-            toast.success('Return request submitted successfully.');
+            toast.success('Exchange request submitted successfully. Our concierge will review your unboxing video.');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Could not submit return request.');
+            toast.error(error.response?.data?.message || 'Could not submit exchange request.');
         } finally {
             setSubmittingReturn(false);
         }
@@ -297,23 +385,46 @@ const OrderDetail = () => {
 
                             {/* Tracking Info if Shipped */}
                             {order.trackingNumber && (
-                                <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gray-50 p-4 rounded-xl">
-                                    <div>
-                                        <span className="text-[11px] uppercase font-bold text-gray-500 tracking-wider block">
-                                            Courier Delivery Details
-                                        </span>
-                                        <p className="text-sm font-bold text-gray-900 mt-0.5">
-                                            {order.carrier || 'Express Courier'}: <span className="font-mono">{order.trackingNumber}</span>
+                                <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-stone-50 to-amber-50/30 p-5 rounded-2xl border border-stone-200/60">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider bg-primary/10 text-primary border border-primary/20">
+                                                <Truck size={11} /> {order.carrier || 'Express Logistics'}
+                                            </span>
+                                            {order.ad2ship?.shipmentStatus && (
+                                                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                    {order.ad2ship.shipmentStatus}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                                            AWB: <span className="font-mono tracking-wider text-primary">{order.trackingNumber}</span>
+                                            <button
+                                                onClick={() => handleCopyAwb(order.trackingNumber)}
+                                                className="text-stone-400 hover:text-stone-700 transition-colors p-1"
+                                                title="Copy AWB Number"
+                                            >
+                                                {copiedAwb ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                                            </button>
                                         </p>
                                     </div>
-                                    <a
-                                        href={`https://www.google.com/search?q=${encodeURIComponent((order.carrier || '') + ' tracking ' + order.trackingNumber)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-black hover:bg-gray-800 px-4 py-2 rounded-lg transition-colors"
-                                    >
-                                        Track Package <ExternalLink size={13} />
-                                    </a>
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                        <button
+                                            onClick={handleOpenTracking}
+                                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-stone-900 hover:bg-black px-4 py-2.5 rounded-xl shadow-sm transition-all"
+                                        >
+                                            <Truck size={13} /> Live Tracking
+                                        </button>
+                                        <a
+                                            href={`https://www.google.com/search?q=${encodeURIComponent((order.carrier || '') + ' tracking ' + order.trackingNumber)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center justify-center p-2.5 rounded-xl border border-stone-200 hover:bg-white text-stone-600 transition-colors"
+                                            title="External Courier Link"
+                                        >
+                                            <ExternalLink size={13} />
+                                        </a>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -509,42 +620,141 @@ const OrderDetail = () => {
                                 </div>
                             )}
 
-                            {/* Return Request Button */}
+                            {/* Exchange Request Section (Strictly 48 Hours & Unboxing Video) */}
                             {order.status === 'Delivered' && !order.returnRequest?.isRequested && (
-                                <div className="pt-2 border-t border-gray-100">
-                                    <button
-                                        onClick={() => setShowReturnForm(!showReturnForm)}
-                                        className="w-full py-2.5 border border-gray-300 text-gray-800 hover:bg-gray-50 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                                    >
-                                        <RotateCcw size={14} /> Request a Return
-                                    </button>
-                                    <p className="text-[11px] text-gray-400 text-center mt-1.5">
-                                        Returns can be requested within 7 days of delivery.
-                                    </p>
+                                <div className="pt-2 border-t border-gray-100 space-y-2">
+                                    {isWithin48Hours() ? (
+                                        <>
+                                            <button
+                                                onClick={() => setShowReturnForm(!showReturnForm)}
+                                                className="w-full py-2.5 border border-amber-300/80 bg-amber-50/50 hover:bg-amber-50 text-amber-900 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                                            >
+                                                <RotateCcw size={14} /> Request an Exchange
+                                            </button>
+                                            <div className="text-[11px] text-stone-500 text-center leading-relaxed">
+                                                <span>Exchange window closes in <strong>{getRemainingHours()} hours</strong>.</span>
+                                                <p className="text-[10px] text-stone-400 mt-0.5">
+                                                    Exchanges provided for transit damage or defect with mandatory unboxing video (no returns/refunds).
+                                                </p>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="p-3 bg-stone-50 rounded-xl text-center text-xs text-stone-500 border border-stone-200">
+                                            <span>The 48-hour exchange window for this delivery has concluded.</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
-                            {/* Return Form (Expandable) */}
-                            {showReturnForm && (
+                            {/* Exchange Form (Expandable) */}
+                            {showReturnForm && isWithin48Hours() && (
                                 <form onSubmit={handleReturnOrder} className="pt-3 border-t border-gray-100 space-y-3">
-                                    <label className="text-xs font-bold text-gray-700 block">
-                                        Reason for Return:
-                                    </label>
-                                    <textarea
-                                        required
-                                        value={returnReason}
-                                        onChange={(e) => setReturnReason(e.target.value)}
-                                        placeholder="Please tell us why you wish to return this item..."
-                                        rows={3}
-                                        className="w-full text-xs p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black resize-none"
-                                    />
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-800 block">
+                                            Reason for Exchange:
+                                        </label>
+                                        <select
+                                            value={returnReason}
+                                            onChange={(e) => setReturnReason(e.target.value)}
+                                            className="w-full text-xs p-2.5 mt-1 border border-gray-300 rounded-lg focus:outline-none focus:border-black bg-white"
+                                        >
+                                            <option value="Damaged in transit">Damaged in transit</option>
+                                            <option value="Defective / Quality flaw">Defective / Quality flaw</option>
+                                            <option value="Wrong piece delivered">Wrong piece delivered</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-800 block">
+                                            Details of the defect/damage:
+                                        </label>
+                                        <textarea
+                                            required
+                                            value={returnDetails}
+                                            onChange={(e) => setReturnDetails(e.target.value)}
+                                            placeholder="Please describe the defect or transit damage clearly..."
+                                            rows={3}
+                                            className="w-full text-xs p-3 mt-1 border border-gray-300 rounded-lg focus:outline-none focus:border-black resize-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-800 block mb-1">
+                                            Upload Mandatory Unboxing Video <span className="text-red-500">*</span>:
+                                        </label>
+                                        <p className="text-[11px] text-gray-500 mb-2">
+                                            Continuous, uncut video showing the sealed courier package and item inspection (MP4, MOV, WebM, Max 100MB).
+                                        </p>
+
+                                        {unboxingVideoUrl ? (
+                                            <div className="space-y-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                                                <video
+                                                    src={unboxingVideoUrl}
+                                                    controls
+                                                    className="w-full max-h-52 rounded-lg bg-black"
+                                                    preload="metadata"
+                                                />
+                                                <div className="flex justify-between items-center pt-1">
+                                                    <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                                                        ✓ Unboxing video uploaded
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setUnboxingVideoUrl(''); setHasUnboxingVideo(false); }}
+                                                        className="text-[11px] text-red-600 font-bold hover:underline"
+                                                    >
+                                                        Replace Video
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="relative border-2 border-dashed border-gray-300 hover:border-black rounded-xl p-4 text-center transition-colors bg-white">
+                                                <input
+                                                    type="file"
+                                                    accept="video/*"
+                                                    required
+                                                    disabled={uploadingVideo}
+                                                    onChange={handleVideoUpload}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                                                />
+                                                {uploadingVideo ? (
+                                                    <div className="flex flex-col items-center justify-center gap-2 py-3">
+                                                        <div className="w-5 h-5 border-2 border-[#855e23] border-t-transparent rounded-full animate-spin" />
+                                                        <span className="text-xs font-semibold text-[#855e23]">Uploading unboxing video... Please wait...</span>
+                                                        <span className="text-[10px] text-gray-400">Do not refresh</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="py-2 flex flex-col items-center">
+                                                        <span className="text-2xl mb-1">📹</span>
+                                                        <span className="text-xs font-bold text-gray-800">Click or tap to upload unboxing video</span>
+                                                        <span className="text-[10px] text-gray-400 mt-0.5">MP4, MOV, WebM up to 100MB</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-200/80 flex items-start gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="unboxingCheck"
+                                            required
+                                            checked={hasUnboxingVideo}
+                                            onChange={(e) => setHasUnboxingVideo(e.target.checked)}
+                                            className="mt-0.5 accent-[#855e23] cursor-pointer"
+                                        />
+                                        <label htmlFor="unboxingCheck" className="text-[11px] text-amber-900 leading-snug cursor-pointer font-medium">
+                                            I confirm this is a continuous, uncut unboxing video showing the sealed package being opened (Mandatory as per Sovra Exchange Policy).
+                                        </label>
+                                    </div>
+
                                     <div className="flex gap-2">
                                         <button
                                             type="submit"
-                                            disabled={submittingReturn}
+                                            disabled={submittingReturn || uploadingVideo || !unboxingVideoUrl || !hasUnboxingVideo}
                                             className="flex-1 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-gray-800 disabled:opacity-50"
                                         >
-                                            {submittingReturn ? 'Submitting...' : 'Submit Request'}
+                                            {submittingReturn ? 'Submitting...' : 'Submit Exchange Request'}
                                         </button>
                                         <button
                                             type="button"
@@ -557,18 +767,32 @@ const OrderDetail = () => {
                                 </form>
                             )}
 
-                            {/* Return Status if already requested */}
+                            {/* Exchange Status if already requested */}
                             {order.returnRequest?.isRequested && (
                                 <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs space-y-1">
                                     <p className="font-bold text-gray-800">
-                                        Return Status: <span className="capitalize">{order.returnRequest.status}</span>
+                                        Exchange Status: <span className="capitalize">{order.returnRequest.status}</span>
                                     </p>
                                     <p className="text-gray-500">
                                         Requested on {new Date(order.returnRequest.requestedAt).toLocaleDateString()}
                                     </p>
+                                    <p className="text-[11px] text-stone-500">
+                                        Reason: {order.returnRequest.reason}
+                                    </p>
+                                    {order.returnRequest.video && (
+                                        <div className="pt-2">
+                                            <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Your Uploaded Unboxing Video:</p>
+                                            <div className="rounded-lg overflow-hidden bg-black max-w-sm">
+                                                <video src={order.returnRequest.video} controls className="w-full max-h-48 object-contain" />
+                                            </div>
+                                            <a href={order.returnRequest.video} target="_blank" rel="noreferrer" className="text-[11px] text-stone-600 underline hover:text-black mt-1 inline-block">
+                                                View full video in new tab ↗
+                                            </a>
+                                        </div>
+                                    )}
                                     {order.statusUpdateReason && (
                                         <p className="text-gray-600 bg-white p-2 rounded border border-gray-200 mt-2">
-                                            Store note: {order.statusUpdateReason}
+                                            Concierge note: {order.statusUpdateReason}
                                         </p>
                                     )}
                                 </div>
@@ -589,6 +813,115 @@ const OrderDetail = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Live Shipment Tracking Modal */}
+            {showTrackingModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-stone-100 space-y-6 max-h-[85vh] flex flex-col">
+                        <div className="flex items-start justify-between border-b border-stone-100 pb-4">
+                            <div>
+                                <span className="text-[10px] uppercase font-bold tracking-widest text-primary">Shipment Tracking</span>
+                                <h3 className="text-xl font-bold text-stone-900 mt-0.5 flex items-center gap-2">
+                                    <Truck size={20} className="text-primary" /> {order.carrier || 'Express Courier'}
+                                </h3>
+                                <p className="text-xs font-mono text-stone-500 mt-1">AWB: {order.trackingNumber}</p>
+                            </div>
+                            <button
+                                onClick={() => setShowTrackingModal(false)}
+                                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 transition-colors"
+                            >
+                                <XCircle size={18} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+                            {loadingTracking ? (
+                                <div className="py-12 text-center space-y-3">
+                                    <RefreshCw size={24} className="animate-spin text-primary mx-auto" />
+                                    <p className="text-xs font-semibold text-stone-500">Fetching live courier scans...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="bg-stone-50 p-4 rounded-2xl border border-stone-100 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] uppercase font-bold text-stone-400">Current Status</p>
+                                            <p className="text-sm font-bold text-stone-900 mt-0.5">
+                                                {trackingData?.status || order.ad2ship?.shipmentStatus || order.status}
+                                            </p>
+                                        </div>
+                                        <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" />
+                                    </div>
+
+                                    {/* Timeline events */}
+                                    <div className="space-y-3 pt-2">
+                                        <p className="text-[10px] uppercase font-bold tracking-wider text-stone-400">Scan History</p>
+                                        {trackingData?.data?.scans && trackingData.data.scans.length > 0 ? (
+                                            <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
+                                                {trackingData.data.scans.map((scan, idx) => (
+                                                    <div key={idx} className="relative space-y-1">
+                                                        <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary/10" />
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <p className="text-xs font-bold text-stone-800">{scan.status || scan.activity}</p>
+                                                            <span className="text-[10px] text-stone-400 font-mono">{scan.date || scan.time || ''}</span>
+                                                        </div>
+                                                        {scan.location && (
+                                                            <p className="text-[11px] text-stone-500 flex items-center gap-1">
+                                                                <MapPin size={11} /> {scan.location}
+                                                            </p>
+                                                        )}
+                                                        {scan.remarks && (
+                                                            <p className="text-[11px] text-stone-400 italic">{scan.remarks}</p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : order.ad2ship?.trackingHistory && order.ad2ship.trackingHistory.length > 0 ? (
+                                            <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
+                                                {order.ad2ship.trackingHistory.map((scan, idx) => (
+                                                    <div key={idx} className="relative space-y-1">
+                                                        <span className="absolute -left-6 top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-primary/10" />
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <p className="text-xs font-bold text-stone-800">{scan.status || scan.statusDescription}</p>
+                                                            <span className="text-[10px] text-stone-400 font-mono">{scan.eventDate}</span>
+                                                        </div>
+                                                        {scan.location && (
+                                                            <p className="text-[11px] text-stone-500 flex items-center gap-1">
+                                                                <MapPin size={11} /> {scan.location}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-6 bg-stone-50 rounded-2xl border border-stone-100">
+                                                <Package size={24} className="text-stone-300 mx-auto mb-2" />
+                                                <p className="text-xs text-stone-500 font-medium">Package registered with {order.carrier || 'Courier'}.</p>
+                                                <p className="text-[11px] text-stone-400 mt-0.5">Live transit scans usually reflect within 4-6 hours of pickup handover.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-3">
+                            <button
+                                onClick={handleOpenTracking}
+                                disabled={loadingTracking}
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-stone-600 hover:text-stone-900"
+                            >
+                                <RefreshCw size={12} className={loadingTracking ? 'animate-spin' : ''} /> Refresh Scans
+                            </button>
+                            <button
+                                onClick={() => setShowTrackingModal(false)}
+                                className="px-5 py-2 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Cancel Order Confirmation Modal */}
             {showCancelModal && (

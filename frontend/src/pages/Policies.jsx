@@ -43,7 +43,7 @@ const Policies = () => {
                 },
                 {
                     h: "48-Hour Request Window & Process",
-                    p: "Raise your exchange request within 48 hours of delivery at support@sovra.in with your order number and unboxing video. Once approved, reverse pickup is arranged at no cost to you."
+                    p: "Raise your exchange request within 48 hours of confirmed delivery directly in your order panel or at support@sovra.in with your order number and unboxing video. Once approved, reverse pickup is arranged at no cost to you."
                 }
             ]
         }

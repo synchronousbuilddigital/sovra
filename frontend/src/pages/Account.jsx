@@ -70,6 +70,47 @@ const Account = () => {
     const [returnReason, setReturnReason] = useState('Artisanal Defect')
     const [returnDetails, setReturnDetails] = useState('')
     const [submittingReturn, setSubmittingReturn] = useState(false)
+    const [hasUnboxingVideo, setHasUnboxingVideo] = useState(false)
+    const [returnVideoUrl, setReturnVideoUrl] = useState('')
+    const [uploadingReturnVideo, setUploadingReturnVideo] = useState(false)
+
+    const handleReturnVideoUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('video/')) {
+            return toast.error('Please select a valid video file (MP4, MOV, WebM).');
+        }
+
+        if (file.size > 100 * 1024 * 1024) {
+            return toast.error('Video size must be less than 100MB.');
+        }
+
+        const formData = new FormData();
+        formData.append('media', file);
+
+        try {
+            setUploadingReturnVideo(true);
+            const { data } = await api.post('/upload/exchange-media', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setReturnVideoUrl(data.url);
+            setHasUnboxingVideo(true);
+            toast.success('Unboxing video uploaded successfully!');
+        } catch (err) {
+            console.error('Video upload error:', err);
+            toast.error(err.response?.data?.message || 'Video upload failed. Please try again.');
+        } finally {
+            setUploadingReturnVideo(false);
+        }
+    };
+
+    const isWithin48Hours = (order) => {
+        if (!order || (!order.isDelivered && order.status !== 'Delivered')) return false;
+        const deliveryDate = order.deliveredAt || order.updatedAt;
+        const diffHours = (Date.now() - new Date(deliveryDate).getTime()) / (1000 * 60 * 60);
+        return diffHours <= 48;
+    };
 
     useEffect(() => {
         const fetchMyOrders = async () => {
@@ -221,18 +262,28 @@ const Account = () => {
 
     const handleReturnSubmit = async (e) => {
         e.preventDefault()
+        if (!returnVideoUrl) {
+            return toast.error('Please upload your continuous uncut unboxing video as required by Sovra policy.')
+        }
+        if (!hasUnboxingVideo) {
+            return toast.error('You must confirm having a continuous uncut unboxing video.')
+        }
         try {
             setSubmittingReturn(true)
             await api.post(`/orders/${selectedReturnOrder._id}/return`, {
                 reason: returnReason,
-                details: returnDetails
+                details: returnDetails,
+                video: returnVideoUrl,
+                hasUnboxingVideo: true
             })
-            toast.success('Return request submitted successfully.')
+            toast.success('Exchange request submitted successfully. Concierge will review your video.')
             setShowReturnModal(false)
+            setReturnVideoUrl('')
+            setHasUnboxingVideo(false)
             const { data } = await api.get('/orders/myorders')
             setMyOrders(data || [])
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to submit return request.')
+            toast.error(error.response?.data?.message || 'Failed to submit exchange request.')
         } finally {
             setSubmittingReturn(false)
         }
@@ -756,14 +807,32 @@ const Account = () => {
                                             </button>
                                         </div>
 
-                                        {order.status === 'Delivered' && !order.returnRequest?.isRequested && (
+                                        {order.status === 'Delivered' && !order.returnRequest?.isRequested && isWithin48Hours(order) && (
                                             <button
-                                                onClick={() => { setSelectedReturnOrder(order); setShowReturnModal(true); }}
+                                                onClick={() => { setSelectedReturnOrder(order); setReturnVideoUrl(''); setHasUnboxingVideo(false); setShowReturnModal(true); }}
                                                 className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 border border-amber-300/40 rounded-xl text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
                                             >
                                                 <RotateCcw size={14} />
-                                                <span>Request Return</span>
+                                                <span>Request Exchange</span>
                                             </button>
+                                        )}
+
+                                        {order.returnRequest?.isRequested && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-300/50 rounded-lg text-xs font-bold uppercase tracking-wider">
+                                                    Exchange: {order.returnRequest.status}
+                                                </span>
+                                                {order.returnRequest.video && (
+                                                    <a
+                                                        href={order.returnRequest.video}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="text-xs text-amber-800 underline font-semibold hover:text-amber-950"
+                                                    >
+                                                        📹 Video
+                                                    </a>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -1427,10 +1496,10 @@ const Account = () => {
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                        <span className="font-mono text-[9px] uppercase tracking-widest text-primary/70 font-semibold">RETURN INITIATION</span>
+                                        <span className="font-mono text-[9px] uppercase tracking-widest text-primary/70 font-semibold">EXCHANGE INITIATION</span>
                                     </div>
-                                    <h2 className="font-plex text-3xl text-[#111110]">Request Return</h2>
-                                    <p className="font-mono text-xs text-stone-500 mt-1">Order #{selectedReturnOrder?._id.slice(-8).toUpperCase()}</p>
+                                    <h2 className="font-plex text-3xl text-[#111110]">Request Exchange</h2>
+                                    <p className="font-mono text-xs text-stone-500 mt-1">Order #{selectedReturnOrder?._id.slice(-8).toUpperCase()} • Eligible within 48 hours of delivery</p>
                                 </div>
                                 <button
                                     onClick={() => setShowReturnModal(false)}
@@ -1440,31 +1509,94 @@ const Account = () => {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleReturnSubmit} className="space-y-6">
+                            <form onSubmit={handleReturnSubmit} className="space-y-5">
+                                <div className="p-3 bg-amber-50/70 border border-amber-200/60 rounded-xl text-xs text-amber-900 leading-relaxed font-sans">
+                                    <strong>Sovra Exchange Policy:</strong> Exchanges are provided solely for transit damage or verified defects reported within 48 hours of confirmed delivery. Returns and refunds are not supported.
+                                </div>
+
                                 <div className="space-y-1.5">
-                                    <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">Reason for Request</label>
+                                    <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">Reason for Exchange</label>
                                     <select
                                         value={returnReason}
                                         onChange={e => setReturnReason(e.target.value)}
                                         className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-stone-800 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer"
                                     >
+                                        <option value="Damaged in transit">Damaged in transit</option>
                                         <option value="Artisanal Defect">Defective or Damaged Item</option>
-                                        <option value="Dimensions mismatch">Wrong Size or Fit</option>
-                                        <option value="Aesthetic variation">Did not match expectations</option>
                                         <option value="Incorrect masterpiece">Wrong item delivered</option>
                                     </select>
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">Details & Feedback</label>
+                                    <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">Details of defect/damage</label>
                                     <textarea
                                         required
                                         value={returnDetails}
                                         onChange={e => setReturnDetails(e.target.value)}
-                                        rows={4}
-                                        placeholder="Please provide specifics regarding the condition or reason for return..."
-                                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-stone-800 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        rows={3}
+                                        placeholder="Please provide specifics regarding the damage or defect..."
+                                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-4 text-stone-800 font-sans text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-none"
                                     />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="font-sans text-[10px] uppercase tracking-[0.2em] font-bold text-stone-500">Upload Continuous Unboxing Video *</label>
+                                    <p className="text-[11px] text-stone-500 font-sans">
+                                        Must be a continuous, uncut video showing the sealed package being unboxed and product condition (MP4, MOV, WebM, up to 100MB).
+                                    </p>
+
+                                    {returnVideoUrl ? (
+                                        <div className="space-y-2 p-3 bg-stone-50 rounded-xl border border-stone-200">
+                                            <video src={returnVideoUrl} controls className="w-full max-h-48 rounded-lg bg-black" />
+                                            <div className="flex justify-between items-center pt-1">
+                                                <span className="text-xs text-emerald-700 font-bold">✓ Unboxing video uploaded</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setReturnVideoUrl(''); setHasUnboxingVideo(false); }}
+                                                    className="text-xs text-red-600 font-bold hover:underline"
+                                                >
+                                                    Replace Video
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="relative border-2 border-dashed border-stone-300 hover:border-stone-800 rounded-xl p-5 text-center transition-colors bg-stone-50">
+                                            <input
+                                                type="file"
+                                                accept="video/*"
+                                                required
+                                                disabled={uploadingReturnVideo}
+                                                onChange={handleReturnVideoUpload}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                                            />
+                                            {uploadingReturnVideo ? (
+                                                <div className="flex flex-col items-center justify-center gap-2 py-2">
+                                                    <div className="w-5 h-5 border-2 border-[#855e23] border-t-transparent rounded-full animate-spin" />
+                                                    <span className="text-xs font-semibold text-[#855e23]">Uploading unboxing video... Please wait...</span>
+                                                </div>
+                                            ) : (
+                                                <div className="py-2 flex flex-col items-center">
+                                                    <span className="text-2xl mb-1">📹</span>
+                                                    <span className="text-xs font-bold text-stone-800">Click or tap to upload unboxing video</span>
+                                                    <span className="text-[10px] text-stone-400 mt-0.5">MP4, MOV, WebM up to 100MB</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="p-3 bg-[#faf8f2] border border-[#6e5b44]/20 rounded-xl flex items-start gap-2.5">
+                                    <input
+                                        type="checkbox"
+                                        id="modalUnboxingCheck"
+                                        required
+                                        checked={hasUnboxingVideo}
+                                        onChange={e => setHasUnboxingVideo(e.target.checked)}
+                                        className="mt-0.5 accent-[#855e23] cursor-pointer"
+                                    />
+                                    <label htmlFor="modalUnboxingCheck" className="text-xs text-stone-800 cursor-pointer leading-snug font-medium">
+                                        I confirm this is a continuous, uncut unboxing video showing the sealed package being opened (Mandatory requirement as per Sovra policy).
+                                    </label>
                                 </div>
 
                                 <div className="flex items-center justify-end gap-3 pt-2">
@@ -1477,10 +1609,10 @@ const Account = () => {
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={submittingReturn}
+                                        disabled={submittingReturn || uploadingReturnVideo || !returnVideoUrl || !hasUnboxingVideo}
                                         className="px-6 py-2.5 bg-[#111110] hover:bg-primary text-white rounded-xl text-xs font-sans font-bold uppercase tracking-wider shadow-sm transition-all disabled:opacity-50"
                                     >
-                                        {submittingReturn ? 'Submitting Request...' : 'Submit Return Request'}
+                                        {submittingReturn ? 'Submitting...' : 'Submit Exchange Request'}
                                     </button>
                                 </div>
                             </form>

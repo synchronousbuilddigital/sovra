@@ -55,6 +55,7 @@ const orderSchema = mongoose.Schema({
     reason: { type: String },
     details: { type: String },
     images: [{ type: String }],
+    video: { type: String, default: '' },
     adminNotes: { type: String },
     status: { type: String, default: 'Pending' }, // 'Pending', 'Approved', 'Rejected'
     requestedAt: { type: Date },
@@ -65,11 +66,49 @@ const orderSchema = mongoose.Schema({
   statusUpdateReason: { type: String, default: '' }, // For cancellations or return rejections
   promoCode: { type: String },
   discountPrice: { type: Number, default: 0.0 },
+  ad2ship: {
+    orderId: { type: Number },
+    orderNumber: { type: String, default: '' },
+    awbNumber: { type: String, default: '', index: true },
+    courierName: { type: String, default: '' },
+    courierPartnerId: { type: Number },
+    orderType: { type: String, default: 'forward' },
+    paymentType: { type: String, default: 'prepaid' },
+    labelUrl: { type: String, default: '' },
+    invoiceUrl: { type: String, default: '' },
+    manifestGenerated: { type: Boolean, default: false },
+    shipmentStatus: { type: String, default: '' },
+    totalCharges: { type: Number, default: 0 },
+    shippingCharges: { type: Number, default: 0 },
+    codCharges: { type: Number, default: 0 },
+    routeCode: { type: String, default: '' },
+    weight: { type: Number, default: 0.5 },
+    length: { type: Number, default: 10 },
+    breadth: { type: Number, default: 10 },
+    height: { type: Number, default: 5 },
+    shippedAt: { type: Date },
+    lastTrackedAt: { type: Date },
+    trackingHistory: [
+      {
+        statusCode: String,
+        status: String,
+        statusDescription: String,
+        location: String,
+        eventDate: String,
+        remarks: String,
+      },
+    ],
+    notifications: {
+      smsSent: { type: Boolean, default: false },
+      smsSentAt: { type: Date },
+      smsMessageId: { type: String, default: '' },
+      whatsappSent: { type: Boolean, default: false },
+      whatsappSentAt: { type: Date },
+      whatsappMessageId: { type: String, default: '' },
+      lastError: { type: String, default: '' },
+    },
+  },
 }, {
-
-
-
-
   timestamps: true,
 });
 

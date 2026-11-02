@@ -298,11 +298,105 @@ const getOrderConfirmationTemplate = (order, user = {}) => {
 </html>`;
 };
 
+
+/**
+ * Branded Order Shipment Notification Email
+ */
+const getOrderShippedTemplate = ({ order, courier, awbNumber, trackingUrl }) => {
+  const customerName = order?.shippingAddress?.fullName || order?.user?.name || 'Valued Collector';
+  const orderIdStr = order?._id ? order._id.toString().slice(-6).toUpperCase() : 'RECORDED';
+  const courierName = courier || 'Express Logistics Partner';
+  const awb = awbNumber || order?.trackingNumber || 'Tracking ID Assigned';
+  const directTrackUrl = trackingUrl || `https://sovrajewellery.com/order/${order?._id || ''}`;
+  const shipAddr = order?.shippingAddress || {};
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Order Has Shipped - SOVRA</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #faf9f6; font-family: 'Georgia', serif;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #faf9f6; padding: 40px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border: 1px solid #eae6df; border-radius: 8px; padding: 45px 35px; color: #1a1a1a;">
+          <tr>
+            <td align="center" style="padding-bottom: 30px; border-bottom: 1px solid #f2ede4;">
+              <h1 style="font-weight: 300; letter-spacing: 0.35em; text-transform: uppercase; font-size: 24px; margin: 0; color: #1a1a1a;">SOVRA</h1>
+              <p style="font-size: 10px; letter-spacing: 0.4em; text-transform: uppercase; color: #8c7b68; margin: 8px 0 0 0;">Dispatch Notification</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 35px 0 25px 0;">
+              <p style="font-size: 16px; font-style: italic; color: #555555; margin: 0 0 16px 0;">Dear ${customerName},</p>
+              <p style="font-size: 14px; line-height: 1.8; color: #333333; margin: 0 0 25px 0;">
+                Your exquisite jewellery piece has been carefully polished, sealed in our tamper-evident signature vault, and entrusted to our courier partner for priority delivery.
+              </p>
+
+              <!-- Courier Logistics Card -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #fbf9f5; border: 1px solid #ecd8ba; border-radius: 8px; padding: 22px; margin-bottom: 25px;">
+                <tr>
+                  <td>
+                    <p style="margin: 0 0 6px 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.25em; color: #855e23; font-weight: bold; font-family: sans-serif;">Courier Partner</p>
+                    <p style="margin: 0 0 16px 0; font-size: 15px; font-weight: bold; color: #111110; font-family: sans-serif;">${courierName}</p>
+                    
+                    <p style="margin: 0 0 6px 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.25em; color: #855e23; font-weight: bold; font-family: sans-serif;">AWB Tracking Number</p>
+                    <p style="margin: 0; font-size: 18px; font-weight: bold; font-family: monospace; letter-spacing: 0.05em; color: #111110;">${awb}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Delivery Destination Summary -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #faf9f6; border: 1px solid #f2ede4; border-radius: 6px; padding: 18px; margin-bottom: 30px;">
+                <tr>
+                  <td>
+                    <p style="font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: #8c7b68; margin: 0 0 8px 0; font-family: sans-serif;">Destination Address</p>
+                    <p style="font-size: 13px; line-height: 1.6; color: #555555; margin: 0; font-family: sans-serif;">
+                      ${shipAddr.fullName || customerName}<br />
+                      ${shipAddr.address || ''}<br />
+                      ${shipAddr.city || ''}, ${shipAddr.state || ''} ${shipAddr.postalCode || ''}<br />
+                      ${shipAddr.phone ? `Phone: ${shipAddr.phone}` : ''}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Action Button -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <a href="${directTrackUrl}" target="_blank" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; padding: 14px 36px; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; text-decoration: none; border-radius: 4px; font-weight: bold; font-family: sans-serif;">Track Live Shipment</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="text-align: center; font-size: 11px; color: #999999; margin: 15px 0 0 0; font-family: sans-serif;">Order Reference: #${orderIdStr}</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="border-top: 1px solid #f2ede4; padding-top: 30px; text-align: center;">
+              <p style="font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: #999999; margin: 0 0 8px 0; font-family: sans-serif;">Maison Sovra</p>
+              <div style="font-size: 11px; color: #aaaaaa; line-height: 1.6; font-family: sans-serif;">
+                23, Pulla Beside Platinum Square, RK Circle, Udaipur-313001<br />
+                <a href="https://sovrajewellery.com" style="color: #8c7b68; text-decoration: none;">www.sovrajewellery.com</a>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+};
+
 module.exports = {
   sendEmail,
   getOTPTemplate,
   getOTPText,
   getNewsletterTemplate,
   getOrderConfirmationTemplate,
+  getOrderShippedTemplate,
   stripHtml
 };

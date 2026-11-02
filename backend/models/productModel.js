@@ -37,8 +37,12 @@ const productSchema = mongoose.Schema({
   rating: { type: Number, required: true, default: 0 },
   numReviews: { type: Number, required: true, default: 0 },
   shuffleOrder: { type: Number, default: 0 },
+  // Logistics & Shipping Dimensions (Admin & Ad2Ship internal use, not visible on storefront)
+  shippingWeight: { type: Number, default: 0.2 }, // Weight in kg including jewelry box & protective packaging
+  shippingLength: { type: Number, default: 10 }, // Length in cm
+  shippingBreadth: { type: Number, default: 10 }, // Breadth in cm
+  shippingHeight: { type: Number, default: 5 }, // Height in cm
 }, {
-
   timestamps: true,
 });
 
