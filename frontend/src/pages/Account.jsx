@@ -11,7 +11,7 @@ import {
     LogOut, Plus, Search, Eye, Edit3, Trash2, ExternalLink, FileText,
     CheckCircle2, AlertCircle, ArrowUpRight, RotateCcw,
     Check, X, ChevronRight, ArrowRight, Sparkles, Gem, Clock,
-    CreditCard, Calendar, Mail, Phone, Lock, Filter, Package,
+    CreditCard, Calendar, Truck, Mail, Phone, Lock, Filter, Package,
     ShoppingBag as CartIcon
 } from 'lucide-react'
 
@@ -778,12 +778,33 @@ const Account = () => {
 
                                     {/* Logistics / Tracking details */}
                                     {order.trackingNumber ? (
-                                        <div className="mt-4 p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-xl flex items-center gap-2.5 text-xs font-sans text-blue-900">
-                                            <Package size={17} className="text-blue-600 flex-shrink-0" />
-                                            <div>
-                                                <span className="font-semibold text-blue-950 block">Shipment Dispatched via {order.carrier || 'Express Courier'}</span>
-                                                <span className="text-stone-600 font-mono text-[11px]">AWB / Tracking Number: <strong className="text-stone-900">{order.trackingNumber}</strong></span>
+                                        <div className="mt-4 p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-xl flex items-center justify-between text-xs font-sans text-blue-900">
+                                            <div className="flex items-center gap-2.5">
+                                                <Package size={17} className="text-blue-600 flex-shrink-0" />
+                                                <div>
+                                                    <span className="font-semibold text-blue-950 block">Shipment Dispatched via {order.carrier || 'Express Courier'}</span>
+                                                    <span className="text-stone-600 font-mono text-[11px]">AWB / Tracking Number: <strong className="text-stone-900">{order.trackingNumber}</strong></span>
+                                                </div>
                                             </div>
+                                            <span className="px-2.5 py-1 bg-blue-100 text-blue-800 font-bold text-[10px] uppercase rounded-lg">
+                                                {order.status || 'Shipped'}
+                                            </span>
+                                        </div>
+                                    ) : order.status === 'Delivered' ? (
+                                        <div className="mt-4 px-3.5 py-2.5 bg-emerald-50/80 border border-emerald-200/60 rounded-xl flex items-center justify-between text-xs font-sans text-emerald-900">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 size={15} className="text-emerald-600 flex-shrink-0" />
+                                                <span>Status: <strong className="font-semibold">Delivered</strong> — Package successfully delivered</span>
+                                            </div>
+                                            <span className="text-[11px] text-emerald-700 font-medium">Delivered</span>
+                                        </div>
+                                    ) : order.status === 'Shipped' ? (
+                                        <div className="mt-4 px-3.5 py-2.5 bg-blue-50/80 border border-blue-200/60 rounded-xl flex items-center justify-between text-xs font-sans text-blue-900">
+                                            <div className="flex items-center gap-2">
+                                                <Truck size={15} className="text-blue-600 flex-shrink-0" />
+                                                <span>Status: <strong className="font-semibold">Shipped</strong> — In transit via {order.carrier || 'Courier Partner'}</span>
+                                            </div>
+                                            <span className="text-[11px] text-blue-700 font-medium">In Transit</span>
                                         </div>
                                     ) : order.status !== 'Cancelled' ? (
                                         <div className="mt-4 px-3.5 py-2.5 bg-stone-50 border border-stone-200/60 rounded-xl flex items-center justify-between text-xs font-sans text-stone-600">

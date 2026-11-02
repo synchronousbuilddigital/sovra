@@ -153,14 +153,9 @@ const Invoice = () => {
                             className="h-20 w-20 rounded-2xl object-cover shadow-md border border-stone-900/10 flex-shrink-0"
                         />
                         <div>
-                            <div className="flex items-baseline gap-2.5">
-                                <h1 className="font-serif text-3xl font-medium tracking-[0.18em] text-stone-950 uppercase leading-none">
-                                    SOVRA
-                                </h1>
-                                <span className="text-[10px] font-sans font-extrabold uppercase tracking-widest text-[#855e23] bg-[#faf6f0] px-2 py-0.5 rounded border border-[#855e23]/20">
-                                    Jewellery
-                                </span>
-                            </div>
+                            <h1 className="font-serif text-3xl font-medium tracking-[0.18em] text-stone-950 uppercase leading-none">
+                                SOVRA
+                            </h1>
                             <p className="text-[11px] font-medium tracking-[0.22em] uppercase text-[#855e23] mt-1">
                                 Adorn Your Story • Everyday Luxury
                             </p>
@@ -435,25 +430,25 @@ const Invoice = () => {
                     {/* Authorized Signatory */}
                     <div className="sm:text-right flex flex-col items-start sm:items-end justify-between pt-2 sm:pt-0">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-stone-800">
-                            For SOVRA JEWELLERY
+                            For SOVRA
                         </p>
                         <div className="my-2 text-center sm:text-right">
                             <span className="font-serif italic text-2xl font-normal text-stone-800 tracking-wider">
-                                Sovra Atelier
+                                Sovra
                             </span>
                             <div className="h-0.5 w-36 bg-stone-300 mt-1 sm:ml-auto"></div>
                         </div>
                         <div className="text-[10px] text-stone-500">
                             <p className="font-semibold text-stone-800">Authorized Signatory</p>
                             <p className="text-[9px] italic">Digitally Signed & Validated</p>
-                            <p className="text-[9px]">Udaipur Atelier, Rajasthan</p>
+                            <p className="text-[9px]">Udaipur, Rajasthan</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Footer Stamp */}
                 <div className="mt-8 pt-4 border-t border-stone-100 text-center text-[9px] text-stone-400 font-mono tracking-[0.25em] uppercase">
-                    SOVRA JEWELLERY • UDAIPUR, RAJASTHAN • WWW.SOVRA.IN • ADORN YOUR STORY
+                    SOVRA • UDAIPUR, RAJASTHAN • WWW.SOVRA.IN • ADORN YOUR STORY
                 </div>
             </div>
 

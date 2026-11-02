@@ -276,7 +276,7 @@ const updateOrderToDelivered = async (req, res) => {
 // @access  Private
 const getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user._id });
+    const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: 'Archive search failure' });
@@ -587,7 +587,7 @@ const getOrderInvoice = async (req, res) => {
                 <img src="/sovra-gold-logo.jpg" alt="SOVRA" class="brand-logo" onerror="this.src='/logo.png'" />
                 <div>
                   <div class="brand-title">SOVRA</div>
-                  <div class="brand-tag">Adorn Your Story • Fine Jewellery</div>
+                  <div class="brand-tag">Adorn Your Story • Everyday Luxury</div>
                   <div class="company-info">
                     <strong>Sovra Lifestyle Private Limited</strong><br/>
                     23, Pulla Beside Platinum Square, RK Circle, Udaipur - 313001<br/>
@@ -676,8 +676,8 @@ const getOrderInvoice = async (req, res) => {
             </div>
 
             <div class="footer">
-              <div>SOVRA JEWELLERY • UDAIPUR, RAJASTHAN • WWW.SOVRA.IN</div>
-              <div style="text-align: right;">Authorized Signatory for SOVRA JEWELLERY</div>
+              <div>SOVRA • UDAIPUR, RAJASTHAN • WWW.SOVRA.IN</div>
+              <div style="text-align: right;">Authorized Signatory for SOVRA</div>
             </div>
           </div>
           <script>window.onload = () => { window.print(); }</script>
