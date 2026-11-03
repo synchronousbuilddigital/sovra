@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { m, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Bell } from 'lucide-react';
 import api from '../utils/api';
 import { useShop } from '../context/ShopContext';
 
@@ -52,9 +53,7 @@ const NotificationTray = () => {
                 className="relative group flex items-center hover:scale-110 transition-all p-0.5"
                 aria-label="Notifications"
             >
-                <span className="material-symbols-outlined text-[20px] md:text-[24px] group-hover:text-primary transition-colors">
-                    {unreadCount > 0 ? 'notifications_active' : 'notifications'}
-                </span>
+                <Bell className="w-5 h-5 md:w-6 md:h-6 group-hover:text-primary transition-colors" />
                 {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse shadow-lux border-2 border-[#fffcf7]" />
                 )}
@@ -75,35 +74,53 @@ const NotificationTray = () => {
                             initial={{ opacity: 0, scale: 0.95, y: 10, x: -20 }}
                             animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 10, x: -20 }}
-                            className="absolute right-0 top-12 w-80 max-h-[400px] bg-[#fffcf7] border border-outline-variant/10 shadow-lux z-50 overflow-y-auto no-scrollbar"
+                            transition={{ duration: 0.2 }}
+                            className="absolute right-0 top-full mt-4 w-80 md:w-96 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl shadow-lux z-50 overflow-hidden font-body backdrop-blur-xl"
                         >
-                            <div className="p-6 border-b border-black/5 flex justify-between items-center bg-white/40">
-                                <h3 className="font-label text-[10px] uppercase tracking-[0.3em] font-black italic">Archival Reports</h3>
-                                {unreadCount > 0 && <span className="font-label text-[8px] uppercase font-black text-primary animate-pulse">{unreadCount} New</span>}
-                            </div>
-
-                            <div className="divide-y divide-black/5">
-                                {notifications.length > 0 ? notifications.map(notif => (
-                                    <div
-                                        key={notif._id}
-                                        className={`p-6 hover:bg-primary/[0.02] transition-colors cursor-pointer ${!notif.isRead ? 'border-l-2 border-primary' : ''}`}
-                                        onClick={() => markAsRead(notif._id)}
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <p className={`font-headline text-md italic ${!notif.isRead ? 'text-primary' : 'opacity-60'}`}>{notif.title}</p>
-                                            <span className="text-[8px] opacity-30 uppercase font-black">{new Date(notif.createdAt).toLocaleDateString()}</span>
-                                        </div>
-                                        <p className="font-body text-[11px] opacity-60 leading-relaxed italic">{notif.message}</p>
-                                    </div>
-                                )) : (
-                                    <div className="p-12 text-center">
-                                        <p className="font-body text-xs italic opacity-30">No archives currently reports.</p>
-                                    </div>
+                            <div className="p-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-high/40">
+                                <h4 className="font-headline text-sm tracking-wider uppercase font-semibold text-on-surface">Maison Updates</h4>
+                                {unreadCount > 0 && (
+                                    <span className="text-[10px] tracking-widest uppercase font-mono px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold">
+                                        {unreadCount} Unread
+                                    </span>
                                 )}
                             </div>
 
-                            <div className="p-4 bg-primary/[0.03] text-center border-t border-black/5">
-                                <Link to="/account" onClick={() => setIsOpen(false)} className="font-label text-[8px] uppercase tracking-widest font-black text-primary/60 hover:text-primary transition-all">View All Activity</Link>
+                            <div className="max-h-[360px] overflow-y-auto divide-y divide-outline-variant/10">
+                                {notifications.length > 0 ? (
+                                    notifications.map((n) => (
+                                        <div
+                                            key={n._id}
+                                            onClick={() => markAsRead(n._id)}
+                                            className={`p-4 transition-colors hover:bg-surface-container-low/40 cursor-pointer ${!n.isRead ? 'bg-primary/[0.03]' : ''}`}
+                                        >
+                                            <div className="flex justify-between items-start gap-2 mb-1">
+                                                <p className={`text-xs ${!n.isRead ? 'font-bold text-on-surface' : 'font-medium text-on-surface-variant'}`}>
+                                                    {n.title}
+                                                </p>
+                                                <span className="text-[9px] font-mono opacity-50 shrink-0">
+                                                    {new Date(n.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-on-surface-variant leading-relaxed line-clamp-2">
+                                                {n.message}
+                                            </p>
+                                            {n.link && (
+                                                <Link
+                                                    to={n.link}
+                                                    onClick={() => setIsOpen(false)}
+                                                    className="inline-block mt-2 text-[10px] font-semibold text-primary hover:underline tracking-wider uppercase"
+                                                >
+                                                    View Details →
+                                                </Link>
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="p-8 text-center text-on-surface-variant/60">
+                                        <p className="text-xs italic font-serif">No new missives from the atelier.</p>
+                                    </div>
+                                )}
                             </div>
                         </m.div>
                     </>

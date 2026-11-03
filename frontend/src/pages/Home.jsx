@@ -239,6 +239,8 @@ const Home = () => {
                         <img
                             src="/earring_hero.png"
                             alt="Earring Collection"
+                            loading="lazy"
+                            decoding="async"
                             className="absolute inset-0 w-full h-full object-cover object-[center_25%] transition-transform duration-700 ease-out group-hover:scale-105"
                         />
 
@@ -309,7 +311,7 @@ const Home = () => {
                                         {/* Product Image from Shop Page */}
                                         <div className="w-full aspect-square rounded-xl bg-[#faf8f4] p-1 sm:p-1.5 flex items-center justify-center overflow-hidden mb-2.5 sm:mb-3">
                                             <img
-                                                src={getOptimizedImage(product.img || product.image || (product.images && product.images[0]), 600)}
+                                                src={getOptimizedImage(product.img || product.image || (product.images && product.images[0]), 400)}
                                                 alt={product.name}
                                                 loading="lazy"
                                                 className="w-full h-full object-cover rounded-md transition-transform duration-500 ease-out group-hover/card:scale-105"
@@ -380,7 +382,7 @@ const Home = () => {
                                     <img
                                         alt={cat.name}
                                         loading="lazy"
-                                        src={getOptimizedImage(cat.image)}
+                                        src={getOptimizedImage(cat.image, 380)}
                                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>

@@ -2,54 +2,61 @@
 <html lang="en">
 
 <head>
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','%VITE_GTM_ID%');</script>
-  <!-- End Google Tag Manager -->
-
   <meta charset="UTF-8" />
   <link rel="icon" type="image/jpeg" href="/logo.jpg" />
   <link rel="shortcut icon" type="image/jpeg" href="/logo.jpg" />
   <link rel="apple-touch-icon" href="/logo.jpg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SOVRA | Ethereal Jewellery & Maison</title>
+
+  <!-- Preload Critical LCP Hero Image -->
   <link rel="preload" href="/necklace_hero.png" as="image" fetchpriority="high">
+
   <meta name="description" content="Discover SOVRA, a sanctuary for artisanal jewelry and high-end editorial collections. Crafted with integrity and inspired by the stars." />
   <meta name="keywords" content="jewelry, high-end jewelry, editorial jewelry, artisanal, Udaipur, handcrafted, luxury" />
 
   <!-- Open Graph / Social Sharing -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://sovra.in/" />
+  <meta property="og:url" content="https://sovrajewellery.com/" />
   <meta property="og:title" content="SOVRA | High-End Editorial Jewelry" />
   <meta property="og:description" content="Discover a sanctuary for artisanal jewelry and high-end editorial collections." />
-  <meta property="OG:image" content="/sovra_og_image.png" />
+  <meta property="og:image" content="/necklace_hero.png" />
 
-  <!-- Preconnect to Font Servers -->
+  <!-- Preconnect to Font & CDN Servers with correct CORS -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://res.cloudinary.com">
   
-  <!-- Optimized Font Loading - Essential weights for Luxury Editorial Jewellery Aesthetic -->
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Manrope:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <!-- Non-Render-Blocking Google Fonts Loading (Display Swap) -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Serif:wght@300;400;600&family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Serif:wght@300;400;600&family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" media="print" onload="this.media='all'">
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=IBM+Plex+Serif:wght@300;400;600&family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap">
+  </noscript>
 
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image" />
   <meta property="twitter:title" content="SOVRA | High-End Editorial Jewelry" />
   <meta property="twitter:description" content="Discover a sanctuary for artisanal jewelry and high-end editorial collections." />
 
-  <!-- Google Analytics 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_ID%"></script>
+  <!-- Google Tag Manager (Deferred to avoid blocking FCP/LCP) -->
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '%VITE_GA_ID%');
+    function initGTM() {
+      (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+      'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+      })(window,document,'script','dataLayer','%VITE_GTM_ID%');
+    }
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(initGTM, { timeout: 2000 });
+    } else {
+      window.addEventListener('load', initGTM);
+    }
   </script>
 
-  <!-- Google Identity Services (GIS) -->
+  <!-- Google Identity Services (GIS - Deferred) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { useShop } from '../context/ShopContext'
 import NotificationTray from './NotificationTray'
+import { Search, Heart, User, ShoppingBag, X, Menu } from 'lucide-react'
 
 const Navbar = () => {
     const { isAdmin, cart } = useShop()
@@ -107,9 +108,7 @@ const Navbar = () => {
                         onClick={toggleMobileMenu}
                         aria-label="Toggle Navigation Menu"
                     >
-                        <span className="material-symbols-outlined text-[22px]">
-                            {isMobileMenuOpen ? 'close' : 'menu'}
-                        </span>
+                        {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
                     </button>
                     <Link to="/" className="flex items-center group">
                         <Motion.img
@@ -192,14 +191,11 @@ const Navbar = () => {
                                 className="flex items-center hover:opacity-70 transition-all hover:scale-110 p-0.5"
                                 aria-label="Search"
                             >
-                                <Motion.span
-                                    initial={false}
-                                    animate={{ fontSize: isMobile ? '20px' : (isScrolled ? '24px' : '26px') }}
-                                    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                                    className="material-symbols-outlined"
-                                >
-                                    {isSearchOpen ? 'close' : 'search'}
-                                </Motion.span>
+                                {isSearchOpen ? (
+                                    <X size={isMobile ? 20 : (isScrolled ? 22 : 24)} />
+                                ) : (
+                                    <Search size={isMobile ? 20 : (isScrolled ? 22 : 24)} />
+                                )}
                             </button>
                         </div>
 
@@ -208,14 +204,7 @@ const Navbar = () => {
                         </div>
 
                         <Link to="/wishlist" className="flex items-center hover:opacity-70 transition-all hover:scale-110 p-0.5" title="Wishlist">
-                            <Motion.span
-                                initial={false}
-                                animate={{ fontSize: isMobile ? '20px' : (isScrolled ? '24px' : '26px') }}
-                                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                                className="material-symbols-outlined"
-                            >
-                                favorite
-                            </Motion.span>
+                            <Heart size={isMobile ? 20 : (isScrolled ? 22 : 24)} />
                         </Link>
 
                         <Link
@@ -223,24 +212,10 @@ const Navbar = () => {
                             className="flex items-center hover:opacity-70 transition-all hover:scale-110 p-0.5"
                             title={isAdmin ? "Admin Panel" : "My Account"}
                         >
-                            <Motion.span
-                                initial={false}
-                                animate={{ fontSize: isMobile ? '20px' : (isScrolled ? '24px' : '26px') }}
-                                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                                className="material-symbols-outlined"
-                            >
-                                person
-                            </Motion.span>
+                            <User size={isMobile ? 20 : (isScrolled ? 22 : 24)} />
                         </Link>
                         <Link to="/bag" className="flex items-center hover:opacity-70 transition-all relative hover:scale-110 p-0.5">
-                            <Motion.span
-                                initial={false}
-                                animate={{ fontSize: isMobile ? '20px' : (isScrolled ? '24px' : '26px') }}
-                                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                                className="material-symbols-outlined block"
-                            >
-                                shopping_bag
-                            </Motion.span>
+                            <ShoppingBag size={isMobile ? 20 : (isScrolled ? 22 : 24)} />
                             <span className="absolute -top-1 -right-1 text-[8px] bg-primary text-on-primary rounded-full w-3.5 h-3.5 flex items-center justify-center font-bold shadow-sm border border-[#fffcf7]">
                                 {cart.reduce((acc, item) => acc + item.qty, 0)}
                             </span>
@@ -284,7 +259,7 @@ const Navbar = () => {
                         transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                         className="pointer-events-auto fixed top-[66px] left-3 right-3 bg-[#fffcf7]/98 backdrop-blur-xl border border-primary/15 rounded-2xl p-2.5 shadow-2xl flex items-center gap-2 z-40 md:hidden"
                     >
-                        <span className="material-symbols-outlined text-[20px] text-[#6e5b44] pl-2">search</span>
+                        <Search size={18} className="text-[#6e5b44] ml-2 shrink-0" />
                         <form onSubmit={handleSearch} className="flex-1 flex items-center gap-2">
                             <input
                                 autoFocus
@@ -301,7 +276,7 @@ const Navbar = () => {
                                     className="p-1 text-[#6e5b44] hover:text-[#111110]"
                                     aria-label="Clear keyword"
                                 >
-                                    <span className="material-symbols-outlined text-[16px]">close</span>
+                                    <X size={16} />
                                 </button>
                             )}
                             <button

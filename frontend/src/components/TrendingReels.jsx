@@ -240,6 +240,10 @@ const TrendingReels = ({ shopProducts = [] }) => {
                                     <img
                                         src={reel.image}
                                         alt={reelTitle}
+                                        loading="lazy"
+                                        decoding="async"
+                                        width="300"
+                                        height="520"
                                         className="w-full h-full object-cover select-none"
                                         draggable="false"
                                     />

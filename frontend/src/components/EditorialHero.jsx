@@ -1,17 +1,22 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight, Play } from 'lucide-react'
 import { getOptimizedImage } from '../utils/imageUtils'
 
 const categories = [
-    { id: 1, name: 'Necklaces', image: '/necklace_hero.png' },
-    { id: 2, name: 'Bracelets', image: '/bracelet_hero.png' },
-    { id: 3, name: 'Rings', image: '/ring_hero.png' },
-    { id: 4, name: 'Earrings', image: '/earring_hero.png' }
+    { id: 1, name: 'Necklaces', image: '/necklace_hero.png', thumb: '/necklace_hero_thumb.png' },
+    { id: 2, name: 'Bracelets', image: '/bracelet_hero.png', thumb: '/bracelet_hero_thumb.png' },
+    { id: 3, name: 'Rings', image: '/ring_hero.png', thumb: '/ring_hero_thumb.png' },
+    { id: 4, name: 'Earrings', image: '/earring_hero.png', thumb: '/earring_hero_thumb.png' }
 ]
 
 const EditorialHero = () => {
     const [activeTab, setActiveTab] = useState(categories[0])
+    const isFirstMount = useRef(true)
+
+    useEffect(() => {
+        isFirstMount.current = false
+    }, [])
 
     // Auto-cycle effect - delayed to reduce initial mount TBT
     useEffect(() => {
@@ -42,7 +47,7 @@ const EditorialHero = () => {
                     <AnimatePresence mode="wait">
                         <Motion.img
                             key={`mobile-hero-${activeTab.id}`}
-                            initial={{ opacity: 0, scale: 1.04 }}
+                            initial={isFirstMount.current ? false : { opacity: 0, scale: 1.04 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.98 }}
                             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -70,7 +75,7 @@ const EditorialHero = () => {
                                 <div className={`w-11 h-11 rounded-full border-2 overflow-hidden bg-white transition-all ${isActive ? 'border-[#111110] shadow-sm ring-2 ring-[#111110]/15' : 'border-[#111110]/15'
                                     }`}>
                                     <img
-                                        src={getOptimizedImage(item.image, 100)}
+                                        src={item.thumb || getOptimizedImage(item.image, 100)}
                                         alt={item.name}
                                         className={`w-full h-full object-cover transition-all ${isActive ? 'grayscale-0' : 'grayscale-[0.4]'
                                             }`}
@@ -135,7 +140,7 @@ const EditorialHero = () => {
                         className="group relative cursor-pointer"
                     >
                         <div className={`w-14 h-14 rounded-full border-2 border-[#f5f0e8] overflow-hidden ${i > 0 ? '-ml-4' : ''} bg-white shadow-sm transition-all duration-500 ${activeTab.id === item.id ? 'z-50 scale-110 shadow-xl border-[#111110]/20' : 'z-10'} group-hover:z-50 group-hover:shadow-xl`}>
-                            <img src={getOptimizedImage(item.image, 100)} alt={item.name} loading="lazy" className={`w-full h-full object-cover transition-all duration-700 ${activeTab.id === item.id ? 'grayscale-0' : 'grayscale-[0.6]'} group-hover:grayscale-0`} />
+                            <img src={item.thumb || getOptimizedImage(item.image, 100)} alt={item.name} loading="lazy" className={`w-full h-full object-cover transition-all duration-700 ${activeTab.id === item.id ? 'grayscale-0' : 'grayscale-[0.6]'} group-hover:grayscale-0`} />
                         </div>
                         <div className={`absolute -bottom-8 left-1/2 -translate-x-1/2 transition-all duration-500 pointer-events-none ${activeTab.id === item.id ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
                             <span className="text-[9px] kerning-widest uppercase font-sans text-[#111110] bg-white px-2 py-1 rounded shadow-sm">
@@ -156,7 +161,7 @@ const EditorialHero = () => {
                     <AnimatePresence>
                         <Motion.img
                             key={activeTab.id}
-                            initial={{ opacity: 0, scale: 1.05 }}
+                            initial={isFirstMount.current ? false : { opacity: 0, scale: 1.05 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.98, position: 'absolute', top: 0, left: 0 }}
                             transition={{ duration: 0.6 }}
@@ -225,7 +230,7 @@ const EditorialHero = () => {
                     <AnimatePresence>
                         <Motion.img
                             key={activeTab.id}
-                            initial={{ opacity: 0, scale: 1.05 }}
+                            initial={isFirstMount.current ? false : { opacity: 0, scale: 1.05 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.98, position: 'absolute', inset: 0 }}
                             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
